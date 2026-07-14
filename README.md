@@ -43,7 +43,14 @@ Start the local stdio MCP server:
 npm run mcp
 ```
 
-The checked-in `.codex/config.toml` registers that server for trusted Codex workspaces. The public deployment also exposes a stateless Streamable HTTP MCP endpoint at `/mcp`.
+The local server exposes the headless empirical tools. `empirical_analyze_table` accepts connector-provided rows or CSV content; `empirical_analyze_resource` reads a local CSV only from an approved root; `empirical_aggregate_receipts` compares redacted receipts and summarizes only a compatible observed cohort. Configure those roots before startup (use the platform path delimiter for multiple roots):
+
+```powershell
+$env:VTL_EMPIRICAL_ROOTS="C:\Research\Approved Data"
+npm run mcp
+```
+
+The checked-in `.codex/config.toml` registers the stdio server for trusted Codex workspaces. The public deployment also exposes a stateless Streamable HTTP MCP endpoint at `/mcp`, but remote empirical tools appear only when the self-hosted empirical service is enabled and the MCP request carries its bearer token.
 
 Public discovery and data contracts:
 
@@ -57,17 +64,25 @@ Public discovery and data contracts:
 - `POST /api/v1/proposals/validate` - draft-only scenario evidence validation
 - `GET /api/v1/research/paper?case=stable-periodic` - exact versioned legacy-paper fixture reproduction
 - `POST /api/v1/telemetry` - external `time,mismatch` telemetry analysis
+- `POST /api/v1/empirical/analyze` - opt-in, token-protected headless empirical analysis for self-hosted research deployments
+- `POST /api/v1/empirical/aggregate` - opt-in, token-protected compatibility and descriptive aggregation for redacted receipts
 - `/schemas/v1/index.json` - JSON Schema catalog
 
 See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP tools.
+
+The empirical HTTP endpoint is disabled by default. A self-hosted operator must set `VTL_ENABLE_EMPIRICAL_API=true` and `VTL_EMPIRICAL_API_TOKEN`, and should set `VTL_EMPIRICAL_API_ORIGIN` to the one browser origin allowed to read responses. Remote requests must still declare `privacy.remoteProcessingAuthorized: true`. Sensitive or restricted data are rejected unless deidentified; changing that default additionally requires `VTL_ALLOW_SENSITIVE_EMPIRICAL_DATA=true`.
 
 ## Product areas
 
 - Live scenario simulator with 3D and accessible 2D torus views
 - A 32-scenario pack: 22 red/orange/yellow watchlist systems and 10 featured simulations, each with model-family metadata, recurrent phases, domain labels, AIx layers, presets, assumptions, units, references, and falsification criteria
 - Deterministic seeded simulation, playback controls, interventions, and explanations
+- Explainable educational watchlist receipts that separate the published default tier, the recalculated current-parameter tier, and the illustrative frame-by-frame status; every engine parameter is mapped to its equation role and scenario-specific real-world proxy
+- Paper-traceable chart interactions: Section 12 θ/φ axis order, gated latent-versus-estimated external phase, causal-versus-projected time disclosure, an explicitly toy `A=e⁻ρ` proxy, and Equation 11 expansion/contraction semantics
 - Separate viability-boundary crossing, recoverable excursion, and policy-triggered irreversible rupture states with a reduced-motion-aware fragment visualization
 - Versioned Experiments workspace for paper reproduction, topology, hysteresis, coupled tori, navigation, and imported telemetry
+- Browser-local Empirical Lab for documented multi-column CSV observations: explicit paper-variable mapping, two-phase recurrence/independence gates, one-step observed-driver replay, calibration-residual uncertainty, holdout metrics, dynamic model attribution, and redacted evidence receipts
+- Browser-local Evidence Registry for importing redacted receipts, selecting an anchor study, explaining compatibility failures, preserving negative and synthetic studies, and summarizing only compatible observed receipts without averaging watchlist tiers
 - Full eight-component ATS 4.0 AIx display and verifier-grounded AANA decision gate, clearly labeled as an uncalibrated synthetic diagnostic
 - Unwrapped phase, time-series, and radial-stability charts with table alternatives
 - Side-by-side compare mode and difference summaries

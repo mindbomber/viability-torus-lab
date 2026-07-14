@@ -42,6 +42,31 @@ export const GENERATED_SCHEMA_INDEX = {
       "name": "external-telemetry",
       "title": "External mismatch telemetry",
       "url": "/schemas/v1/external-telemetry.schema.json"
+    },
+    {
+      "name": "empirical-evidence-bundle",
+      "title": "Browser-local empirical study evidence bundle",
+      "url": "/schemas/v1/empirical-evidence-bundle.schema.json"
+    },
+    {
+      "name": "empirical-research-request",
+      "title": "Headless empirical research request",
+      "url": "/schemas/v1/empirical-research-request.schema.json"
+    },
+    {
+      "name": "empirical-research-receipt",
+      "title": "Redacted empirical research receipt",
+      "url": "/schemas/v1/empirical-research-receipt.schema.json"
+    },
+    {
+      "name": "empirical-evidence-registry-request",
+      "title": "Evidence Registry aggregation request",
+      "url": "/schemas/v1/empirical-evidence-registry-request.schema.json"
+    },
+    {
+      "name": "empirical-evidence-registry",
+      "title": "Redacted Evidence Registry bundle",
+      "url": "/schemas/v1/empirical-evidence-registry.schema.json"
     }
   ]
 } as const;
@@ -4564,5 +4589,4606 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
     "additionalProperties": false,
     "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/external-telemetry.schema.json",
     "title": "External mismatch telemetry"
+  },
+  "empirical-evidence-bundle.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "default": "1.0.0",
+        "type": "string",
+        "const": "1.0.0"
+      },
+      "kind": {
+        "type": "string",
+        "const": "browser-local-empirical-study"
+      },
+      "modelVersion": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 80
+      },
+      "scenarioId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "scenarioVersion": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+      },
+      "exportedAt": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+      },
+      "study": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "objective": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000
+          },
+          "population": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "horizon": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "aggregation": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "viableRegion": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "internalCycle": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "externalCycle": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "falsification": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 2000
+          },
+          "provenance": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "name",
+          "objective",
+          "population",
+          "horizon",
+          "aggregation",
+          "viableRegion",
+          "internalCycle",
+          "externalCycle",
+          "falsification",
+          "provenance"
+        ],
+        "additionalProperties": false
+      },
+      "source": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "imported-observation",
+              "bundled-observed-form-demo"
+            ]
+          },
+          "preprocessing": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 8,
+            "maximum": 5000
+          },
+          "columns": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 64
+          },
+          "datasetSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "localOnly": {
+            "type": "boolean",
+            "const": true
+          },
+          "rawDataIncluded": {
+            "type": "boolean",
+            "const": false
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "rows",
+          "columns",
+          "datasetSha256",
+          "localOnly",
+          "rawDataIncluded"
+        ],
+        "additionalProperties": false
+      },
+      "mapping": {
+        "minItems": 11,
+        "maxItems": 13,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": [
+                "time",
+                "thetaSignal",
+                "phiSignal",
+                "pressure",
+                "error",
+                "feedback",
+                "correction",
+                "drift",
+                "irreversibleLoss",
+                "debt",
+                "rho",
+                "outcome",
+                "intervention"
+              ]
+            },
+            "symbol": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "role",
+            "symbol",
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "assumptions": {
+        "type": "object",
+        "properties": {
+          "kappa": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Radial restoring coefficient."
+          },
+          "rho0": {
+            "type": "number",
+            "minimum": 0.03,
+            "maximum": 5,
+            "description": "Reference radial excursion."
+          },
+          "chi": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt-to-excursion coupling."
+          },
+          "rhoCrit": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10,
+            "description": "Critical radial viability boundary."
+          },
+          "provenance": {
+            "type": "string",
+            "const": "declared-not-fitted"
+          }
+        },
+        "required": [
+          "kappa",
+          "rho0",
+          "chi",
+          "rhoCrit",
+          "provenance"
+        ],
+        "additionalProperties": false
+      },
+      "validation": {
+        "type": "object",
+        "properties": {
+          "evidenceLevel": {
+            "type": "string",
+            "const": "observed-descriptive"
+          },
+          "modelSupport": {
+            "type": "string",
+            "enum": [
+              "insufficient-data",
+              "not-supported",
+              "provisional"
+            ]
+          },
+          "torusReplayReady": {
+            "type": "boolean"
+          },
+          "gates": {
+            "minItems": 5,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "data-quality",
+                    "internal-recurrence",
+                    "external-recurrence",
+                    "phase-independence",
+                    "holdout"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 100
+                },
+                "passed": {
+                  "type": "boolean"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "ready",
+                    "blocked"
+                  ]
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "passed",
+                "state",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "internalPhase": {
+            "type": "object",
+            "properties": {
+              "identifiable": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "spectralConcentration": {
+                "type": "number"
+              },
+              "estimatedCycles": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "identifiable",
+              "reason",
+              "spectralConcentration",
+              "estimatedCycles"
+            ],
+            "additionalProperties": false
+          },
+          "externalPhase": {
+            "type": "object",
+            "properties": {
+              "identifiable": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "spectralConcentration": {
+                "type": "number"
+              },
+              "estimatedCycles": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "identifiable",
+              "reason",
+              "spectralConcentration",
+              "estimatedCycles"
+            ],
+            "additionalProperties": false
+          },
+          "phaseRelationship": {
+            "type": "object",
+            "properties": {
+              "lockingValue": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "lockingRatio": {
+                "type": "string",
+                "maxLength": 20
+              },
+              "jointCoverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "interpretation": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "lockingValue",
+              "jointCoverage",
+              "interpretation"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "evidenceLevel",
+          "modelSupport",
+          "torusReplayReady",
+          "gates",
+          "internalPhase",
+          "externalPhase",
+          "phaseRelationship"
+        ],
+        "additionalProperties": false
+      },
+      "replay": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "const": "one-step-observed-driver-replay"
+              },
+              "uncertaintyMethod": {
+                "type": "string",
+                "const": "calibration-residual-90-percent"
+              },
+              "calibrationRows": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 4999
+              },
+              "holdoutRows": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1500
+              },
+              "holdoutRmse": {
+                "type": "number",
+                "minimum": 0
+              },
+              "holdoutMae": {
+                "type": "number",
+                "minimum": 0
+              },
+              "holdoutIntervalCoverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "finalStatus": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "method",
+              "uncertaintyMethod",
+              "calibrationRows",
+              "holdoutRows",
+              "holdoutRmse",
+              "holdoutMae",
+              "holdoutIntervalCoverage",
+              "finalStatus"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "limitations": {
+        "minItems": 3,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        }
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "kind",
+      "modelVersion",
+      "scenarioId",
+      "scenarioVersion",
+      "exportedAt",
+      "study",
+      "source",
+      "mapping",
+      "assumptions",
+      "validation",
+      "replay",
+      "limitations"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/empirical-evidence-bundle.schema.json",
+    "title": "Browser-local empirical study evidence bundle"
+  },
+  "empirical-research-request.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "default": "1.0.0",
+        "type": "string",
+        "const": "1.0.0"
+      },
+      "scenarioId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "study": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "objective": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000
+          },
+          "population": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "horizon": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "aggregation": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "viableRegion": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "internalCycle": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "externalCycle": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "falsification": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 2000
+          },
+          "provenance": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "name",
+          "objective",
+          "population",
+          "horizon",
+          "aggregation",
+          "viableRegion",
+          "internalCycle",
+          "externalCycle",
+          "falsification",
+          "provenance"
+        ],
+        "additionalProperties": false
+      },
+      "source": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "resourceUri": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000
+          },
+          "dataClassification": {
+            "default": "internal",
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted"
+            ]
+          },
+          "preprocessing": {
+            "default": [],
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          }
+        },
+        "required": [
+          "name",
+          "dataClassification",
+          "preprocessing"
+        ],
+        "additionalProperties": false
+      },
+      "privacy": {
+        "type": "object",
+        "properties": {
+          "dataUseAuthorized": {
+            "type": "boolean",
+            "const": true
+          },
+          "remoteProcessingAuthorized": {
+            "default": false,
+            "type": "boolean"
+          },
+          "containsSensitiveData": {
+            "default": false,
+            "type": "boolean"
+          },
+          "deidentified": {
+            "default": false,
+            "type": "boolean"
+          },
+          "retention": {
+            "type": "string",
+            "const": "request-only"
+          }
+        },
+        "required": [
+          "dataUseAuthorized",
+          "remoteProcessingAuthorized",
+          "containsSensitiveData",
+          "deidentified",
+          "retention"
+        ],
+        "additionalProperties": false
+      },
+      "data": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string",
+                "const": "rows"
+              },
+              "columns": {
+                "minItems": 2,
+                "maxItems": 64,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                }
+              },
+              "rows": {
+                "minItems": 8,
+                "maxItems": 5000,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 20000
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "required": [
+              "format",
+              "columns",
+              "rows"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string",
+                "const": "csv"
+              },
+              "csv": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000000
+              }
+            },
+            "required": [
+              "format",
+              "csv"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "mapping": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "thetaSignal": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "phiSignal": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "pressure": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "feedback": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "correction": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "drift": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "irreversibleLoss": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "debt": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "rho": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "outcome": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "intervention": {
+            "type": "object",
+            "properties": {
+              "column": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "evidence": {
+                "type": "string",
+                "enum": [
+                  "uploaded-observation",
+                  "declared-proxy",
+                  "not-mapped"
+                ]
+              }
+            },
+            "required": [
+              "column",
+              "unit",
+              "evidence"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "time",
+          "thetaSignal",
+          "phiSignal",
+          "pressure",
+          "error",
+          "feedback",
+          "correction",
+          "drift",
+          "irreversibleLoss",
+          "debt",
+          "rho",
+          "outcome",
+          "intervention"
+        ],
+        "additionalProperties": false
+      },
+      "assumptions": {
+        "type": "object",
+        "properties": {
+          "kappa": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Radial restoring coefficient."
+          },
+          "rho0": {
+            "type": "number",
+            "minimum": 0.03,
+            "maximum": 5,
+            "description": "Reference radial excursion."
+          },
+          "chi": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt-to-excursion coupling."
+          },
+          "rhoCrit": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10,
+            "description": "Critical radial viability boundary."
+          }
+        },
+        "required": [
+          "kappa",
+          "rho0",
+          "chi",
+          "rhoCrit"
+        ],
+        "additionalProperties": false
+      },
+      "options": {
+        "default": {
+          "includeReplayPoints": true,
+          "replayStride": 1
+        },
+        "type": "object",
+        "properties": {
+          "includeReplayPoints": {
+            "default": true,
+            "type": "boolean"
+          },
+          "replayStride": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "includeReplayPoints",
+          "replayStride"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "scenarioId",
+      "study",
+      "source",
+      "privacy",
+      "data",
+      "mapping",
+      "assumptions",
+      "options"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/empirical-research-request.schema.json",
+    "title": "Headless empirical research request"
+  },
+  "empirical-research-receipt.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "type": "string",
+        "const": "1.0.0"
+      },
+      "kind": {
+        "type": "string",
+        "const": "empirical-research-receipt"
+      },
+      "modelVersion": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 80
+      },
+      "scenarioId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "scenarioVersion": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+      },
+      "analyzedAt": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+      },
+      "processing": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "local-mcp",
+              "remote-mcp",
+              "http-api"
+            ]
+          },
+          "retention": {
+            "type": "string",
+            "const": "request-only"
+          },
+          "remoteProcessingAuthorized": {
+            "type": "boolean"
+          },
+          "sensitiveDataDeclared": {
+            "type": "boolean"
+          },
+          "deidentified": {
+            "type": "boolean"
+          },
+          "tokenAuthenticated": {
+            "type": "boolean"
+          },
+          "rawInputLogged": {
+            "type": "boolean",
+            "const": false
+          }
+        },
+        "required": [
+          "mode",
+          "retention",
+          "remoteProcessingAuthorized",
+          "sensitiveDataDeclared",
+          "deidentified",
+          "tokenAuthenticated",
+          "rawInputLogged"
+        ],
+        "additionalProperties": false
+      },
+      "source": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "resourceUri": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 2000
+          },
+          "dataClassification": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted"
+            ]
+          },
+          "preprocessing": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            }
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 8,
+            "maximum": 5000
+          },
+          "columns": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 64
+          },
+          "canonicalTableSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "rawDataIncluded": {
+            "type": "boolean",
+            "const": false
+          }
+        },
+        "required": [
+          "name",
+          "dataClassification",
+          "preprocessing",
+          "rows",
+          "columns",
+          "canonicalTableSha256",
+          "rawDataIncluded"
+        ],
+        "additionalProperties": false
+      },
+      "study": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "objective": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000
+          },
+          "population": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "horizon": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "aggregation": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "viableRegion": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "internalCycle": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "externalCycle": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "falsification": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 2000
+          },
+          "provenance": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "name",
+          "objective",
+          "population",
+          "horizon",
+          "aggregation",
+          "viableRegion",
+          "internalCycle",
+          "externalCycle",
+          "falsification",
+          "provenance"
+        ],
+        "additionalProperties": false
+      },
+      "mapping": {
+        "minItems": 13,
+        "maxItems": 13,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": [
+                "time",
+                "thetaSignal",
+                "phiSignal",
+                "pressure",
+                "error",
+                "feedback",
+                "correction",
+                "drift",
+                "irreversibleLoss",
+                "debt",
+                "rho",
+                "outcome",
+                "intervention"
+              ]
+            },
+            "symbol": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "role",
+            "symbol",
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "assumptions": {
+        "type": "object",
+        "properties": {
+          "kappa": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Radial restoring coefficient."
+          },
+          "rho0": {
+            "type": "number",
+            "minimum": 0.03,
+            "maximum": 5,
+            "description": "Reference radial excursion."
+          },
+          "chi": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt-to-excursion coupling."
+          },
+          "rhoCrit": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10,
+            "description": "Critical radial viability boundary."
+          },
+          "provenance": {
+            "type": "string",
+            "const": "declared-not-fitted"
+          }
+        },
+        "required": [
+          "kappa",
+          "rho0",
+          "chi",
+          "rhoCrit",
+          "provenance"
+        ],
+        "additionalProperties": false
+      },
+      "evidence": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "const": "observed-descriptive"
+          },
+          "empiricalValidation": {
+            "type": "boolean",
+            "const": false
+          },
+          "modelSupport": {
+            "type": "string",
+            "enum": [
+              "insufficient-data",
+              "not-supported",
+              "provisional"
+            ]
+          },
+          "interpretationBoundary": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "level",
+          "empiricalValidation",
+          "modelSupport",
+          "interpretationBoundary"
+        ],
+        "additionalProperties": false
+      },
+      "validation": {
+        "type": "object",
+        "properties": {
+          "evidenceLevel": {
+            "type": "string",
+            "const": "observed-descriptive"
+          },
+          "modelSupport": {
+            "type": "string",
+            "enum": [
+              "insufficient-data",
+              "not-supported",
+              "provisional"
+            ]
+          },
+          "torusReplayReady": {
+            "type": "boolean"
+          },
+          "issues": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          },
+          "gates": {
+            "minItems": 5,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "data-quality",
+                    "internal-recurrence",
+                    "external-recurrence",
+                    "phase-independence",
+                    "holdout"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 100
+                },
+                "passed": {
+                  "type": "boolean"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "ready",
+                    "blocked"
+                  ]
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 1000
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "passed",
+                "state",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "internalPhase": {
+            "type": "object",
+            "properties": {
+              "identifiable": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "spectralConcentration": {
+                "type": "number"
+              },
+              "estimatedCycles": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "identifiable",
+              "reason",
+              "spectralConcentration",
+              "estimatedCycles"
+            ],
+            "additionalProperties": false
+          },
+          "externalPhase": {
+            "type": "object",
+            "properties": {
+              "identifiable": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "spectralConcentration": {
+                "type": "number"
+              },
+              "estimatedCycles": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "identifiable",
+              "reason",
+              "spectralConcentration",
+              "estimatedCycles"
+            ],
+            "additionalProperties": false
+          },
+          "phaseRelationship": {
+            "type": "object",
+            "properties": {
+              "lockingValue": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "lockingRatio": {
+                "type": "string",
+                "maxLength": 20
+              },
+              "jointCoverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "interpretation": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "lockingValue",
+              "jointCoverage",
+              "interpretation"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "evidenceLevel",
+          "modelSupport",
+          "torusReplayReady",
+          "issues",
+          "gates",
+          "internalPhase",
+          "externalPhase",
+          "phaseRelationship"
+        ],
+        "additionalProperties": false
+      },
+      "replay": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "const": "one-step-observed-driver-replay"
+              },
+              "uncertaintyMethod": {
+                "type": "string",
+                "const": "calibration-residual-90-percent"
+              },
+              "calibrationRows": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 4999
+              },
+              "holdoutRows": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1500
+              },
+              "holdoutRmse": {
+                "type": "number",
+                "minimum": 0
+              },
+              "holdoutMae": {
+                "type": "number",
+                "minimum": 0
+              },
+              "holdoutIntervalCoverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "finalStatus": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "method",
+              "uncertaintyMethod",
+              "calibrationRows",
+              "holdoutRows",
+              "holdoutRmse",
+              "holdoutMae",
+              "holdoutIntervalCoverage",
+              "finalStatus"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "limitations": {
+        "minItems": 4,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        }
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "kind",
+      "modelVersion",
+      "scenarioId",
+      "scenarioVersion",
+      "analyzedAt",
+      "processing",
+      "source",
+      "study",
+      "mapping",
+      "assumptions",
+      "evidence",
+      "validation",
+      "replay",
+      "limitations"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/empirical-research-receipt.schema.json",
+    "title": "Redacted empirical research receipt"
+  },
+  "empirical-evidence-registry-request.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "default": "1.0.0",
+        "type": "string",
+        "const": "1.0.0"
+      },
+      "receipts": {
+        "minItems": 1,
+        "maxItems": 500,
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "schemaVersion": {
+                  "default": "1.0.0",
+                  "type": "string",
+                  "const": "1.0.0"
+                },
+                "kind": {
+                  "type": "string",
+                  "const": "browser-local-empirical-study"
+                },
+                "modelVersion": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 80
+                },
+                "scenarioId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "scenarioVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "exportedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                "study": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 200
+                    },
+                    "objective": {
+                      "type": "string",
+                      "minLength": 5,
+                      "maxLength": 1000
+                    },
+                    "population": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "horizon": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "aggregation": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "viableRegion": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "internalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "externalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "falsification": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "objective",
+                    "population",
+                    "horizon",
+                    "aggregation",
+                    "viableRegion",
+                    "internalCycle",
+                    "externalCycle",
+                    "falsification",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "imported-observation",
+                        "bundled-observed-form-demo"
+                      ]
+                    },
+                    "preprocessing": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 500
+                      }
+                    },
+                    "rows": {
+                      "type": "integer",
+                      "minimum": 8,
+                      "maximum": 5000
+                    },
+                    "columns": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "maximum": 64
+                    },
+                    "datasetSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "localOnly": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "rawDataIncluded": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "kind",
+                    "rows",
+                    "columns",
+                    "datasetSha256",
+                    "localOnly",
+                    "rawDataIncluded"
+                  ],
+                  "additionalProperties": false
+                },
+                "mapping": {
+                  "minItems": 11,
+                  "maxItems": 13,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "time",
+                          "thetaSignal",
+                          "phiSignal",
+                          "pressure",
+                          "error",
+                          "feedback",
+                          "correction",
+                          "drift",
+                          "irreversibleLoss",
+                          "debt",
+                          "rho",
+                          "outcome",
+                          "intervention"
+                        ]
+                      },
+                      "symbol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "column": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "evidence": {
+                        "type": "string",
+                        "enum": [
+                          "uploaded-observation",
+                          "declared-proxy",
+                          "not-mapped"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "symbol",
+                      "column",
+                      "unit",
+                      "evidence"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assumptions": {
+                  "type": "object",
+                  "properties": {
+                    "kappa": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Radial restoring coefficient."
+                    },
+                    "rho0": {
+                      "type": "number",
+                      "minimum": 0.03,
+                      "maximum": 5,
+                      "description": "Reference radial excursion."
+                    },
+                    "chi": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt-to-excursion coupling."
+                    },
+                    "rhoCrit": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 10,
+                      "description": "Critical radial viability boundary."
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "const": "declared-not-fitted"
+                    }
+                  },
+                  "required": [
+                    "kappa",
+                    "rho0",
+                    "chi",
+                    "rhoCrit",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "validation": {
+                  "type": "object",
+                  "properties": {
+                    "evidenceLevel": {
+                      "type": "string",
+                      "const": "observed-descriptive"
+                    },
+                    "modelSupport": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient-data",
+                        "not-supported",
+                        "provisional"
+                      ]
+                    },
+                    "torusReplayReady": {
+                      "type": "boolean"
+                    },
+                    "gates": {
+                      "minItems": 5,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "data-quality",
+                              "internal-recurrence",
+                              "external-recurrence",
+                              "phase-independence",
+                              "holdout"
+                            ]
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 100
+                          },
+                          "passed": {
+                            "type": "boolean"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "pass",
+                              "fail",
+                              "ready",
+                              "blocked"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "passed",
+                          "state",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "internalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "externalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "phaseRelationship": {
+                      "type": "object",
+                      "properties": {
+                        "lockingValue": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "lockingRatio": {
+                          "type": "string",
+                          "maxLength": 20
+                        },
+                        "jointCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "interpretation": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 1000
+                        }
+                      },
+                      "required": [
+                        "lockingValue",
+                        "jointCoverage",
+                        "interpretation"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "evidenceLevel",
+                    "modelSupport",
+                    "torusReplayReady",
+                    "gates",
+                    "internalPhase",
+                    "externalPhase",
+                    "phaseRelationship"
+                  ],
+                  "additionalProperties": false
+                },
+                "replay": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "method": {
+                          "type": "string",
+                          "const": "one-step-observed-driver-replay"
+                        },
+                        "uncertaintyMethod": {
+                          "type": "string",
+                          "const": "calibration-residual-90-percent"
+                        },
+                        "calibrationRows": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 4999
+                        },
+                        "holdoutRows": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1500
+                        },
+                        "holdoutRmse": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutMae": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutIntervalCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "finalStatus": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "method",
+                        "uncertaintyMethod",
+                        "calibrationRows",
+                        "holdoutRows",
+                        "holdoutRmse",
+                        "holdoutMae",
+                        "holdoutIntervalCoverage",
+                        "finalStatus"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limitations": {
+                  "minItems": 3,
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                }
+              },
+              "required": [
+                "schemaVersion",
+                "kind",
+                "modelVersion",
+                "scenarioId",
+                "scenarioVersion",
+                "exportedAt",
+                "study",
+                "source",
+                "mapping",
+                "assumptions",
+                "validation",
+                "replay",
+                "limitations"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "schemaVersion": {
+                  "type": "string",
+                  "const": "1.0.0"
+                },
+                "kind": {
+                  "type": "string",
+                  "const": "empirical-research-receipt"
+                },
+                "modelVersion": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 80
+                },
+                "scenarioId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "scenarioVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "analyzedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                "processing": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "local-mcp",
+                        "remote-mcp",
+                        "http-api"
+                      ]
+                    },
+                    "retention": {
+                      "type": "string",
+                      "const": "request-only"
+                    },
+                    "remoteProcessingAuthorized": {
+                      "type": "boolean"
+                    },
+                    "sensitiveDataDeclared": {
+                      "type": "boolean"
+                    },
+                    "deidentified": {
+                      "type": "boolean"
+                    },
+                    "tokenAuthenticated": {
+                      "type": "boolean"
+                    },
+                    "rawInputLogged": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "retention",
+                    "remoteProcessingAuthorized",
+                    "sensitiveDataDeclared",
+                    "deidentified",
+                    "tokenAuthenticated",
+                    "rawInputLogged"
+                  ],
+                  "additionalProperties": false
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "resourceUri": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 2000
+                    },
+                    "dataClassification": {
+                      "type": "string",
+                      "enum": [
+                        "public",
+                        "internal",
+                        "confidential",
+                        "restricted"
+                      ]
+                    },
+                    "preprocessing": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 500
+                      }
+                    },
+                    "rows": {
+                      "type": "integer",
+                      "minimum": 8,
+                      "maximum": 5000
+                    },
+                    "columns": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "maximum": 64
+                    },
+                    "canonicalTableSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "rawDataIncluded": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "dataClassification",
+                    "preprocessing",
+                    "rows",
+                    "columns",
+                    "canonicalTableSha256",
+                    "rawDataIncluded"
+                  ],
+                  "additionalProperties": false
+                },
+                "study": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 200
+                    },
+                    "objective": {
+                      "type": "string",
+                      "minLength": 5,
+                      "maxLength": 1000
+                    },
+                    "population": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "horizon": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "aggregation": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "viableRegion": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "internalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "externalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "falsification": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "objective",
+                    "population",
+                    "horizon",
+                    "aggregation",
+                    "viableRegion",
+                    "internalCycle",
+                    "externalCycle",
+                    "falsification",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "mapping": {
+                  "minItems": 13,
+                  "maxItems": 13,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "time",
+                          "thetaSignal",
+                          "phiSignal",
+                          "pressure",
+                          "error",
+                          "feedback",
+                          "correction",
+                          "drift",
+                          "irreversibleLoss",
+                          "debt",
+                          "rho",
+                          "outcome",
+                          "intervention"
+                        ]
+                      },
+                      "symbol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "column": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "evidence": {
+                        "type": "string",
+                        "enum": [
+                          "uploaded-observation",
+                          "declared-proxy",
+                          "not-mapped"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "symbol",
+                      "column",
+                      "unit",
+                      "evidence"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assumptions": {
+                  "type": "object",
+                  "properties": {
+                    "kappa": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Radial restoring coefficient."
+                    },
+                    "rho0": {
+                      "type": "number",
+                      "minimum": 0.03,
+                      "maximum": 5,
+                      "description": "Reference radial excursion."
+                    },
+                    "chi": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt-to-excursion coupling."
+                    },
+                    "rhoCrit": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 10,
+                      "description": "Critical radial viability boundary."
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "const": "declared-not-fitted"
+                    }
+                  },
+                  "required": [
+                    "kappa",
+                    "rho0",
+                    "chi",
+                    "rhoCrit",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "evidence": {
+                  "type": "object",
+                  "properties": {
+                    "level": {
+                      "type": "string",
+                      "const": "observed-descriptive"
+                    },
+                    "empiricalValidation": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "modelSupport": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient-data",
+                        "not-supported",
+                        "provisional"
+                      ]
+                    },
+                    "interpretationBoundary": {
+                      "type": "string",
+                      "minLength": 20,
+                      "maxLength": 1000
+                    }
+                  },
+                  "required": [
+                    "level",
+                    "empiricalValidation",
+                    "modelSupport",
+                    "interpretationBoundary"
+                  ],
+                  "additionalProperties": false
+                },
+                "validation": {
+                  "type": "object",
+                  "properties": {
+                    "evidenceLevel": {
+                      "type": "string",
+                      "const": "observed-descriptive"
+                    },
+                    "modelSupport": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient-data",
+                        "not-supported",
+                        "provisional"
+                      ]
+                    },
+                    "torusReplayReady": {
+                      "type": "boolean"
+                    },
+                    "issues": {
+                      "maxItems": 30,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      }
+                    },
+                    "gates": {
+                      "minItems": 5,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "data-quality",
+                              "internal-recurrence",
+                              "external-recurrence",
+                              "phase-independence",
+                              "holdout"
+                            ]
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 100
+                          },
+                          "passed": {
+                            "type": "boolean"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "pass",
+                              "fail",
+                              "ready",
+                              "blocked"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "passed",
+                          "state",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "internalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "externalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "phaseRelationship": {
+                      "type": "object",
+                      "properties": {
+                        "lockingValue": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "lockingRatio": {
+                          "type": "string",
+                          "maxLength": 20
+                        },
+                        "jointCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "interpretation": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 1000
+                        }
+                      },
+                      "required": [
+                        "lockingValue",
+                        "jointCoverage",
+                        "interpretation"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "evidenceLevel",
+                    "modelSupport",
+                    "torusReplayReady",
+                    "issues",
+                    "gates",
+                    "internalPhase",
+                    "externalPhase",
+                    "phaseRelationship"
+                  ],
+                  "additionalProperties": false
+                },
+                "replay": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "method": {
+                          "type": "string",
+                          "const": "one-step-observed-driver-replay"
+                        },
+                        "uncertaintyMethod": {
+                          "type": "string",
+                          "const": "calibration-residual-90-percent"
+                        },
+                        "calibrationRows": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 4999
+                        },
+                        "holdoutRows": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1500
+                        },
+                        "holdoutRmse": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutMae": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutIntervalCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "finalStatus": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "method",
+                        "uncertaintyMethod",
+                        "calibrationRows",
+                        "holdoutRows",
+                        "holdoutRmse",
+                        "holdoutMae",
+                        "holdoutIntervalCoverage",
+                        "finalStatus"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limitations": {
+                  "minItems": 4,
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                }
+              },
+              "required": [
+                "schemaVersion",
+                "kind",
+                "modelVersion",
+                "scenarioId",
+                "scenarioVersion",
+                "analyzedAt",
+                "processing",
+                "source",
+                "study",
+                "mapping",
+                "assumptions",
+                "evidence",
+                "validation",
+                "replay",
+                "limitations"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "anchorReceiptId": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 160
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "receipts"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/empirical-evidence-registry-request.schema.json",
+    "title": "Evidence Registry aggregation request"
+  },
+  "empirical-evidence-registry.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "type": "string",
+        "const": "1.0.0"
+      },
+      "kind": {
+        "type": "string",
+        "const": "empirical-evidence-registry"
+      },
+      "exportedAt": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+      },
+      "privacy": {
+        "type": "object",
+        "properties": {
+          "browserLocal": {
+            "type": "boolean",
+            "const": true
+          },
+          "rawObservationsIncluded": {
+            "type": "boolean",
+            "const": false
+          },
+          "aggregation": {
+            "type": "string",
+            "const": "descriptive-compatible-receipts-only"
+          }
+        },
+        "required": [
+          "browserLocal",
+          "rawObservationsIncluded",
+          "aggregation"
+        ],
+        "additionalProperties": false
+      },
+      "receipts": {
+        "minItems": 1,
+        "maxItems": 500,
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "schemaVersion": {
+                  "default": "1.0.0",
+                  "type": "string",
+                  "const": "1.0.0"
+                },
+                "kind": {
+                  "type": "string",
+                  "const": "browser-local-empirical-study"
+                },
+                "modelVersion": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 80
+                },
+                "scenarioId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "scenarioVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "exportedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                "study": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 200
+                    },
+                    "objective": {
+                      "type": "string",
+                      "minLength": 5,
+                      "maxLength": 1000
+                    },
+                    "population": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "horizon": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "aggregation": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "viableRegion": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "internalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "externalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "falsification": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "objective",
+                    "population",
+                    "horizon",
+                    "aggregation",
+                    "viableRegion",
+                    "internalCycle",
+                    "externalCycle",
+                    "falsification",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "imported-observation",
+                        "bundled-observed-form-demo"
+                      ]
+                    },
+                    "preprocessing": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 500
+                      }
+                    },
+                    "rows": {
+                      "type": "integer",
+                      "minimum": 8,
+                      "maximum": 5000
+                    },
+                    "columns": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "maximum": 64
+                    },
+                    "datasetSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "localOnly": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "rawDataIncluded": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "kind",
+                    "rows",
+                    "columns",
+                    "datasetSha256",
+                    "localOnly",
+                    "rawDataIncluded"
+                  ],
+                  "additionalProperties": false
+                },
+                "mapping": {
+                  "minItems": 11,
+                  "maxItems": 13,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "time",
+                          "thetaSignal",
+                          "phiSignal",
+                          "pressure",
+                          "error",
+                          "feedback",
+                          "correction",
+                          "drift",
+                          "irreversibleLoss",
+                          "debt",
+                          "rho",
+                          "outcome",
+                          "intervention"
+                        ]
+                      },
+                      "symbol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "column": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "evidence": {
+                        "type": "string",
+                        "enum": [
+                          "uploaded-observation",
+                          "declared-proxy",
+                          "not-mapped"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "symbol",
+                      "column",
+                      "unit",
+                      "evidence"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assumptions": {
+                  "type": "object",
+                  "properties": {
+                    "kappa": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Radial restoring coefficient."
+                    },
+                    "rho0": {
+                      "type": "number",
+                      "minimum": 0.03,
+                      "maximum": 5,
+                      "description": "Reference radial excursion."
+                    },
+                    "chi": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt-to-excursion coupling."
+                    },
+                    "rhoCrit": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 10,
+                      "description": "Critical radial viability boundary."
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "const": "declared-not-fitted"
+                    }
+                  },
+                  "required": [
+                    "kappa",
+                    "rho0",
+                    "chi",
+                    "rhoCrit",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "validation": {
+                  "type": "object",
+                  "properties": {
+                    "evidenceLevel": {
+                      "type": "string",
+                      "const": "observed-descriptive"
+                    },
+                    "modelSupport": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient-data",
+                        "not-supported",
+                        "provisional"
+                      ]
+                    },
+                    "torusReplayReady": {
+                      "type": "boolean"
+                    },
+                    "gates": {
+                      "minItems": 5,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "data-quality",
+                              "internal-recurrence",
+                              "external-recurrence",
+                              "phase-independence",
+                              "holdout"
+                            ]
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 100
+                          },
+                          "passed": {
+                            "type": "boolean"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "pass",
+                              "fail",
+                              "ready",
+                              "blocked"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "passed",
+                          "state",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "internalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "externalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "phaseRelationship": {
+                      "type": "object",
+                      "properties": {
+                        "lockingValue": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "lockingRatio": {
+                          "type": "string",
+                          "maxLength": 20
+                        },
+                        "jointCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "interpretation": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 1000
+                        }
+                      },
+                      "required": [
+                        "lockingValue",
+                        "jointCoverage",
+                        "interpretation"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "evidenceLevel",
+                    "modelSupport",
+                    "torusReplayReady",
+                    "gates",
+                    "internalPhase",
+                    "externalPhase",
+                    "phaseRelationship"
+                  ],
+                  "additionalProperties": false
+                },
+                "replay": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "method": {
+                          "type": "string",
+                          "const": "one-step-observed-driver-replay"
+                        },
+                        "uncertaintyMethod": {
+                          "type": "string",
+                          "const": "calibration-residual-90-percent"
+                        },
+                        "calibrationRows": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 4999
+                        },
+                        "holdoutRows": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1500
+                        },
+                        "holdoutRmse": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutMae": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutIntervalCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "finalStatus": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "method",
+                        "uncertaintyMethod",
+                        "calibrationRows",
+                        "holdoutRows",
+                        "holdoutRmse",
+                        "holdoutMae",
+                        "holdoutIntervalCoverage",
+                        "finalStatus"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limitations": {
+                  "minItems": 3,
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                }
+              },
+              "required": [
+                "schemaVersion",
+                "kind",
+                "modelVersion",
+                "scenarioId",
+                "scenarioVersion",
+                "exportedAt",
+                "study",
+                "source",
+                "mapping",
+                "assumptions",
+                "validation",
+                "replay",
+                "limitations"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "schemaVersion": {
+                  "type": "string",
+                  "const": "1.0.0"
+                },
+                "kind": {
+                  "type": "string",
+                  "const": "empirical-research-receipt"
+                },
+                "modelVersion": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 80
+                },
+                "scenarioId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "scenarioVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "analyzedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                "processing": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "local-mcp",
+                        "remote-mcp",
+                        "http-api"
+                      ]
+                    },
+                    "retention": {
+                      "type": "string",
+                      "const": "request-only"
+                    },
+                    "remoteProcessingAuthorized": {
+                      "type": "boolean"
+                    },
+                    "sensitiveDataDeclared": {
+                      "type": "boolean"
+                    },
+                    "deidentified": {
+                      "type": "boolean"
+                    },
+                    "tokenAuthenticated": {
+                      "type": "boolean"
+                    },
+                    "rawInputLogged": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "retention",
+                    "remoteProcessingAuthorized",
+                    "sensitiveDataDeclared",
+                    "deidentified",
+                    "tokenAuthenticated",
+                    "rawInputLogged"
+                  ],
+                  "additionalProperties": false
+                },
+                "source": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "resourceUri": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 2000
+                    },
+                    "dataClassification": {
+                      "type": "string",
+                      "enum": [
+                        "public",
+                        "internal",
+                        "confidential",
+                        "restricted"
+                      ]
+                    },
+                    "preprocessing": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 500
+                      }
+                    },
+                    "rows": {
+                      "type": "integer",
+                      "minimum": 8,
+                      "maximum": 5000
+                    },
+                    "columns": {
+                      "type": "integer",
+                      "minimum": 2,
+                      "maximum": 64
+                    },
+                    "canonicalTableSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "rawDataIncluded": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "dataClassification",
+                    "preprocessing",
+                    "rows",
+                    "columns",
+                    "canonicalTableSha256",
+                    "rawDataIncluded"
+                  ],
+                  "additionalProperties": false
+                },
+                "study": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 200
+                    },
+                    "objective": {
+                      "type": "string",
+                      "minLength": 5,
+                      "maxLength": 1000
+                    },
+                    "population": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "horizon": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "aggregation": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "viableRegion": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 1000
+                    },
+                    "internalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "externalCycle": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 500
+                    },
+                    "falsification": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "minLength": 8,
+                      "maxLength": 2000
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "objective",
+                    "population",
+                    "horizon",
+                    "aggregation",
+                    "viableRegion",
+                    "internalCycle",
+                    "externalCycle",
+                    "falsification",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "mapping": {
+                  "minItems": 13,
+                  "maxItems": 13,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "time",
+                          "thetaSignal",
+                          "phiSignal",
+                          "pressure",
+                          "error",
+                          "feedback",
+                          "correction",
+                          "drift",
+                          "irreversibleLoss",
+                          "debt",
+                          "rho",
+                          "outcome",
+                          "intervention"
+                        ]
+                      },
+                      "symbol": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20
+                      },
+                      "column": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "unit": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "evidence": {
+                        "type": "string",
+                        "enum": [
+                          "uploaded-observation",
+                          "declared-proxy",
+                          "not-mapped"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "role",
+                      "symbol",
+                      "column",
+                      "unit",
+                      "evidence"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "assumptions": {
+                  "type": "object",
+                  "properties": {
+                    "kappa": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Radial restoring coefficient."
+                    },
+                    "rho0": {
+                      "type": "number",
+                      "minimum": 0.03,
+                      "maximum": 5,
+                      "description": "Reference radial excursion."
+                    },
+                    "chi": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt-to-excursion coupling."
+                    },
+                    "rhoCrit": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 10,
+                      "description": "Critical radial viability boundary."
+                    },
+                    "provenance": {
+                      "type": "string",
+                      "const": "declared-not-fitted"
+                    }
+                  },
+                  "required": [
+                    "kappa",
+                    "rho0",
+                    "chi",
+                    "rhoCrit",
+                    "provenance"
+                  ],
+                  "additionalProperties": false
+                },
+                "evidence": {
+                  "type": "object",
+                  "properties": {
+                    "level": {
+                      "type": "string",
+                      "const": "observed-descriptive"
+                    },
+                    "empiricalValidation": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "modelSupport": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient-data",
+                        "not-supported",
+                        "provisional"
+                      ]
+                    },
+                    "interpretationBoundary": {
+                      "type": "string",
+                      "minLength": 20,
+                      "maxLength": 1000
+                    }
+                  },
+                  "required": [
+                    "level",
+                    "empiricalValidation",
+                    "modelSupport",
+                    "interpretationBoundary"
+                  ],
+                  "additionalProperties": false
+                },
+                "validation": {
+                  "type": "object",
+                  "properties": {
+                    "evidenceLevel": {
+                      "type": "string",
+                      "const": "observed-descriptive"
+                    },
+                    "modelSupport": {
+                      "type": "string",
+                      "enum": [
+                        "insufficient-data",
+                        "not-supported",
+                        "provisional"
+                      ]
+                    },
+                    "torusReplayReady": {
+                      "type": "boolean"
+                    },
+                    "issues": {
+                      "maxItems": 30,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1000
+                      }
+                    },
+                    "gates": {
+                      "minItems": 5,
+                      "maxItems": 5,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "data-quality",
+                              "internal-recurrence",
+                              "external-recurrence",
+                              "phase-independence",
+                              "holdout"
+                            ]
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 100
+                          },
+                          "passed": {
+                            "type": "boolean"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "pass",
+                              "fail",
+                              "ready",
+                              "blocked"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string",
+                            "minLength": 3,
+                            "maxLength": 1000
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "passed",
+                          "state",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "internalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "externalPhase": {
+                      "type": "object",
+                      "properties": {
+                        "identifiable": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "spectralConcentration": {
+                          "type": "number"
+                        },
+                        "estimatedCycles": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "identifiable",
+                        "reason",
+                        "spectralConcentration",
+                        "estimatedCycles"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "phaseRelationship": {
+                      "type": "object",
+                      "properties": {
+                        "lockingValue": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "lockingRatio": {
+                          "type": "string",
+                          "maxLength": 20
+                        },
+                        "jointCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "interpretation": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 1000
+                        }
+                      },
+                      "required": [
+                        "lockingValue",
+                        "jointCoverage",
+                        "interpretation"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "evidenceLevel",
+                    "modelSupport",
+                    "torusReplayReady",
+                    "issues",
+                    "gates",
+                    "internalPhase",
+                    "externalPhase",
+                    "phaseRelationship"
+                  ],
+                  "additionalProperties": false
+                },
+                "replay": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "method": {
+                          "type": "string",
+                          "const": "one-step-observed-driver-replay"
+                        },
+                        "uncertaintyMethod": {
+                          "type": "string",
+                          "const": "calibration-residual-90-percent"
+                        },
+                        "calibrationRows": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 4999
+                        },
+                        "holdoutRows": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1500
+                        },
+                        "holdoutRmse": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutMae": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutIntervalCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "finalStatus": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "method",
+                        "uncertaintyMethod",
+                        "calibrationRows",
+                        "holdoutRows",
+                        "holdoutRmse",
+                        "holdoutMae",
+                        "holdoutIntervalCoverage",
+                        "finalStatus"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "limitations": {
+                  "minItems": 4,
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                }
+              },
+              "required": [
+                "schemaVersion",
+                "kind",
+                "modelVersion",
+                "scenarioId",
+                "scenarioVersion",
+                "analyzedAt",
+                "processing",
+                "source",
+                "study",
+                "mapping",
+                "assumptions",
+                "evidence",
+                "validation",
+                "replay",
+                "limitations"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "anchorReceiptId": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 160
+      },
+      "summary": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "const": "1.0.0"
+          },
+          "kind": {
+            "type": "string",
+            "const": "empirical-evidence-registry-summary"
+          },
+          "anchorReceiptId": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+          },
+          "receipts": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 160
+                },
+                "receiptKind": {
+                  "type": "string",
+                  "enum": [
+                    "browser-local-empirical-study",
+                    "empirical-research-receipt"
+                  ]
+                },
+                "studyName": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 200
+                },
+                "sourceName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "scenarioId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "scenarioVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "modelVersion": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 80
+                },
+                "evidenceKind": {
+                  "type": "string",
+                  "enum": [
+                    "observed",
+                    "synthetic"
+                  ]
+                },
+                "modelSupport": {
+                  "type": "string",
+                  "enum": [
+                    "insufficient-data",
+                    "not-supported",
+                    "provisional"
+                  ]
+                },
+                "phaseResult": {
+                  "type": "string",
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "blocked"
+                  ]
+                },
+                "negative": {
+                  "type": "boolean"
+                },
+                "compatibility": {
+                  "type": "string",
+                  "enum": [
+                    "anchor",
+                    "compatible",
+                    "partially-comparable",
+                    "non-comparable",
+                    "excluded"
+                  ]
+                },
+                "rows": {
+                  "type": "integer",
+                  "minimum": 8,
+                  "maximum": 5000
+                },
+                "replay": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "method": {
+                          "type": "string",
+                          "const": "one-step-observed-driver-replay"
+                        },
+                        "uncertaintyMethod": {
+                          "type": "string",
+                          "const": "calibration-residual-90-percent"
+                        },
+                        "calibrationRows": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 4999
+                        },
+                        "holdoutRows": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1500
+                        },
+                        "holdoutRmse": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutMae": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "holdoutIntervalCoverage": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "finalStatus": {
+                          "type": "string",
+                          "minLength": 2,
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "method",
+                        "uncertaintyMethod",
+                        "calibrationRows",
+                        "holdoutRows",
+                        "holdoutRmse",
+                        "holdoutMae",
+                        "holdoutIntervalCoverage",
+                        "finalStatus"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dimensions": {
+                  "minItems": 11,
+                  "maxItems": 11,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "enum": [
+                          "evidence-kind",
+                          "model-version",
+                          "scenario-version",
+                          "population",
+                          "horizon",
+                          "aggregation",
+                          "viable-region",
+                          "phase-definition",
+                          "units",
+                          "preprocessing",
+                          "assumptions"
+                        ]
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "match",
+                          "differs",
+                          "unknown",
+                          "excluded"
+                        ]
+                      },
+                      "severity": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "partial",
+                          "critical"
+                        ]
+                      },
+                      "explanation": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "label",
+                      "status",
+                      "severity",
+                      "explanation"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "receiptKind",
+                "studyName",
+                "sourceName",
+                "scenarioId",
+                "scenarioVersion",
+                "modelVersion",
+                "evidenceKind",
+                "modelSupport",
+                "phaseResult",
+                "negative",
+                "compatibility",
+                "rows",
+                "replay",
+                "dimensions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "totalReceipts": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500
+              },
+              "observedStudies": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "syntheticStudies": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "negativeStudies": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "compatibleWithAnchor": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "partiallyComparable": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "nonComparable": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "deduplicatedReceipts": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              }
+            },
+            "required": [
+              "totalReceipts",
+              "observedStudies",
+              "syntheticStudies",
+              "negativeStudies",
+              "compatibleWithAnchor",
+              "partiallyComparable",
+              "nonComparable",
+              "deduplicatedReceipts"
+            ],
+            "additionalProperties": false
+          },
+          "cohort": {
+            "type": "object",
+            "properties": {
+              "receiptIds": {
+                "maxItems": 500,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 160
+                }
+              },
+              "compatibleObservedStudies": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "phaseGatePassRate": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "negativeStudiesPreserved": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "replayStudies": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 500
+              },
+              "meanHoldoutRmse": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "minHoldoutRmse": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maxHoldoutRmse": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "meanIntervalCoverage": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "assumptionRanges": {
+                "type": "object",
+                "properties": {
+                  "kappa": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "min",
+                          "max"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "chi": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "min",
+                          "max"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rho0": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "min",
+                          "max"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rhoCrit": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "min": {
+                            "type": "number"
+                          },
+                          "max": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "min",
+                          "max"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "kappa",
+                  "chi",
+                  "rho0",
+                  "rhoCrit"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "receiptIds",
+              "compatibleObservedStudies",
+              "phaseGatePassRate",
+              "negativeStudiesPreserved",
+              "replayStudies",
+              "meanHoldoutRmse",
+              "minHoldoutRmse",
+              "maxHoldoutRmse",
+              "meanIntervalCoverage",
+              "assumptionRanges"
+            ],
+            "additionalProperties": false
+          },
+          "interpretationBoundary": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "kind",
+          "anchorReceiptId",
+          "receipts",
+          "counts",
+          "cohort",
+          "interpretationBoundary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "kind",
+      "exportedAt",
+      "privacy",
+      "receipts",
+      "anchorReceiptId",
+      "summary"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/empirical-evidence-registry.schema.json",
+    "title": "Redacted Evidence Registry bundle"
   }
 };

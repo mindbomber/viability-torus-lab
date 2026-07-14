@@ -1,6 +1,7 @@
 import * as z from "zod/v4";
 import {
   CONTRACT_VERSION,
+  EMPIRICAL_EXECUTION_LIMITS,
   PARAMETER_LIMITS,
   PUBLIC_EXECUTION_LIMITS,
 } from "./constants.ts";
@@ -241,6 +242,328 @@ export const externalTelemetrySchema = z.object({
   }).strict()).min(8).max(5_000),
 }).strict();
 
+const empiricalRoleSchema = z.enum(["time", "thetaSignal", "phiSignal", "pressure", "error", "feedback", "correction", "drift", "irreversibleLoss", "debt", "rho", "outcome", "intervention"]);
+
+export const empiricalStudyDefinitionSchema = z.object({
+  name: z.string().min(3).max(200),
+  objective: z.string().min(5).max(1_000),
+  population: z.string().min(8).max(1_000),
+  horizon: z.string().min(8).max(1_000),
+  aggregation: z.string().min(8).max(1_000),
+  viableRegion: z.string().min(8).max(1_000),
+  internalCycle: z.string().min(3).max(500),
+  externalCycle: z.string().min(3).max(500),
+  falsification: z.string().min(8).max(2_000),
+  provenance: z.string().min(8).max(2_000),
+}).strict();
+
+export const empiricalModelAssumptionsSchema = z.object({
+  kappa: boundedNumber("kappa"),
+  rho0: boundedNumber("rho0"),
+  chi: boundedNumber("chi"),
+  rhoCrit: boundedNumber("rhoCrit"),
+}).strict().superRefine((value, context) => {
+  if (value.rho0 >= value.rhoCrit) context.addIssue({ code: "custom", path: ["rho0"], message: "rho0 must remain below rhoCrit." });
+});
+
+const empiricalMappingEntrySchema = z.object({
+  column: z.string().max(200),
+  unit: z.string().min(1).max(160),
+  evidence: z.enum(["uploaded-observation", "declared-proxy", "not-mapped"]),
+}).strict();
+
+export const empiricalColumnMappingSchema = z.object({
+  time: empiricalMappingEntrySchema,
+  thetaSignal: empiricalMappingEntrySchema,
+  phiSignal: empiricalMappingEntrySchema,
+  pressure: empiricalMappingEntrySchema,
+  error: empiricalMappingEntrySchema,
+  feedback: empiricalMappingEntrySchema,
+  correction: empiricalMappingEntrySchema,
+  drift: empiricalMappingEntrySchema,
+  irreversibleLoss: empiricalMappingEntrySchema,
+  debt: empiricalMappingEntrySchema,
+  rho: empiricalMappingEntrySchema,
+  outcome: empiricalMappingEntrySchema,
+  intervention: empiricalMappingEntrySchema,
+}).strict();
+
+const empiricalScalarSchema = z.union([z.string().max(20_000), z.number().finite(), z.boolean(), z.null()]);
+const empiricalRowsDataSchema = z.object({
+  format: z.literal("rows"),
+  columns: z.array(z.string().min(1).max(200)).min(2).max(EMPIRICAL_EXECUTION_LIMITS.maxColumns),
+  rows: z.array(z.record(z.string().min(1).max(200), empiricalScalarSchema)).min(8).max(EMPIRICAL_EXECUTION_LIMITS.maxRows),
+}).strict();
+const empiricalCsvDataSchema = z.object({
+  format: z.literal("csv"),
+  csv: z.string().min(1).max(EMPIRICAL_EXECUTION_LIMITS.maxCsvBytes),
+}).strict();
+
+export const empiricalResearchRequestSchema = z.object({
+  schemaVersion: z.literal(CONTRACT_VERSION).optional().default(CONTRACT_VERSION),
+  scenarioId: z.string().min(1).max(160),
+  study: empiricalStudyDefinitionSchema,
+  source: z.object({
+    name: z.string().min(1).max(200),
+    resourceUri: z.string().min(3).max(2_000).optional(),
+    dataClassification: z.enum(["public", "internal", "confidential", "restricted"]).default("internal"),
+    preprocessing: z.array(z.string().min(3).max(500)).max(100).optional().default([]),
+  }).strict(),
+  privacy: z.object({
+    dataUseAuthorized: z.literal(true),
+    remoteProcessingAuthorized: z.boolean().optional().default(false),
+    containsSensitiveData: z.boolean().optional().default(false),
+    deidentified: z.boolean().optional().default(false),
+    retention: z.literal("request-only"),
+  }).strict(),
+  data: z.discriminatedUnion("format", [empiricalRowsDataSchema, empiricalCsvDataSchema]),
+  mapping: empiricalColumnMappingSchema,
+  assumptions: empiricalModelAssumptionsSchema,
+  options: z.object({
+    includeReplayPoints: z.boolean().optional().default(true),
+    replayStride: z.number().int().min(1).max(1_000).optional().default(1),
+  }).strict().optional().default({ includeReplayPoints: true, replayStride: 1 }),
+}).strict();
+
+export const empiricalResearchResourceRequestSchema = empiricalResearchRequestSchema.omit({ data: true }).extend({
+  filePath: z.string().min(1).max(2_000),
+}).strict();
+
+export const empiricalResearchExplanationRequestSchema = empiricalResearchRequestSchema.extend({
+  observationIndex: z.number().int().min(0).max(EMPIRICAL_EXECUTION_LIMITS.maxRows - 1),
+}).strict();
+
+const empiricalValidationReceiptSchema = z.object({
+  evidenceLevel: z.literal("observed-descriptive"),
+  modelSupport: z.enum(["insufficient-data", "not-supported", "provisional"]),
+  torusReplayReady: z.boolean(),
+  issues: z.array(z.string().min(1).max(1_000)).max(30),
+  gates: z.array(z.object({
+    id: z.enum(["data-quality", "internal-recurrence", "external-recurrence", "phase-independence", "holdout"]),
+    label: z.string().min(3).max(100),
+    passed: z.boolean(),
+    state: z.enum(["pass", "fail", "ready", "blocked"]),
+    detail: z.string().min(3).max(1_000),
+  }).strict()).length(5),
+  internalPhase: z.object({ identifiable: z.boolean(), reason: z.string(), spectralConcentration: z.number().finite(), estimatedCycles: z.number().finite() }).strict(),
+  externalPhase: z.object({ identifiable: z.boolean(), reason: z.string(), spectralConcentration: z.number().finite(), estimatedCycles: z.number().finite() }).strict(),
+  phaseRelationship: z.object({ lockingValue: z.number().finite().min(0).max(1), lockingRatio: z.string().max(20).optional(), jointCoverage: z.number().finite().min(0).max(1), interpretation: z.string().min(3).max(1_000) }).strict(),
+}).strict();
+
+const empiricalReplayReceiptSchema = z.object({
+  method: z.literal("one-step-observed-driver-replay"),
+  uncertaintyMethod: z.literal("calibration-residual-90-percent"),
+  calibrationRows: z.number().int().min(2).max(4_999),
+  holdoutRows: z.number().int().min(1).max(1_500),
+  holdoutRmse: z.number().finite().min(0),
+  holdoutMae: z.number().finite().min(0),
+  holdoutIntervalCoverage: z.number().finite().min(0).max(1),
+  finalStatus: z.string().min(2).max(100),
+}).strict();
+
+export const empiricalResearchReceiptSchema = z.object({
+  schemaVersion: z.literal(CONTRACT_VERSION),
+  kind: z.literal("empirical-research-receipt"),
+  modelVersion: z.string().min(3).max(80),
+  scenarioId: z.string().min(1).max(160),
+  scenarioVersion: z.string().min(1).max(40),
+  analyzedAt: z.string().datetime(),
+  processing: z.object({
+    mode: z.enum(["local-mcp", "remote-mcp", "http-api"]),
+    retention: z.literal("request-only"),
+    remoteProcessingAuthorized: z.boolean(),
+    sensitiveDataDeclared: z.boolean(),
+    deidentified: z.boolean(),
+    tokenAuthenticated: z.boolean(),
+    rawInputLogged: z.literal(false),
+  }).strict(),
+  source: z.object({
+    name: z.string().min(1).max(200),
+    resourceUri: z.string().min(3).max(2_000).optional(),
+    dataClassification: z.enum(["public", "internal", "confidential", "restricted"]),
+    preprocessing: z.array(z.string().min(3).max(500)).max(100),
+    rows: z.number().int().min(8).max(EMPIRICAL_EXECUTION_LIMITS.maxRows),
+    columns: z.number().int().min(2).max(EMPIRICAL_EXECUTION_LIMITS.maxColumns),
+    canonicalTableSha256: z.string().regex(/^[a-f0-9]{64}$/),
+    rawDataIncluded: z.literal(false),
+  }).strict(),
+  study: empiricalStudyDefinitionSchema,
+  mapping: z.array(z.object({
+    role: empiricalRoleSchema,
+    symbol: z.string().min(1).max(20),
+    column: z.string().max(200),
+    unit: z.string().min(1).max(160),
+    evidence: z.enum(["uploaded-observation", "declared-proxy", "not-mapped"]),
+  }).strict()).length(13),
+  assumptions: empiricalModelAssumptionsSchema.extend({ provenance: z.literal("declared-not-fitted") }).strict(),
+  evidence: z.object({
+    level: z.literal("observed-descriptive"),
+    empiricalValidation: z.literal(false),
+    modelSupport: z.enum(["insufficient-data", "not-supported", "provisional"]),
+    interpretationBoundary: z.string().min(20).max(1_000),
+  }).strict(),
+  validation: empiricalValidationReceiptSchema,
+  replay: empiricalReplayReceiptSchema.nullable(),
+  limitations: z.array(z.string().min(10).max(1_000)).min(4).max(20),
+}).strict();
+
+export const empiricalEvidenceBundleSchema = z.object({
+  schemaVersion: z.literal(CONTRACT_VERSION).optional().default(CONTRACT_VERSION),
+  kind: z.literal("browser-local-empirical-study"),
+  modelVersion: z.string().min(3).max(80),
+  scenarioId: z.string().min(1).max(160),
+  scenarioVersion: z.string().min(1).max(40),
+  exportedAt: z.string().datetime(),
+  study: z.object({
+    name: z.string().min(3).max(200),
+    objective: z.string().min(5).max(1_000),
+    population: z.string().min(8).max(1_000),
+    horizon: z.string().min(8).max(1_000),
+    aggregation: z.string().min(8).max(1_000),
+    viableRegion: z.string().min(8).max(1_000),
+    internalCycle: z.string().min(3).max(500),
+    externalCycle: z.string().min(3).max(500),
+    falsification: z.string().min(8).max(2_000),
+    provenance: z.string().min(8).max(2_000),
+  }).strict(),
+  source: z.object({
+    name: z.string().min(1).max(200),
+    kind: z.enum(["imported-observation", "bundled-observed-form-demo"]),
+    preprocessing: z.array(z.string().min(3).max(500)).max(100).optional(),
+    rows: z.number().int().min(8).max(5_000),
+    columns: z.number().int().min(2).max(64),
+    datasetSha256: z.string().regex(/^[a-f0-9]{64}$/),
+    localOnly: z.literal(true),
+    rawDataIncluded: z.literal(false),
+  }).strict(),
+  mapping: z.array(z.object({
+    role: z.enum(["time", "thetaSignal", "phiSignal", "pressure", "error", "feedback", "correction", "drift", "irreversibleLoss", "debt", "rho", "outcome", "intervention"]),
+    symbol: z.string().min(1).max(20),
+    column: z.string().max(200),
+    unit: z.string().min(1).max(160),
+    evidence: z.enum(["uploaded-observation", "declared-proxy", "not-mapped"]),
+  }).strict()).min(11).max(13),
+  assumptions: z.object({
+    kappa: boundedNumber("kappa"),
+    rho0: boundedNumber("rho0"),
+    chi: boundedNumber("chi"),
+    rhoCrit: boundedNumber("rhoCrit"),
+    provenance: z.literal("declared-not-fitted"),
+  }).strict().superRefine((value, context) => {
+    if (value.rho0 >= value.rhoCrit) context.addIssue({ code: "custom", path: ["rho0"], message: "rho0 must remain below rhoCrit." });
+  }),
+  validation: z.object({
+    evidenceLevel: z.literal("observed-descriptive"),
+    modelSupport: z.enum(["insufficient-data", "not-supported", "provisional"]),
+    torusReplayReady: z.boolean(),
+    gates: z.array(z.object({
+      id: z.enum(["data-quality", "internal-recurrence", "external-recurrence", "phase-independence", "holdout"]),
+      label: z.string().min(3).max(100),
+      passed: z.boolean(),
+      state: z.enum(["pass", "fail", "ready", "blocked"]),
+      detail: z.string().min(3).max(1_000),
+    }).strict()).length(5),
+    internalPhase: z.object({ identifiable: z.boolean(), reason: z.string(), spectralConcentration: z.number().finite(), estimatedCycles: z.number().finite() }).strict(),
+    externalPhase: z.object({ identifiable: z.boolean(), reason: z.string(), spectralConcentration: z.number().finite(), estimatedCycles: z.number().finite() }).strict(),
+    phaseRelationship: z.object({ lockingValue: z.number().finite().min(0).max(1), lockingRatio: z.string().max(20).optional(), jointCoverage: z.number().finite().min(0).max(1), interpretation: z.string().min(3).max(1_000) }).strict(),
+  }).strict(),
+  replay: z.object({
+    method: z.literal("one-step-observed-driver-replay"),
+    uncertaintyMethod: z.literal("calibration-residual-90-percent"),
+    calibrationRows: z.number().int().min(2).max(4_999),
+    holdoutRows: z.number().int().min(1).max(1_500),
+    holdoutRmse: z.number().finite().min(0),
+    holdoutMae: z.number().finite().min(0),
+    holdoutIntervalCoverage: z.number().finite().min(0).max(1),
+    finalStatus: z.string().min(2).max(100),
+  }).strict().nullable(),
+  limitations: z.array(z.string().min(10).max(1_000)).min(3).max(20),
+}).strict();
+
+export const empiricalReceiptSchema = z.union([
+  empiricalEvidenceBundleSchema,
+  empiricalResearchReceiptSchema,
+]);
+
+export const empiricalEvidenceRegistryRequestSchema = z.object({
+  schemaVersion: z.literal(CONTRACT_VERSION).optional().default(CONTRACT_VERSION),
+  receipts: z.array(empiricalReceiptSchema).min(1).max(EMPIRICAL_EXECUTION_LIMITS.maxRegistryReceipts),
+  anchorReceiptId: z.string().min(3).max(160).optional(),
+}).strict();
+
+const empiricalCompatibilityDimensionSchema = z.object({
+  id: z.enum(["evidence-kind", "model-version", "scenario-version", "population", "horizon", "aggregation", "viable-region", "phase-definition", "units", "preprocessing", "assumptions"]),
+  label: z.string().min(3).max(120),
+  status: z.enum(["match", "differs", "unknown", "excluded"]),
+  severity: z.enum(["none", "partial", "critical"]),
+  explanation: z.string().min(3).max(1_000),
+}).strict();
+
+export const empiricalRegistrySummarySchema = z.object({
+  schemaVersion: z.literal(CONTRACT_VERSION),
+  kind: z.literal("empirical-evidence-registry-summary"),
+  anchorReceiptId: z.string().min(3).max(160),
+  receipts: z.array(z.object({
+    id: z.string().min(3).max(160),
+    receiptKind: z.enum(["browser-local-empirical-study", "empirical-research-receipt"]),
+    studyName: z.string().min(3).max(200),
+    sourceName: z.string().min(1).max(200),
+    scenarioId: z.string().min(1).max(160),
+    scenarioVersion: z.string().min(1).max(40),
+    modelVersion: z.string().min(3).max(80),
+    evidenceKind: z.enum(["observed", "synthetic"]),
+    modelSupport: z.enum(["insufficient-data", "not-supported", "provisional"]),
+    phaseResult: z.enum(["pass", "fail", "blocked"]),
+    negative: z.boolean(),
+    compatibility: z.enum(["anchor", "compatible", "partially-comparable", "non-comparable", "excluded"]),
+    rows: z.number().int().min(8).max(EMPIRICAL_EXECUTION_LIMITS.maxRows),
+    replay: empiricalReplayReceiptSchema.nullable(),
+    dimensions: z.array(empiricalCompatibilityDimensionSchema).length(11),
+  }).strict()).min(1).max(500),
+  counts: z.object({
+    totalReceipts: z.number().int().min(1).max(500),
+    observedStudies: z.number().int().min(0).max(500),
+    syntheticStudies: z.number().int().min(0).max(500),
+    negativeStudies: z.number().int().min(0).max(500),
+    compatibleWithAnchor: z.number().int().min(0).max(500),
+    partiallyComparable: z.number().int().min(0).max(500),
+    nonComparable: z.number().int().min(0).max(500),
+    deduplicatedReceipts: z.number().int().min(0).max(500),
+  }).strict(),
+  cohort: z.object({
+    receiptIds: z.array(z.string().min(3).max(160)).max(500),
+    compatibleObservedStudies: z.number().int().min(0).max(500),
+    phaseGatePassRate: z.number().finite().min(0).max(1).nullable(),
+    negativeStudiesPreserved: z.number().int().min(0).max(500),
+    replayStudies: z.number().int().min(0).max(500),
+    meanHoldoutRmse: z.number().finite().min(0).nullable(),
+    minHoldoutRmse: z.number().finite().min(0).nullable(),
+    maxHoldoutRmse: z.number().finite().min(0).nullable(),
+    meanIntervalCoverage: z.number().finite().min(0).max(1).nullable(),
+    assumptionRanges: z.object({
+      kappa: z.object({ min: z.number().finite(), max: z.number().finite() }).strict().nullable(),
+      chi: z.object({ min: z.number().finite(), max: z.number().finite() }).strict().nullable(),
+      rho0: z.object({ min: z.number().finite(), max: z.number().finite() }).strict().nullable(),
+      rhoCrit: z.object({ min: z.number().finite(), max: z.number().finite() }).strict().nullable(),
+    }).strict(),
+  }).strict(),
+  interpretationBoundary: z.string().min(20).max(2_000),
+}).strict();
+
+export const empiricalEvidenceRegistryBundleSchema = z.object({
+  schemaVersion: z.literal(CONTRACT_VERSION),
+  kind: z.literal("empirical-evidence-registry"),
+  exportedAt: z.string().datetime(),
+  privacy: z.object({
+    browserLocal: z.literal(true),
+    rawObservationsIncluded: z.literal(false),
+    aggregation: z.literal("descriptive-compatible-receipts-only"),
+  }).strict(),
+  receipts: z.array(empiricalReceiptSchema).min(1).max(EMPIRICAL_EXECUTION_LIMITS.maxRegistryReceipts),
+  anchorReceiptId: z.string().min(3).max(160),
+  summary: empiricalRegistrySummarySchema,
+}).strict();
+
 export const proposalAssertionsSchema = z.object({
   maxRuptureRate: z.number().min(0).max(1).optional(),
   minRuptureRate: z.number().min(0).max(1).optional(),
@@ -280,3 +603,10 @@ export const scenarioProposalSchema = z.object({
 export type ParsedExperimentSpec = z.infer<typeof experimentSpecSchema>;
 export type ParsedSweepSpec = z.infer<typeof sweepSpecSchema>;
 export type ParsedScenarioProposal = z.infer<typeof scenarioProposalSchema>;
+export type ParsedEmpiricalEvidenceBundle = z.infer<typeof empiricalEvidenceBundleSchema>;
+export type ParsedEmpiricalResearchRequest = z.infer<typeof empiricalResearchRequestSchema>;
+export type ParsedEmpiricalResearchResourceRequest = z.infer<typeof empiricalResearchResourceRequestSchema>;
+export type ParsedEmpiricalResearchReceipt = z.infer<typeof empiricalResearchReceiptSchema>;
+export type ParsedEmpiricalReceipt = z.infer<typeof empiricalReceiptSchema>;
+export type ParsedEmpiricalEvidenceRegistryRequest = z.infer<typeof empiricalEvidenceRegistryRequestSchema>;
+export type ParsedEmpiricalEvidenceRegistryBundle = z.infer<typeof empiricalEvidenceRegistryBundleSchema>;

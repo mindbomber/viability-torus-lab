@@ -18,7 +18,7 @@ export type ResearchModuleId =
   | "telemetry";
 
 export const researchModules = [
-  { id: "paper", icon: "▤", title: "Paper Reproduction", subtitle: "Legacy protocol and archived fixtures", asset: "/research/core/figures_contact_sheet.png" },
+  { id: "paper", icon: "▤", title: "Archived Companion Reproduction", subtitle: "Legacy protocol and archived fixtures", asset: "/research/core/figures_contact_sheet.png" },
   { id: "topology", icon: "◎", title: "Topology & Phase", subtitle: "Occupancy, winding, Poincare, spectrum", asset: "/research/core/fig_25_topology_betti_summary.png" },
   { id: "hysteresis", icon: "↝", title: "Hysteresis", subtitle: "Prevention versus recovery threshold", asset: "/research/core/fig_12_hysteresis_recovery_threshold.png" },
   { id: "coupled", icon: "⛓", title: "Coupled Tori", subtitle: "Coordination and collective risk", asset: "/research/core/fig_26_coupled_network_order_vs_risk.png" },

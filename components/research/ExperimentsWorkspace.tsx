@@ -43,7 +43,7 @@ const metricLabels: Record<keyof PaperLegacyResult["metrics"], string> = {
   maxRho: "Maximum radial excursion",
   outsideFraction: "Fraction outside viable tube",
   finalDebt: "Final alignment debt",
-  meanAlignmentLast: "Mean alignment after burn-in",
+  meanAlignmentLast: "Mean toy proxy A=e⁻ρ after burn-in",
   windingTheta: "Minor winding rate",
   windingPhi: "Major winding rate",
   windingRatio: "Winding ratio θ/φ",
@@ -137,7 +137,7 @@ export function ExperimentsWorkspace({ scenario, parameters, frames, summary, an
 function PaperStudy({ caseId, setCaseId, result, digest, verified, run, pending }: { caseId: PaperLegacyCaseId; setCaseId: (value: PaperLegacyCaseId) => void; result: PaperLegacyResult; digest: string; verified: boolean; run: () => void; pending: boolean }) {
   return <>
     <section className="protocol-row">
-      <div><span>Protocol summary</span><strong>Foundational regime suite</strong><p>{result.protocol}</p></div>
+      <div><span>Protocol summary</span><strong>Archived companion-model regime suite</strong><p>{result.protocol}</p></div>
       <label><span>Reference case</span><select value={caseId} onChange={(event) => setCaseId(event.target.value as PaperLegacyCaseId)}>{paperLegacyCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
       <div className="engine-lock"><span>Engine</span><strong>Paper 2026 legacy</strong><small>Unit-step · zero noise · archived initial phase</small><button className="primary" disabled={pending} onClick={run}>Run selected case</button></div>
     </section>
@@ -148,7 +148,7 @@ function PaperStudy({ caseId, setCaseId, result, digest, verified, run, pending 
 }
 
 function TopologyStudy({ topology, phase }: { topology: ReturnType<typeof topologyForCurrentRun>; phase: SimulationSummary["phase"] }) {
-  return <><section className="study-intro"><div><span>Live current-run diagnostic</span><h2>Topology & phase</h2><p>Phase occupancy is calculated from the selected scenario. Archived Betti tests remain the stronger topology evidence.</p></div><div className="study-stats"><Stat label="Grid coverage" value={`${(topology.coverage * 100).toFixed(1)}%`} /><Stat label="Components" value={String(topology.connectedComponents)} /><Stat label="Live heuristic β" value={`(${topology.heuristicBetti.join(", ")})`} /><Stat label="Winding" value={phase.regime} /></div></section><section className="archive-compare"><div><strong>Archived quasiperiodic torus</strong><span>β = ({archivedResearchFindings.topology.quasiperiodicBetti.join(", ")})</span><small>{archivedResearchFindings.topology.provenance}</small></div><div><strong>Archived periodic loop</strong><span>β = ({archivedResearchFindings.topology.periodicBetti.join(", ")})</span><small>One recurrent loop does not establish T² occupancy.</small></div></section><section className="research-note"><strong>Interpretation boundary</strong><p>{topology.limitation} A toroidal claim still requires two identifiable recurrent phases, not merely a torus-shaped rendering.</p></section></>;
+  return <><section className="study-intro"><div><span>Latent synthetic topology diagnostic</span><h2>Topology & phase</h2><p>Phase occupancy uses the simulator’s latent synthetic θ and φ. It is not an empirically recovered manifold; archived Betti tests remain the stronger topology evidence.</p></div><div className="study-stats"><Stat label="Grid coverage" value={`${(topology.coverage * 100).toFixed(1)}%`} /><Stat label="Components" value={String(topology.connectedComponents)} /><Stat label="Heuristic Betti tuple" value={`(${topology.heuristicBetti.join(", ")})`} /><Stat label="Winding" value={phase.regime} /></div></section><section className="archive-compare"><div><strong>Archived quasiperiodic torus</strong><span>Betti ({archivedResearchFindings.topology.quasiperiodicBetti.join(", ")})</span><small>{archivedResearchFindings.topology.provenance}</small></div><div><strong>Archived periodic loop</strong><span>Betti ({archivedResearchFindings.topology.periodicBetti.join(", ")})</span><small>One recurrent loop does not establish T² occupancy.</small></div></section><section className="research-note"><strong>Interpretation boundary</strong><p>{topology.limitation} A toroidal claim still requires two identifiable recurrent phases, not merely a torus-shaped rendering.</p></section></>;
 }
 
 function HysteresisStudy({ result }: { result: HysteresisStudyResult | null }) {
@@ -159,7 +159,7 @@ function HysteresisStudy({ result }: { result: HysteresisStudyResult | null }) {
 
 function CoupledStudy({ result }: { result: CoupledToriResult[] | null }) {
   if (!result) return <EmptyStudy title="Coupled tori" copy="Run the ring-network experiment to test whether phase synchronization improves—or merely coordinates—collective alignment." asset="/research/core/fig_26_coupled_network_order_vs_risk.png" />;
-  return <><section className="study-intro"><div><span>Live coupled-agent model</span><h2>Coordination is not alignment</h2><p>Coupling can increase phase order while propagated misclassification expands collective risk.</p></div><div className="study-stats"><Stat label="Coupling values" value={String(result.length)} /><Stat label="Agents" value={String(result[0].agents)} /><Stat label="Steps" value={String(result[0].steps)} /></div></section><div className="research-chart-grid"><ResearchLineChart title="Phase order vs coupling" xValues={result.map((item) => item.coupling)} series={[{ label: "order", color: "#8c76ff", values: result.map((item) => item.meanOrderLast) }]} /><ResearchLineChart title="Mean radial risk vs coupling" xValues={result.map((item) => item.coupling)} series={[{ label: "ρ", color: "#ff6a63", values: result.map((item) => item.meanRhoLast) }]} /></div><section className="research-table-panel"><div className="table-wrap"><table><thead><tr><th>Coupling</th><th>Phase order</th><th>Mean ρ</th><th>Mean debt</th><th>Interpretation</th></tr></thead><tbody>{result.map((item) => <tr key={item.coupling}><td>{item.coupling.toFixed(3)}</td><td>{item.meanOrderLast.toFixed(3)}</td><td>{item.meanRhoLast.toFixed(3)}</td><td>{item.finalDebtMean.toFixed(3)}</td><td>{item.coordinationWithoutAlignment ? "Coordinated risk" : "No joint-risk flag"}</td></tr>)}</tbody></table></div></section></>;
+  return <><section className="study-intro"><div><span>Live coupled-agent model</span><h2>Coordination is not alignment</h2><p>Coupling can increase phase order while propagated misclassification expands collective risk.</p></div><div className="study-stats"><Stat label="Coupling values" value={String(result.length)} /><Stat label="Agents" value={String(result[0].agents)} /><Stat label="Steps" value={String(result[0].steps)} /></div></section><div className="research-chart-grid"><ResearchLineChart title="Phase order vs coupling" xValues={result.map((item) => item.coupling)} xLabel="coupling" series={[{ label: "order", color: "#8c76ff", values: result.map((item) => item.meanOrderLast) }]} /><ResearchLineChart title="Mean radial risk vs coupling" xValues={result.map((item) => item.coupling)} xLabel="coupling" series={[{ label: "ρ", color: "#ff6a63", values: result.map((item) => item.meanRhoLast) }]} /></div><section className="research-table-panel"><div className="table-wrap"><table><thead><tr><th>Coupling</th><th>Phase order</th><th>Mean ρ</th><th>Mean debt</th><th>Interpretation</th></tr></thead><tbody>{result.map((item) => <tr key={item.coupling}><td>{item.coupling.toFixed(3)}</td><td>{item.meanOrderLast.toFixed(3)}</td><td>{item.meanRhoLast.toFixed(3)}</td><td>{item.finalDebtMean.toFixed(3)}</td><td>{item.coordinationWithoutAlignment ? "Coordinated risk" : "No joint-risk flag"}</td></tr>)}</tbody></table></div></section></>;
 }
 
 function NavigationStudy({ result }: { result: NavigationStudyResult | null }) {
@@ -167,7 +167,9 @@ function NavigationStudy({ result }: { result: NavigationStudyResult | null }) {
 }
 
 function TelemetryStudy({ analysis, source, importFile }: { analysis: ExternalTelemetryAnalysis; source: string; importFile: (file: File) => Promise<void> }) {
-  return <><section className="study-intro"><div><span>Imported observation path</span><h2>External mismatch telemetry</h2><p>Upload CSV with <code>time,mismatch</code>. The revised signed temporal estimator runs only after the identifiability gates pass.</p></div><label className="telemetry-upload">Import CSV<input type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); event.target.value = ""; }} /></label></section><section className="study-stats wide"><Stat label="Source" value={source} /><Stat label="Samples" value={String(analysis.samples.length)} /><Stat label="Identifiable" value={analysis.diagnostics.identifiable ? "Yes" : "No"} /><Stat label="Gate reason" value={analysis.diagnostics.reason} /><Stat label="Spectral concentration" value={analysis.diagnostics.spectralConcentration.toFixed(3)} /><Stat label="Estimated cycles" value={analysis.diagnostics.estimatedMajorCycles.toFixed(1)} /></section><ResearchLineChart title="Imported mismatch and normalized phase estimate" series={[{ label: "mismatch", color: "#49bfff", values: analysis.samples.map((sample) => sample.mismatch) }, { label: "φ / 2π", color: "#ff9a4a", values: analysis.samples.map((sample) => (sample.estimatedPhase ?? 0) / (Math.PI * 2)) }]} /><section className="research-note"><strong>What this establishes</strong><p>{analysis.warnings.join(" ")}</p></section></>;
+  const phaseValues = analysis.samples.map((sample) => sample.estimatedPhase === undefined ? undefined : sample.estimatedPhase / (Math.PI * 2));
+  const phaseAvailable = analysis.diagnostics.identifiable && phaseValues.some((value) => value !== undefined);
+  return <><section className="study-intro"><div><span>Imported observation path</span><h2>External mismatch telemetry</h2><p>Upload CSV with <code>time,mismatch</code>. The revised signed temporal estimator runs only after the identifiability gates pass.</p></div><label className="telemetry-upload">Import CSV<input type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); event.target.value = ""; }} /></label></section><section className="study-stats wide"><Stat label="Source" value={source} /><Stat label="Samples" value={String(analysis.samples.length)} /><Stat label="Identifiable" value={analysis.diagnostics.identifiable ? "Yes" : "No"} /><Stat label="Gate reason" value={analysis.diagnostics.reason} /><Stat label="Spectral concentration" value={analysis.diagnostics.spectralConcentration.toFixed(3)} /><Stat label="Estimated cycles" value={analysis.diagnostics.estimatedMajorCycles.toFixed(1)} /></section><ResearchLineChart title={phaseAvailable ? "Imported mismatch and normalized phase estimate" : "Imported mismatch · phase estimate withheld"} xValues={analysis.samples.map((sample) => sample.time)} xLabel="time" series={[{ label: "mismatch", color: "#49bfff", values: analysis.samples.map((sample) => sample.mismatch) }, ...(phaseAvailable ? [{ label: "φ / 2π", color: "#ff9a4a", values: phaseValues }] : [])]} />{!phaseAvailable && <section className="research-note phase-withheld"><strong>Phase not plotted</strong><p>The identifiability gate failed ({analysis.diagnostics.reason}), so φ̂ remains undefined. The chart does not replace missing phase with an arbitrary zero angle.</p></section>}<section className="research-note"><strong>What this establishes</strong><p>{analysis.warnings.join(" ")}</p></section></>;
 }
 
 function EmptyStudy({ title, copy, asset }: { title: string; copy: string; asset: string }) {
@@ -178,16 +180,30 @@ function Stat({ label, value }: { label: string; value: string }) {
   return <span><small>{label}</small><strong>{value}</strong></span>;
 }
 
-function ResearchLineChart({ title, series }: { title: string; xValues?: number[]; series: { label: string; color: string; values: number[] }[] }) {
+function ResearchLineChart({ title, series, xValues, xLabel = "sample" }: { title: string; xValues?: number[]; xLabel?: string; series: { label: string; color: string; values: (number | undefined)[] }[] }) {
   const width = 760;
   const height = 250;
   const pad = 26;
-  const all = series.flatMap((item) => item.values).filter(Number.isFinite);
+  const all = series.flatMap((item) => item.values).filter((value): value is number => value !== undefined && Number.isFinite(value));
   const min = Math.min(0, ...all);
   const max = Math.max(1e-9, ...all);
   const span = Math.max(max - min, 1e-9);
-  const path = (values: number[]) => values.map((value, index) => `${index ? "L" : "M"}${(pad + index / Math.max(1, values.length - 1) * (width - pad * 2)).toFixed(2)},${(height - pad - (value - min) / span * (height - pad * 2)).toFixed(2)}`).join(" ");
-  return <section className="research-chart"><header><strong>{title}</strong><div>{series.map((item) => <span key={item.label} style={{ color: item.color }}>{item.label}</span>)}</div></header><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}><g className="chart-grid-lines">{Array.from({ length: 6 }, (_, index) => <path key={index} d={`M${pad} ${pad + index * (height - pad * 2) / 5}H${width - pad}`} />)}</g>{series.map((item) => <path key={item.label} d={path(item.values)} fill="none" stroke={item.color} strokeWidth="2.4" />)}</svg><footer><span>{min.toFixed(2)}</span><span>{max.toFixed(2)}</span></footer></section>;
+  const xMin = xValues?.length ? Math.min(...xValues) : 0;
+  const xMax = xValues?.length ? Math.max(...xValues) : Math.max(0, ...series.map((item) => item.values.length - 1));
+  const xSpan = Math.max(xMax - xMin, 1e-9);
+  const path = (values: (number | undefined)[]) => {
+    let drawing = false;
+    return values.map((value, index) => {
+      if (value === undefined || !Number.isFinite(value)) { drawing = false; return ""; }
+      const rawX = xValues?.[index] ?? index;
+      const x = pad + (rawX - xMin) / xSpan * (width - pad * 2);
+      const y = height - pad - (value - min) / span * (height - pad * 2);
+      const command = drawing ? "L" : "M";
+      drawing = true;
+      return `${command}${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(" ");
+  };
+  return <section className="research-chart"><header><strong>{title}</strong><div>{series.map((item) => <span key={item.label} style={{ color: item.color }}>{item.label}</span>)}</div></header><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title}. ${xLabel} range ${xMin.toFixed(3)} to ${xMax.toFixed(3)}; y range ${min.toFixed(3)} to ${max.toFixed(3)}.`}><g className="chart-grid-lines">{Array.from({ length: 6 }, (_, index) => <path key={index} d={`M${pad} ${pad + index * (height - pad * 2) / 5}H${width - pad}`} />)}</g>{series.map((item) => <path key={item.label} d={path(item.values)} fill="none" stroke={item.color} strokeWidth="2.4" />)}</svg><footer><span>{xLabel} {xMin.toFixed(3)}</span><span>y {min.toFixed(2)}…{max.toFixed(2)}</span><span>{xLabel} {xMax.toFixed(3)}</span></footer></section>;
 }
 
 function exampleTelemetry() {

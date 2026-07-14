@@ -41,6 +41,31 @@
       "name": "external-telemetry",
       "title": "External mismatch telemetry",
       "url": "/schemas/v1/external-telemetry.schema.json"
+    },
+    {
+      "name": "empirical-evidence-bundle",
+      "title": "Browser-local empirical study evidence bundle",
+      "url": "/schemas/v1/empirical-evidence-bundle.schema.json"
+    },
+    {
+      "name": "empirical-research-request",
+      "title": "Headless empirical research request",
+      "url": "/schemas/v1/empirical-research-request.schema.json"
+    },
+    {
+      "name": "empirical-research-receipt",
+      "title": "Redacted empirical research receipt",
+      "url": "/schemas/v1/empirical-research-receipt.schema.json"
+    },
+    {
+      "name": "empirical-evidence-registry-request",
+      "title": "Evidence Registry aggregation request",
+      "url": "/schemas/v1/empirical-evidence-registry-request.schema.json"
+    },
+    {
+      "name": "empirical-evidence-registry",
+      "title": "Redacted Evidence Registry bundle",
+      "url": "/schemas/v1/empirical-evidence-registry.schema.json"
     }
   ]
 }

@@ -1,12 +1,15 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
-import { CONTRACT_VERSION, LOCAL_EXECUTION_LIMITS, type ExecutionLimits } from "../contracts/constants.ts";
+import { CONTRACT_VERSION, EMPIRICAL_EXECUTION_LIMITS, LOCAL_EXECUTION_LIMITS, type ExecutionLimits } from "../contracts/constants.ts";
 import { compareExperiments, runExperiment, sweepParameters } from "../contracts/experiments.ts";
 import { getModelManifest } from "../contracts/metadata.ts";
 import { validateScenarioProposal } from "../contracts/proposals.ts";
-import { comparisonSpecSchema, experimentSpecSchema, externalTelemetrySchema, scenarioProposalSchema, sweepSpecSchema } from "../contracts/schemas.ts";
+import { comparisonSpecSchema, empiricalEvidenceRegistryRequestSchema, empiricalResearchExplanationRequestSchema, empiricalResearchRequestSchema, empiricalResearchResourceRequestSchema, experimentSpecSchema, externalTelemetrySchema, scenarioProposalSchema, sweepSpecSchema } from "../contracts/schemas.ts";
 import { analyzeTelemetryRequest } from "../contracts/telemetry.ts";
 import { reproducePaperCase } from "../contracts/research.ts";
+import { analyzeEmpiricalRequest, explainEmpiricalObservation, type EmpiricalProcessingMode } from "../empirical/headless.ts";
+import { materializeEmpiricalCsvResource } from "../empirical/local-resource.ts";
+import { aggregateEmpiricalReceipts } from "../empirical/registry.ts";
 import { scenarioById, scenarios } from "../scenarios/catalog.ts";
 
 const resultSchema = { result: z.unknown() };
@@ -15,10 +18,24 @@ const asToolResult = (result: unknown) => ({
   structuredContent: { result },
 });
 
-export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIMITS) {
+export type VtlMcpOptions = {
+  empiricalMode?: EmpiricalProcessingMode | "disabled";
+  empiricalRoots?: string[];
+  empiricalTokenAuthenticated?: boolean;
+  allowSensitiveRemoteData?: boolean;
+};
+
+export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIMITS, options: VtlMcpOptions = {}) {
+  const empiricalMode = options.empiricalMode ?? "local-mcp";
+  const empiricalPolicy = empiricalMode === "disabled" ? null : {
+    mode: empiricalMode,
+    tokenAuthenticated: empiricalMode === "local-mcp" ? false : options.empiricalTokenAuthenticated === true,
+    allowSensitiveRemoteData: empiricalMode === "local-mcp" || options.allowSensitiveRemoteData === true,
+    maxReturnedReplayPoints: empiricalMode === "local-mcp" ? EMPIRICAL_EXECUTION_LIMITS.maxLocalReturnedReplayPoints : EMPIRICAL_EXECUTION_LIMITS.maxReturnedReplayPoints,
+  };
   const server = new McpServer(
     { name: "viability-torus-lab", version: CONTRACT_VERSION },
-    { instructions: "Use get_model_info before experiments when model scope is unclear. List or fetch a scenario before changing parameters. Treat results as synthetic model evidence, not empirical or operational advice. Use validate_scenario_proposal before proposing publication; validation never publishes a scenario and human review is required." },
+    { instructions: "Use get_model_info before experiments when model scope is unclear. List or fetch a scenario before changing parameters. Simulation results are synthetic model evidence. Empirical tools return observed-descriptive, provisional receipts and model attribution, not causal identification or validation of the theory. Never force a torus interpretation when a phase gate fails. Use validate_scenario_proposal before proposing publication; validation never publishes a scenario and human review is required." },
   );
 
   server.registerTool("get_model_info", {
@@ -86,6 +103,53 @@ export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIM
     outputSchema: resultSchema,
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async (input) => asToolResult(analyzeTelemetryRequest(input)));
+
+  if (empiricalPolicy) {
+    server.registerTool("empirical_analyze_table", {
+      title: "Analyze an empirical research table",
+      description: "Run the shared bounded empirical engine over inline rows or CSV content. Returns gates, sampled observed-driver replay, and a redacted receipt; it does not fit parameters or establish causality.",
+      inputSchema: empiricalResearchRequestSchema,
+      outputSchema: resultSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (input) => asToolResult(analyzeEmpiricalRequest(input, empiricalPolicy)));
+
+    server.registerTool("empirical_explain_observation", {
+      title: "Explain one empirical observation",
+      description: "Re-evaluate a bounded empirical study and return the equation contribution trace and residual for one observation index.",
+      inputSchema: empiricalResearchExplanationRequestSchema,
+      outputSchema: resultSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (input) => asToolResult(explainEmpiricalObservation(input, empiricalPolicy)));
+
+    server.registerTool("empirical_export_receipt", {
+      title: "Export a redacted empirical receipt",
+      description: "Evaluate a bounded empirical study and return only its versioned receipt. Raw input rows are excluded.",
+      inputSchema: empiricalResearchRequestSchema,
+      outputSchema: resultSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (input) => asToolResult(analyzeEmpiricalRequest({ ...input, options: { ...input.options, includeReplayPoints: false } }, empiricalPolicy).receipt));
+
+    server.registerTool("empirical_aggregate_receipts", {
+      title: "Compare redacted empirical receipts",
+      description: "Classify study receipts against an anchor and summarize only compatible observed receipts. Synthetic and non-comparable evidence remains visible but excluded; this is descriptive aggregation, not meta-analysis or fitting.",
+      inputSchema: empiricalEvidenceRegistryRequestSchema,
+      outputSchema: resultSchema,
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (input) => asToolResult(aggregateEmpiricalReceipts(input)));
+
+    if (empiricalMode === "local-mcp") {
+      server.registerTool("empirical_analyze_resource", {
+        title: "Analyze an approved local empirical CSV",
+        description: "Read a CSV only from a VTL_EMPIRICAL_ROOTS directory, then run the same empirical engine and redacted receipt workflow used by the UI and table tool.",
+        inputSchema: empiricalResearchResourceRequestSchema,
+        outputSchema: resultSchema,
+        annotations: { readOnlyHint: true, openWorldHint: true },
+      }, async (input) => asToolResult(analyzeEmpiricalRequest(
+        await materializeEmpiricalCsvResource(input, options.empiricalRoots ?? []),
+        empiricalPolicy,
+      )));
+    }
+  }
 
   server.registerTool("validate_scenario_proposal", {
     title: "Validate draft scenario proposal",

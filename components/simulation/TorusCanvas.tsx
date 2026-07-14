@@ -59,9 +59,9 @@ export function TorusCanvas({
     if (severity > 0.78) return "expanding excursion";
     if (frame.status === "Recovering") return "partial recovery";
     if (phaseReady && frame.phaseRegime === "Phase locked") return "phase-locked trajectory";
-    if (frame.debt > 0.7) return "hysteretic deformation";
-    if (severity > 0.45) return "locally warped torus";
-    return "healthy viable torus";
+    if (frame.debt > 0.7) return "illustrative debt deformation";
+    if (severity > 0.45) return "illustrative locally warped view";
+    return "synthetic viable torus";
   }, [frame, phaseReady, severity]);
 
   useEffect(() => {
@@ -192,13 +192,13 @@ export function TorusCanvas({
         role="img"
         data-chart-kind="torus"
         data-offscale={excursion.offScale ? "true" : "false"}
-        aria-label={`Interactive ${geometryState}. Current alignment ${Math.round((frame?.alignment ?? 0) * 100)} percent, radial excursion ${(frame?.rho ?? 0).toFixed(2)}, debt ${(frame?.debt ?? 0).toFixed(2)}${excursion.offScale ? `; excursion is off the display scale at ${excursion.ratio.toFixed(1)} times the critical radius` : ""}. ${phaseReady ? `Offline full-run phase regime ${frame?.phaseRegime ?? "not available"}; external phase ${frame?.phaseIdentifiable ? "identifiable" : "not identifiable"}` : "Offline phase analysis is available after the full run"}.`}
+        aria-label={`Interactive synthetic torus embedding, currently ${geometryState}. Current toy alignment proxy A equals e to the minus rho is ${Math.round((frame?.alignment ?? 0) * 100)} percent, radial excursion ${(frame?.rho ?? 0).toFixed(2)}, debt ${(frame?.debt ?? 0).toFixed(2)}${excursion.offScale ? `; excursion is off the display scale at ${excursion.ratio.toFixed(1)} times the critical radius` : ""}. Shape deformation is an illustrative view of phase-local imbalance, not a directly simulated Equation 34 field. ${phaseReady ? `Offline full-run phase regime ${frame?.phaseRegime ?? "not available"}; external phase ${frame?.phaseIdentifiable ? "identifiable" : "not identifiable"}` : "Offline phase analysis is available after the full run"}.`}
       />
       {!compact && (
         <>
           <div className="torus-legend legend-minor"><strong>Minor cycle (θ)</strong><span>{"Propose → verify → correct"}</span></div>
           <div className="torus-legend legend-major"><strong>Major cycle (simulated φ)</strong><span>{"Observe → adapt → govern"}</span></div>
-          <div className="torus-legend legend-tube"><strong>Viable tube</strong><span>safe alignment band</span></div>
+          <div className="torus-legend legend-tube"><strong>Viable tube</strong><span>illustrative ρ &lt; ρcrit band</span></div>
           <div className="torus-legend legend-warning"><strong>Warning zone</strong><span>high radial excursion</span></div>
           {showLabels && <div className="axis-labels" aria-hidden="true"><span className="axis-x">x</span><span className="axis-y">y</span><span className="axis-z">z</span></div>}
           {frame?.viabilityState === "Irreversible rupture" && <div className="terminal-rupture-label"><strong>Terminal rupture</strong><span>Modeled recurrence has been lost</span></div>}
@@ -215,7 +215,7 @@ export function TorusCanvas({
         <button onClick={resetView}>Reset</button>
         {!compact && <button onClick={() => wrapRef.current?.requestFullscreen?.()}>Full</button>}
       </div>
-      {!compact && <div className="torus-help">Drag to rotate · Shift-drag to pan · Scroll to zoom · Select the trajectory</div>}
+      {!compact && <div className="torus-help">Drag to rotate · Shift-drag to pan · Select the trajectory · Shape warp illustrates Eq. 34; phase-local D, C, and Δ fields are not simulated</div>}
     </div>
   );
 }
@@ -463,7 +463,7 @@ function drawUnwrapped(ctx: CanvasRenderingContext2D, width: number, height: num
   let previous: { x: number; y: number } | null = null;
   for (let index = start; index <= end; index += 2) {
     const frame = frames[index];
-    const point = { x: margin.x + (frame.phi / TAU) * chartW, y: margin.y + chartH - (frame.theta / TAU) * chartH };
+    const point = { x: margin.x + (frame.theta / TAU) * chartW, y: margin.y + chartH - (frame.phi / TAU) * chartH };
     if (previous && Math.abs(point.x - previous.x) < chartW * 0.6 && Math.abs(point.y - previous.y) < chartH * 0.6) {
       ctx.beginPath(); ctx.moveTo(previous.x, previous.y); ctx.lineTo(point.x, point.y);
       ctx.strokeStyle = frame.rho > params.rhoCrit * 0.7 ? "rgba(255,85,61,.9)" : "rgba(185,228,255,.88)";
@@ -471,10 +471,22 @@ function drawUnwrapped(ctx: CanvasRenderingContext2D, width: number, height: num
     }
     previous = point;
   }
+  const current = frames[end];
+  if (current) {
+    const x = margin.x + (current.theta / TAU) * chartW;
+    const y = margin.y + chartH - (current.phi / TAU) * chartH;
+    ctx.fillStyle = "#fff2a8";
+    ctx.shadowColor = "#ff9f4a";
+    ctx.shadowBlur = 9;
+    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, TAU); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
   ctx.fillStyle = "rgba(196,215,240,.8)";
   ctx.font = "11px ui-monospace";
-  ctx.fillText("φ · simulated latent external phase", margin.x, height - 12);
-  ctx.save(); ctx.translate(14, margin.y + chartH); ctx.rotate(-Math.PI / 2); ctx.fillText("θ · local correction phase", 0, 0); ctx.restore();
+  ctx.fillText("θ · local correction phase", margin.x, height - 12);
+  ctx.save(); ctx.translate(14, margin.y + chartH); ctx.rotate(-Math.PI / 2); ctx.fillText("φ · simulated latent external phase", 0, 0); ctx.restore();
+  ctx.fillStyle = "rgba(196,215,240,.52)";
+  ctx.fillText("opposite edges identified", margin.x + 7, margin.y + 14);
 }
 
 function drawStarfield(ctx: CanvasRenderingContext2D, width: number, height: number) {

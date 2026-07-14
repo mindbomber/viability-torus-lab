@@ -1,12 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createVtlMcpServer } from "../mcp/server.ts";
+import { empiricalResearchFixture, empiricalCsv } from "./fixtures/empirical.mjs";
+import { createSyntheticRegistryDemo } from "../empirical/registry-demo.ts";
+import { scenarioById } from "../scenarios/catalog.ts";
 
 test("MCP server advertises and executes the agent experiment tools", async () => {
+  const root = await mkdtemp(join(tmpdir(), "vtl-mcp-empirical-"));
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const server = createVtlMcpServer();
+  const server = createVtlMcpServer(undefined, { empiricalMode: "local-mcp", empiricalRoots: [root] });
   const client = new Client({ name: "vtl-test-client", version: "1.0.0" });
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   try {
@@ -15,6 +22,11 @@ test("MCP server advertises and executes the agent experiment tools", async () =
     assert.deepEqual(names.sort(), [
       "analyze_external_telemetry",
       "compare_runs",
+      "empirical_aggregate_receipts",
+      "empirical_analyze_resource",
+      "empirical_analyze_table",
+      "empirical_explain_observation",
+      "empirical_export_receipt",
       "get_model_info",
       "get_scenario",
       "list_scenarios",
@@ -47,6 +59,57 @@ test("MCP server advertises and executes the agent experiment tools", async () =
     });
     assert.equal(telemetry.isError, undefined);
     assert.equal(telemetry.structuredContent.result.samples.length, 160);
+
+    const { request, example } = empiricalResearchFixture();
+    const empirical = await client.callTool({ name: "empirical_analyze_table", arguments: request });
+    assert.equal(empirical.isError, undefined);
+    assert.equal(empirical.structuredContent.result.validation.torusReplayReady, true);
+    assert.equal(empirical.structuredContent.result.receipt.source.rawDataIncluded, false);
+
+    const explained = await client.callTool({ name: "empirical_explain_observation", arguments: { ...request, observationIndex: 96 } });
+    assert.equal(explained.isError, undefined);
+    assert.match(explained.structuredContent.result.explanation.boundary, /not causal identification/i);
+
+    const receipt = await client.callTool({ name: "empirical_export_receipt", arguments: request });
+    assert.equal(receipt.isError, undefined);
+    assert.equal(receipt.structuredContent.result.kind, "empirical-research-receipt");
+
+    const aggregate = await client.callTool({ name: "empirical_aggregate_receipts", arguments: { receipts: createSyntheticRegistryDemo(scenarioById["llm-deployment"]) } });
+    assert.equal(aggregate.isError, undefined);
+    assert.equal(aggregate.structuredContent.result.cohort.compatibleObservedStudies, 2);
+    assert.match(aggregate.structuredContent.result.interpretationBoundary, /not a meta-analysis/i);
+
+    const filePath = join(root, "research.csv");
+    await writeFile(filePath, empiricalCsv(example), "utf8");
+    const resourceRequest = { ...request };
+    delete resourceRequest.data;
+    const resource = await client.callTool({ name: "empirical_analyze_resource", arguments: { ...resourceRequest, filePath } });
+    assert.equal(resource.isError, undefined);
+    assert.equal(resource.structuredContent.result.processing.mode, "local-mcp");
+  } finally {
+    await client.close();
+    await server.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("authenticated remote MCP exposes table analysis but never local file access", async () => {
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const server = createVtlMcpServer(undefined, { empiricalMode: "remote-mcp", empiricalTokenAuthenticated: true });
+  const client = new Client({ name: "vtl-remote-test-client", version: "1.0.0" });
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  try {
+    const names = (await client.listTools()).tools.map((tool) => tool.name);
+    assert.ok(names.includes("empirical_analyze_table"));
+    assert.ok(names.includes("empirical_explain_observation"));
+    assert.ok(names.includes("empirical_export_receipt"));
+    assert.ok(names.includes("empirical_aggregate_receipts"));
+    assert.equal(names.includes("empirical_analyze_resource"), false);
+    const { request } = empiricalResearchFixture({ privacy: { remoteProcessingAuthorized: true } });
+    const result = await client.callTool({ name: "empirical_analyze_table", arguments: request });
+    assert.equal(result.isError, undefined);
+    assert.equal(result.structuredContent.result.processing.mode, "remote-mcp");
+    assert.equal(result.structuredContent.result.receipt.source.rawDataIncluded, false);
   } finally {
     await client.close();
     await server.close();

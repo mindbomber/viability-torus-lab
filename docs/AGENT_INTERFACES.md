@@ -72,6 +72,42 @@ Content-Type: application/json
 
 Provide 8–5,000 monotonically timed samples. The estimator applies sampling, amplitude, spectral-concentration, and observed-cycle gates. A successful phase estimate does not by itself establish torus topology or validate a scenario mapping.
 
+### Analyze a researcher-supplied empirical study
+
+The headless empirical service accepts the same study, mapping, phase, and radial-balance contract as the browser lab. The authoritative request schema is `/schemas/v1/empirical-research-request.schema.json`; the redacted receipt schema is `/schemas/v1/empirical-research-receipt.schema.json`.
+
+The HTTP endpoint is intended for an explicitly configured self-hosted deployment and is disabled by default:
+
+```text
+VTL_ENABLE_EMPIRICAL_API=true
+VTL_EMPIRICAL_API_TOKEN=<strong deployment secret>
+VTL_EMPIRICAL_API_ORIGIN=https://research.example
+```
+
+```http
+POST /api/v1/empirical/analyze
+Authorization: Bearer <deployment secret>
+Content-Type: application/json
+```
+
+The strict request contains:
+
+- `scenarioId` and a complete study definition (`ω`, `τ`, `α`, viable region, two cycles, falsification criterion, and provenance);
+- source name, optional connector resource URI, data classification, and declared preprocessing;
+- `privacy.dataUseAuthorized: true`, `privacy.remoteProcessingAuthorized: true`, sensitivity/deidentification declarations, and `retention: "request-only"`;
+- either bounded object rows with an explicit column list or bounded CSV text;
+- an explicit mapping for all required and optional empirical roles, including units;
+- declared `kappa`, `rho0`, `chi`, and `rhoCrit`; and
+- replay inclusion/stride options.
+
+The response contains validation gates, phase diagnostics, a response-budgeted observed-versus-predicted replay, and a redacted receipt. Source rows are not copied into the receipt. A canonical parsed-table fingerprint supports later matching, but it is not a hash of the original source bytes. Failed phase evidence sets `torusReplayReady: false` and `torusInterpretationWithheld: true`; the service does not force a torus claim.
+
+Remote sensitive or `restricted` data are rejected unless deidentified. An operator can change that default with `VTL_ALLOW_SENSITIVE_EMPIRICAL_DATA=true`, but must then independently secure transport, upstream request logs, retention, jurisdiction, and researcher authorization. Application code itself retains data for the request only and does not log raw input.
+
+### Compare and descriptively aggregate evidence receipts
+
+`POST /api/v1/empirical/aggregate` accepts `/schemas/v1/empirical-evidence-registry-request.schema.json` under the same opt-in bearer-token deployment gate. Provide one to 500 browser-local or headless redacted receipts and, optionally, a computed anchor receipt id. The response classifies every receipt as anchor, compatible, partially comparable, non-comparable, or excluded with dimension-level reasons. Its cohort summary includes only compatible observed receipts. It is not parameter fitting, row pooling, effect estimation, or meta-analysis. Exported browser registry bundles validate against `/schemas/v1/empirical-evidence-registry.schema.json`.
+
 ### Compare experiments
 
 `POST /api/v1/compare` accepts `{ "left": ExperimentSpec, "right": ExperimentSpec }` and returns both results plus signed ensemble differences (`left - right`).
@@ -112,7 +148,7 @@ Validation and execution-budget failures return HTTP `422`:
 }
 ```
 
-Unknown object fields are rejected. Bodies are capped at 1 MB, parameters are finite and range-checked, `rho0` must remain below `rhoCrit`, interventions cannot change seed/steps/dt, and every cumulative intervention state is revalidated. Computation is limited by runs, candidates, steps, returned frames, and an overall internal integration-substep budget.
+Unknown object fields are rejected. General API bodies are capped at 1 MB; empirical analysis allows enough envelope overhead for a canonical dataset capped at 2 MB, 5,000 rows, and 64 columns, while registry aggregation accepts at most 500 redacted receipts in a 10 MB body. Parameters are finite and range-checked, `rho0` must remain below `rhoCrit`, interventions cannot change seed/steps/dt, and every cumulative intervention state is revalidated. Computation is limited by runs, candidates, steps, rows, receipts, returned frames, returned replay points, and an overall internal integration-substep budget.
 
 ## CLI
 
@@ -122,6 +158,9 @@ npm run vtl -- scenarios
 npm run experiment -- --config experiment.json --out result.json
 npm run vtl -- compare --config comparison.json
 npm run sweep -- --config sweep.json
+npm run vtl -- empirical-analyze --config empirical-request.json --out empirical-result.json
+npm run vtl -- empirical-explain --config empirical-explanation-request.json --out observation-explanation.json
+npm run vtl -- empirical-aggregate --config registry-request.json --out registry-summary.json
 npm run proposal:validate -- --config proposal.json
 ```
 
@@ -129,7 +168,7 @@ Pass `--config -` for stdin. CLI execution has larger but still finite local lim
 
 ## MCP
 
-The local server uses stdio and the public `/mcp` route uses stateless Streamable HTTP with JSON responses. Both expose:
+The local server uses stdio and the public `/mcp` route uses stateless Streamable HTTP with JSON responses. Core tools are:
 
 - `get_model_info`
 - `list_scenarios`
@@ -141,7 +180,17 @@ The local server uses stdio and the public `/mcp` route uses stateless Streamabl
 - `reproduce_paper_case`
 - `analyze_external_telemetry`
 
-The MCP server instructions require agents to preserve the synthetic-evidence boundary and use proposal validation before recommending publication.
+The local stdio server additionally exposes:
+
+- `empirical_analyze_table` — analyze bounded connector-provided rows or CSV text;
+- `empirical_analyze_resource` — read a `.csv` after real-path verification confines it to `VTL_EMPIRICAL_ROOTS`;
+- `empirical_explain_observation` — return the model contribution trace and residual for one observation;
+- `empirical_export_receipt` — return only the redacted evidence receipt.
+- `empirical_aggregate_receipts` — compare receipts against an anchor and summarize only the compatible observed cohort.
+
+Authenticated remote MCP requests expose the table, explanation, and receipt tools, but never the local-file resource tool. They use the same `VTL_ENABLE_EMPIRICAL_API`, bearer token, consent, and sensitive-data policy as the HTTP endpoint. For database, Sheets, or repository connectors, the MCP client should read the authorized resource and pass the bounded rows to `empirical_analyze_table`; the optional `source.resourceUri` preserves provenance without granting this server open connector access.
+
+The MCP server instructions require agents to preserve the synthetic/observed-descriptive evidence boundary, treat failed topology gates as valid negative results, and use proposal validation before recommending publication.
 
 ## Scenario proposals
 

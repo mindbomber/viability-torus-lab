@@ -157,6 +157,39 @@ export type ExternalTelemetryAnalysis = {
   warnings: string[];
 };
 
+export type SimulationExplanationTone = "stable" | "warning" | "danger" | "recovering" | "neutral";
+
+export type SimulationExplanation = {
+  statusLabel: string;
+  tone: SimulationExplanationTone;
+  classification: string;
+  balanceSummary: string;
+  balance: {
+    label: string;
+    symbol: string;
+    value: number;
+    tone: "positive" | "negative" | "neutral";
+  }[];
+  activeControls: {
+    label: string;
+    symbol: string;
+    value: number;
+  }[];
+  trajectory: {
+    label: "Improving" | "Worsening" | "Holding";
+    tone: SimulationExplanationTone;
+    detail: string;
+  };
+  threshold: {
+    label: string;
+    value: string;
+    tone: SimulationExplanationTone;
+    detail: string;
+  };
+  history: string[];
+  outcome: string;
+};
+
 export const MODEL_VERSION = "torus-1.2.0";
 export const MAX_INTERNAL_DT = 0.25;
 export const MIN_RHO = 0.03;
@@ -279,6 +312,46 @@ export function classifyStatus(
   if (rho > rhoCrit * 0.5 || correctionMargin < 0.045) return "Fragile";
   if (rho > rhoCrit * 0.34 || debt > 0.55) return "Warning";
   return "Stable";
+}
+
+export type RadialBalanceInput = {
+  pressure: number;
+  error: number;
+  feedback: number;
+  drift: number;
+  irreversibleLoss: number;
+  correction: number;
+  debt: number;
+  rho: number;
+  kappa: number;
+  rho0: number;
+  chi: number;
+};
+
+/**
+ * Canonical paper-aligned radial balance shared by the synthetic simulator and
+ * browser-local observational replay. This is an equation evaluation, not a
+ * claim that any supplied proxy is empirically calibrated.
+ */
+export function evaluateRadialBalance(input: RadialBalanceInput) {
+  const pressureWeightedError = input.pressure * input.error * (1 - input.feedback);
+  const driftAndLoss = input.drift + input.irreversibleLoss;
+  const divergence = pressureWeightedError + driftAndLoss;
+  const restoration = -input.kappa * (input.rho - input.rho0);
+  const debtPressure = input.chi * input.debt;
+  const correctionMargin = input.correction - divergence;
+  const radialRate = restoration + divergence - input.correction + debtPressure;
+  return {
+    pressureWeightedError,
+    driftAndLoss,
+    divergence,
+    restoration,
+    correction: input.correction,
+    debtPressure,
+    correctionMargin,
+    debtAdjustedMargin: correctionMargin - debtPressure,
+    radialRate,
+  };
 }
 
 function syntheticExternalMismatch(phi: number) {
@@ -561,7 +634,7 @@ export function evaluateAix(
     ? 0
     : clamp01(1 - Math.max(0, radialRatio - 0.35) / 1.15);
   const components: AixAssessment["components"] = {
-    P: { score: clamp01(frame.alignment), weight: AIX_WEIGHTS.P, evidence: `A=exp(-rho)=${frame.alignment.toFixed(3)}` },
+    P: { score: clamp01(frame.alignment), weight: AIX_WEIGHTS.P, evidence: `illustrative P heuristic uses toy A=exp(-rho)=${frame.alignment.toFixed(3)}; no physical observation supplied` },
     B: { score: clamp01(1 - 0.55 * debtRatio - 0.45 * clamp01(radialRatio)), weight: AIX_WEIGHTS.B, evidence: `debt ${frame.debt.toFixed(3)}; radial ratio ${radialRatio.toFixed(3)}` },
     C: { score: clamp01(correctionCoverage), weight: AIX_WEIGHTS.C, evidence: `correction coverage ${correctionCoverage.toFixed(3)}` },
     F: { score: clamp01(params.feedback), weight: AIX_WEIGHTS.F, evidence: `feedback fidelity gamma=${params.feedback.toFixed(3)}` },
@@ -652,10 +725,11 @@ export function simulate(
       );
     }
 
-    const divergence =
-      params.pressure * params.error * (1 - params.feedback) +
-      params.irreversibleLoss +
-      params.drift;
+    const divergence = evaluateRadialBalance({
+      ...params,
+      debt,
+      rho,
+    }).divergence;
     const correction = params.correction;
     const correctionMargin = correction - divergence;
     let radialVelocity = 0;
@@ -692,11 +766,11 @@ export function simulate(
         theta = wrapAngle(thetaUnwrapped);
         phi = wrapAngle(phiUnwrapped);
 
-        const radialRate =
-          -params.kappa * (rho - params.rho0) +
-          divergence -
-          correction +
-          params.chi * priorDebt;
+        const radialRate = evaluateRadialBalance({
+          ...params,
+          debt: priorDebt,
+          rho,
+        }).radialRate;
         rho = Math.max(
           MIN_RHO,
           rho +
@@ -1187,6 +1261,240 @@ export function simulateCoupledTori(coupling: number, seed = 84, agents = 24, st
     meanRhoLast,
     finalDebtMean,
     coordinationWithoutAlignment: meanOrderLast >= 0.7 && meanRhoLast >= 1.2,
+  };
+}
+
+function signedExplanationValue(value: number) {
+  return `${value >= 0 ? "+" : ""}${value.toFixed(3)}`;
+}
+
+function explanationStatusLabel(frame: SimulationFrame) {
+  if (frame.viabilityState === "Irreversible rupture") return "Irreversible rupture";
+  if (frame.viabilityState === "Viability-boundary crossing") return "Boundary crossed";
+  if (frame.viabilityState === "Recoverable excursion") return "Recoverable excursion";
+  return frame.status;
+}
+
+function explanationTone(frame: SimulationFrame): SimulationExplanationTone {
+  if (frame.viabilityState === "Irreversible rupture") return "danger";
+  if (frame.viabilityState === "Recoverable excursion" && frame.radialVelocity < 0) return "recovering";
+  if (frame.viabilityState !== "Viable recurrence") return "warning";
+  if (frame.status === "Stable") return "stable";
+  if (frame.status === "Recovering") return "recovering";
+  if (frame.status === "Rupture approaching" || frame.status === "Ruptured") return "danger";
+  return "warning";
+}
+
+function outsideStreakAt(frames: SimulationFrame[], rhoCrit: number) {
+  let streak = 0;
+  for (let index = frames.length - 1; index >= 0; index -= 1) {
+    if (frames[index].rho < rhoCrit) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+function classificationExplanation(
+  frame: SimulationFrame,
+  params: SimulationParameters,
+  outsideStreak: number,
+) {
+  if (frame.viabilityState === "Irreversible rupture") {
+    return "The terminal policy has fired. This historical state remains latched even if later correction reduces excursion or debt.";
+  }
+  if (frame.viabilityState === "Viability-boundary crossing") {
+    return `Radial excursion ρ=${frame.rho.toFixed(3)} reached the critical boundary ρcrit=${params.rhoCrit.toFixed(3)} on this step. A boundary crossing is not terminal by itself.`;
+  }
+  if (frame.viabilityState === "Recoverable excursion") {
+    const motion = frame.radialVelocity < 0 ? "contracting" : "still expanding";
+    return `Excursion remains outside ρcrit for ${outsideStreak} consecutive step${outsideStreak === 1 ? "" : "s"}, but terminal conditions have not fired and radial motion is ${motion}.`;
+  }
+  switch (frame.status) {
+    case "Rupture approaching":
+      return `Radial excursion ρ=${frame.rho.toFixed(3)} is at least 84% of the critical boundary (${(params.rhoCrit * 0.84).toFixed(3)}).`;
+    case "Recovering":
+      return `Radial velocity ${signedExplanationValue(frame.radialVelocity)} is below the recovery cutoff −0.035 while excursion or debt remains elevated.`;
+    case "Expanding":
+      return `Radial velocity ${signedExplanationValue(frame.radialVelocity)} exceeds the expansion cutoff +0.055.`;
+    case "Debt accumulating":
+      return `Debt is ${frame.debt.toFixed(3)} and rising at ${signedExplanationValue(frame.debtVelocity)} per time unit, above the accumulation cutoffs.`;
+    case "Drifting":
+      return `The instantaneous correction margin C−D=${signedExplanationValue(frame.correctionMargin)} is below the drifting cutoff −0.025.`;
+    case "Fragile": {
+      const reason = frame.rho > params.rhoCrit * 0.5
+        ? `ρ=${frame.rho.toFixed(3)} is above half the critical radius`
+        : `C−D=${signedExplanationValue(frame.correctionMargin)} is below the +0.045 reserve`;
+      return `${reason}, leaving little modeled capacity for another disturbance.`;
+    }
+    case "Warning": {
+      const triggers = [
+        frame.rho > params.rhoCrit * 0.34 ? `ρ=${frame.rho.toFixed(3)} is above the early-warning band` : "",
+        frame.debt > 0.55 ? `debt Δ=${frame.debt.toFixed(3)} exceeds 0.550` : "",
+      ].filter(Boolean);
+      return `${triggers.join(" and ")}.`;
+    }
+    case "Ruptured":
+      return `Radial excursion ρ=${frame.rho.toFixed(3)} is outside the critical boundary ρcrit=${params.rhoCrit.toFixed(3)}.`;
+    case "Stable":
+    default:
+      return `Excursion ρ=${frame.rho.toFixed(3)}, debt Δ=${frame.debt.toFixed(3)}, and margin C−D=${signedExplanationValue(frame.correctionMargin)} do not trigger a higher-risk status rule.`;
+  }
+}
+
+export function explainSimulationFrame(
+  frames: SimulationFrame[],
+  summary: SimulationSummary,
+  parameters: SimulationParameters,
+  options: {
+    complete?: boolean;
+    interventions?: ScheduledIntervention[];
+    rupturePolicy?: Partial<RupturePolicy>;
+  } = {},
+): SimulationExplanation {
+  if (frames.length === 0) throw new RangeError("At least one frame is required for an explanation.");
+  const frame = frames.at(-1)!;
+  const initial = frames[0];
+  const complete = options.complete ?? true;
+  const optimizationPressure = parameters.pressure * parameters.error * (1 - parameters.feedback);
+  const driftAndLoss = parameters.drift + parameters.irreversibleLoss;
+  const debtPressure = parameters.chi * frame.debt;
+  const outsideStreak = outsideStreakAt(frames, parameters.rhoCrit);
+  const policy = rupturePolicyFor(parameters, options.rupturePolicy);
+  const radialRatio = frame.rho / parameters.rhoCrit;
+
+  const balanceSummary = frame.correctionMargin < 0
+    ? `Divergence exceeds correction by ${Math.abs(frame.correctionMargin).toFixed(3)}; debt pressure widens the effective deficit to ${Math.abs(frame.debtAdjustedMargin).toFixed(3)}.`
+    : frame.debtAdjustedMargin < 0
+      ? `Correction covers immediate divergence by ${frame.correctionMargin.toFixed(3)}, but debt pressure ${debtPressure.toFixed(3)} reverses the effective margin to ${signedExplanationValue(frame.debtAdjustedMargin)}.`
+      : `Correction covers immediate divergence by ${frame.correctionMargin.toFixed(3)} and retains ${frame.debtAdjustedMargin.toFixed(3)} after current debt pressure.`;
+
+  let trajectory: SimulationExplanation["trajectory"];
+  if (frame.step === 0) {
+    trajectory = {
+      label: "Holding",
+      tone: "neutral",
+      detail: "Playback is at the declared initial state; dynamic motion begins on the next integration step.",
+    };
+  } else {
+    const recent = frames[Math.max(0, frames.length - 13)];
+    const rhoChange = frame.rho - recent.rho;
+    const debtChange = frame.debt - recent.debt;
+    const improving = frame.radialVelocity < -0.01 || (Math.abs(frame.radialVelocity) <= 0.01 && frame.debtVelocity < -0.005);
+    const worsening = frame.radialVelocity > 0.01 || frame.debtVelocity > 0.005;
+    trajectory = {
+      label: improving ? "Improving" : worsening ? "Worsening" : "Holding",
+      tone: improving ? "recovering" : worsening ? "danger" : "neutral",
+      detail: `dρ/dt=${signedExplanationValue(frame.radialVelocity)} and dΔ/dt=${signedExplanationValue(frame.debtVelocity)}; over the recent window, ρ changed ${signedExplanationValue(rhoChange)} and debt changed ${signedExplanationValue(debtChange)}.`,
+    };
+  }
+
+  let threshold: SimulationExplanation["threshold"];
+  if (frame.viabilityState === "Irreversible rupture") {
+    const ruptureStep = summary.irreversibleRuptureStep ?? frame.step;
+    threshold = {
+      label: "Terminal policy",
+      value: `Fired at step ${ruptureStep}`,
+      tone: "danger",
+      detail: `The run met persistence (${policy.persistenceSteps} steps), cumulative loss (${policy.cumulativeLossThreshold.toFixed(3)}), and severe debt (Δ≥${policy.debtThreshold.toFixed(3)}) or excursion (ρ≥${policy.irreversibleRho.toFixed(3)}) requirements.`,
+    };
+  } else if (frame.rho >= parameters.rhoCrit) {
+    threshold = {
+      label: "Recoverability window",
+      value: `${outsideStreak} / ${policy.persistenceSteps} outside steps`,
+      tone: frame.radialVelocity < 0 ? "recovering" : "warning",
+      detail: `Cumulative loss is ${frame.cumulativeIrreversibleLoss.toFixed(3)} / ${policy.cumulativeLossThreshold.toFixed(3)}; debt is ${frame.debt.toFixed(3)} / ${policy.debtThreshold.toFixed(3)}. Crossing remains nonterminal until every policy gate is satisfied.`,
+    };
+  } else {
+    const headroom = parameters.rhoCrit - frame.rho;
+    threshold = {
+      label: "Critical-boundary headroom",
+      value: `${(radialRatio * 100).toFixed(1)}% of ρcrit`,
+      tone: radialRatio >= 0.84 ? "danger" : radialRatio >= 0.5 ? "warning" : "stable",
+      detail: `Excursion is ${headroom.toFixed(3)} inside the critical boundary; the rupture-approaching band begins at ${(parameters.rhoCrit * 0.84).toFixed(3)}.`,
+    };
+  }
+
+  const history: string[] = [
+    `Started at ρ=${initial.rho.toFixed(3)}, debt Δ=${initial.debt.toFixed(3)}, and C−D=${signedExplanationValue(initial.correctionMargin)}.`,
+  ];
+  let currentStreakStart = frames.length - 1;
+  const currentLabel = explanationStatusLabel(frame);
+  while (currentStreakStart > 0 && explanationStatusLabel(frames[currentStreakStart - 1]) === currentLabel) {
+    currentStreakStart -= 1;
+  }
+  if (currentStreakStart > 0) {
+    history.push(`Status changed from ${explanationStatusLabel(frames[currentStreakStart - 1])} to ${currentLabel} at step ${frames[currentStreakStart].step}.`);
+  }
+  let latestIntervention: ScheduledIntervention | undefined;
+  for (const intervention of options.interventions ?? []) {
+    if (intervention.step <= frame.step && (!latestIntervention || intervention.step > latestIntervention.step)) latestIntervention = intervention;
+  }
+  if (latestIntervention) {
+    const symbols: Partial<Record<keyof SimulationParameters, string>> = {
+      pressure: "π", error: "ε", feedback: "γ", correction: "C", drift: "Φ",
+      irreversibleLoss: "Λ", kappa: "κ", chi: "χ", beta: "β", rhoCrit: "ρcrit",
+    };
+    const changes = Object.entries(latestIntervention.effects)
+      .map(([key, value]) => `${symbols[key as keyof SimulationParameters] ?? key}=${Number(value).toFixed(3)}`)
+      .join(", ");
+    history.push(`${latestIntervention.label} changed ${changes} at step ${latestIntervention.step}.`);
+  }
+  if (summary.boundaryCrossingStep !== undefined && summary.boundaryCrossingStep <= frame.step) {
+    history.push(`The critical boundary was first crossed at step ${summary.boundaryCrossingStep}.`);
+  }
+  if (summary.irreversibleRuptureStep !== undefined && summary.irreversibleRuptureStep <= frame.step) {
+    history.push(`Terminal rupture was declared at step ${summary.irreversibleRuptureStep} and is now an absorbing historical state.`);
+  } else {
+    const debtChange = frame.debt - initial.debt;
+    history.push(Math.abs(debtChange) < 0.01
+      ? "Debt remains close to its starting level."
+      : `Debt has ${debtChange > 0 ? "grown" : "fallen"} by ${Math.abs(debtChange).toFixed(3)} since the selected run began.`);
+  }
+
+  let outcome: string;
+  if (!complete) {
+    outcome = frame.viabilityState === "Irreversible rupture"
+      ? "Irreversible rupture has already been observed; subsequent frames preserve the terminal state."
+      : `At the selected time the system is ${currentLabel.toLowerCase()}. The final outcome is not yet shown.`;
+  } else if (summary.finalViabilityState === "Irreversible rupture") {
+    outcome = `The run finished in irreversible rupture after crossing at step ${summary.boundaryCrossingStep ?? "unknown"} and firing the terminal policy at step ${summary.irreversibleRuptureStep ?? "unknown"}.`;
+  } else if (summary.recoveredAfterCrossing) {
+    outcome = "The run crossed the critical boundary and returned to sustained viable recurrence before terminal rupture.";
+  } else if (summary.recovered) {
+    outcome = "The run returned to a sustained stable regime after an earlier warning state.";
+  } else if (summary.finalStatus === "Stable") {
+    outcome = "The run finished inside the modeled viable tube without a warning episode that later required recovery.";
+  } else {
+    outcome = `The run finished in a ${summary.finalStatus.toLowerCase()} regime without terminal rupture.`;
+  }
+
+  return {
+    statusLabel: currentLabel,
+    tone: explanationTone(frame),
+    classification: classificationExplanation(frame, parameters, outsideStreak),
+    balanceSummary,
+    balance: [
+      { label: "Pressure × error × feedback gap", symbol: "π·ε·(1−γ)", value: optimizationPressure, tone: "negative" },
+      { label: "Drift + irreversible loss", symbol: "Φ + Λ", value: driftAndLoss, tone: "negative" },
+      { label: "Total divergence", symbol: "D", value: frame.divergence, tone: "negative" },
+      { label: "Correction capacity", symbol: "C", value: frame.correction, tone: "positive" },
+      { label: "Debt pressure", symbol: "χΔ", value: debtPressure, tone: "negative" },
+      { label: "Debt-adjusted margin", symbol: "C−D−χΔ", value: frame.debtAdjustedMargin, tone: frame.debtAdjustedMargin >= 0 ? "positive" : "negative" },
+    ],
+    activeControls: [
+      { label: "Pressure", symbol: "π", value: parameters.pressure },
+      { label: "Error", symbol: "ε", value: parameters.error },
+      { label: "Feedback", symbol: "γ", value: parameters.feedback },
+      { label: "Correction", symbol: "C", value: parameters.correction },
+      { label: "Drift", symbol: "Φ", value: parameters.drift },
+      { label: "Irreversible loss", symbol: "Λ", value: parameters.irreversibleLoss },
+      { label: "Debt coupling", symbol: "χ", value: parameters.chi },
+      { label: "Current debt", symbol: "Δ", value: frame.debt },
+    ],
+    trajectory,
+    threshold,
+    history,
+    outcome,
   };
 }
 

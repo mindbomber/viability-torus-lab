@@ -4,11 +4,11 @@ import { MODEL_VERSION } from "../engine/simulator.ts";
 
 const MAX_BODY_BYTES = 1_000_000;
 
-export async function readBoundedJson(request: Request) {
+export async function readBoundedJson(request: Request, maxBodyBytes = MAX_BODY_BYTES) {
   const declaredLength = Number(request.headers.get("content-length") ?? "0");
-  if (declaredLength > MAX_BODY_BYTES) throw new Error(`Request body exceeds ${MAX_BODY_BYTES} bytes.`);
+  if (declaredLength > maxBodyBytes) throw new Error(`Request body exceeds ${maxBodyBytes} bytes.`);
   const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) throw new Error(`Request body exceeds ${MAX_BODY_BYTES} bytes.`);
+  if (new TextEncoder().encode(text).byteLength > maxBodyBytes) throw new Error(`Request body exceeds ${maxBodyBytes} bytes.`);
   if (!text) throw new Error("A JSON request body is required.");
   return JSON.parse(text) as unknown;
 }

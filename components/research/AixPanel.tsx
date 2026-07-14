@@ -35,10 +35,10 @@ export function AixPanel({ assessment, scenario, compact = false }: { assessment
   return (
     <section className={`aix-panel ${compact ? "compact" : ""}`} aria-label="ATS 4.0 Alignment Index and AANA gate">
       <header>
-        <div><strong>ATS 4.0 AIx</strong><small>Eight-domain synthetic diagnostic</small></div>
+        <div><strong>ATS 4.0 AIx product extension</strong><small>Eight-domain illustrative synthetic diagnostic</small></div>
         <span className={`aix-decision ${assessment.decision}`}>{assessment.decision.toUpperCase()}</span>
       </header>
-      <div className="aix-score"><span><b>{assessment.score.toFixed(1)}</b><small>/ 100</small></span><div><strong>{assessment.riskTier} risk tier</strong><small>β proxy {assessment.beta.toFixed(3)} · accept ≥ {(assessment.thresholds.accept * 100).toFixed(0)}</small></div></div>
+      <div className="aix-score"><span><b>{assessment.score.toFixed(1)}</b><small>/ 100</small></span><div><strong>{assessment.riskTier} risk tier</strong><small>illustrative compound-risk factor {assessment.beta.toFixed(3)} · accept ≥ {(assessment.thresholds.accept * 100).toFixed(0)}</small></div></div>
       <div className="aix-components">
         {(Object.keys(assessment.components) as AixComponentKey[]).map((key) => {
           const component = assessment.components[key];
@@ -49,7 +49,7 @@ export function AixPanel({ assessment, scenario, compact = false }: { assessment
         <span aria-hidden="true">{assessment.hardBlockers.length ? "!" : "✓"}</span>
         <div><strong>AANA gate: {assessment.recommendedAction}</strong><small>{assessment.hardBlockers.length ? `Hard blockers: ${assessment.hardBlockers.join(", ")}` : "No synthetic hard blockers detected"}</small></div>
       </div>
-      {!compact && <p>{assessment.calibrationStatus}</p>}
+      {!compact && <p>{assessment.calibrationStatus} This product extension is separate from the attached torus paper and from the simulator’s βrepay debt coefficient.</p>}
     </section>
   );
 }
