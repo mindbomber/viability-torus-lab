@@ -157,6 +157,7 @@ test("causal explanation updates from parameters through current status and term
   const consoleErrors = await openDashboard(page);
   const insight = page.locator(".run-insight");
   await expect(insight.getByRole("heading", { name: "Why this run looks this way" })).toBeVisible();
+  await expect(page.locator(".run-insight + .watchlist-receipt")).toHaveCount(1);
   await expect(insight).toContainText("Active causal balance");
   await expect(insight).toContainText("Stable");
   await expect(insight).toContainText("The final outcome is not yet shown");
