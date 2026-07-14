@@ -1,8 +1,8 @@
-import { simulate, type SimulationSummary } from "../engine/simulator.ts";
+import { integrationSubstepsPerStep, simulate, type SimulationParameters, type SimulationSummary } from "../engine/simulator.ts";
 import { scenarioById } from "../scenarios/catalog.ts";
 import { CONTRACT_VERSION, LOCAL_EXECUTION_LIMITS, type ExecutionLimits } from "./constants.ts";
 import { ContractError, summarizeRuns } from "./experiments.ts";
-import { scenarioProposalSchema, type ParsedScenarioProposal } from "./schemas.ts";
+import { scenarioProposalSchema, simulationParametersSchema, type ParsedScenarioProposal } from "./schemas.ts";
 
 type ProposalIssue = { severity: "error" | "warning"; path: string; message: string };
 
@@ -31,7 +31,10 @@ export function validateScenarioProposal(input: unknown, limits: ExecutionLimits
   const proposal = parseProposal(input);
   const totalRuns = proposal.evidence.evaluations.reduce((sum, evaluation) => sum + evaluation.seeds.length, 0);
   if (totalRuns > limits.maxRuns) throw new ContractError("Proposal evidence exceeds execution limits.", [{ path: "evidence.evaluations", message: `At most ${limits.maxRuns} seeded evaluation runs are allowed.` }]);
-  const totalIntegrationSteps = proposal.evidence.evaluations.reduce((sum, evaluation) => sum + evaluation.seeds.length * (evaluation.parameters.steps ?? proposal.scenario.defaults.steps), 0);
+  const totalIntegrationSteps = proposal.evidence.evaluations.reduce((sum, evaluation) => {
+    const parameters = { ...proposal.scenario.defaults, ...evaluation.parameters };
+    return sum + evaluation.seeds.length * parameters.steps * integrationSubstepsPerStep(parameters.dt);
+  }, 0);
   if (totalIntegrationSteps > limits.maxTotalIntegrationSteps) throw new ContractError("Proposal evidence exceeds execution limits.", [{ path: "evidence.evaluations", message: `Evaluation runs exceed the ${limits.maxTotalIntegrationSteps} integration-step work budget.` }]);
   const issues: ProposalIssue[] = [];
   const existing = scenarioById[proposal.scenario.id];
@@ -39,13 +42,22 @@ export function validateScenarioProposal(input: unknown, limits: ExecutionLimits
   if (proposal.action === "revise" && !existing) issues.push({ severity: "error", path: "scenario.id", message: "A revise proposal must reference a published scenario id." });
   if (proposal.scenario.cycles.minor.label === proposal.scenario.cycles.major.label) issues.push({ severity: "error", path: "scenario.cycles", message: "Minor and major cycles must be meaningfully distinct." });
   if (proposal.evidence.references.length === 0) issues.push({ severity: "warning", path: "evidence.references", message: "No external or project reference supports this mapping." });
+  if (!proposal.scenario.evidence) issues.push({ severity: "warning", path: "scenario.evidence", message: "Publication requires an explicit calibration status, units, assumptions, falsification criteria, and references." });
   if (proposal.scenario.defaults.rho0 >= proposal.scenario.defaults.rhoCrit) issues.push({ severity: "error", path: "scenario.defaults", message: "rho0 must remain below rhoCrit." });
 
   const evaluations = proposal.evidence.evaluations.map((evaluation) => {
-    const parameters = { ...proposal.scenario.defaults, ...evaluation.parameters };
+    const parsedParameters = simulationParametersSchema.safeParse({ ...proposal.scenario.defaults, ...evaluation.parameters });
+    if (!parsedParameters.success) throw new ContractError("Proposal evaluation contains invalid parameters.", parsedParameters.error.issues.map((issue) => ({ path: `evidence.evaluations.${evaluation.name}.parameters.${issue.path.map(String).join(".")}`, message: issue.message })));
+    const parameters = parsedParameters.data as SimulationParameters;
     if (parameters.steps > limits.maxStepsPerRun) throw new ContractError("Proposal evidence exceeds execution limits.", [{ path: `evidence.evaluations.${evaluation.name}.parameters.steps`, message: `At most ${limits.maxStepsPerRun} steps per run are allowed.` }]);
     if (evaluation.interventions.length > limits.maxInterventions) throw new ContractError("Proposal evidence exceeds execution limits.", [{ path: `evidence.evaluations.${evaluation.name}.interventions`, message: `At most ${limits.maxInterventions} interventions are allowed.` }]);
     if (evaluation.interventions.some((event) => event.step >= parameters.steps)) throw new ContractError("Proposal evidence contains a late intervention.", [{ path: `evidence.evaluations.${evaluation.name}.interventions`, message: "Every intervention must occur before the final simulation step." }]);
+    const activeParameters = { ...parameters };
+    [...evaluation.interventions].sort((left, right) => left.step - right.step).forEach((event, index) => {
+      Object.assign(activeParameters, event.effects);
+      const parsed = simulationParametersSchema.safeParse(activeParameters);
+      if (!parsed.success) throw new ContractError("Proposal intervention creates an invalid parameter state.", parsed.error.issues.map((issue) => ({ path: `evidence.evaluations.${evaluation.name}.interventions.${index}.effects.${issue.path.map(String).join(".")}`, message: issue.message })));
+    });
     const summaries: SimulationSummary[] = evaluation.seeds.map((seed) => simulate({ ...parameters, seed }, evaluation.interventions).summary);
     const ensemble = summarizeRuns(summaries);
     const failures = checkAssertion(ensemble, evaluation.assertions);

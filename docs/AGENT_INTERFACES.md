@@ -4,7 +4,7 @@
 
 All machine interfaces use contract version `1.0.0` and report the engine's `modelVersion`. A result is reproducible when the model version, scenario version, parameters, interventions, seeds, steps, and integration step are identical.
 
-The simulator produces synthetic model evidence. Parameter rankings and scenario mappings are hypotheses; they are not empirical findings or operational recommendations.
+The simulator produces synthetic model evidence. Parameter rankings and scenario mappings are hypotheses; they are not empirical findings or operational recommendations. Each experiment result includes a deterministic `experimentId`, an evidence receipt, the scenario calibration statement, and model/scenario versions. Published scenarios also expose parameter units, assumptions, references, and falsification criteria.
 
 ## Discovery
 
@@ -42,6 +42,8 @@ Content-Type: application/json
 ```
 
 Frames are omitted by default. Set `includeFrames: true` to receive sampled frames; the server increases the effective stride as needed to remain within the response budget.
+
+Each run summary separates `finalStatus` (viability) from `phase` diagnostics. Treat `phase.identifiable: false` as an instruction not to interpret an external phase coordinate. When frames are included, `phi` is synthetic latent ground truth used for evaluator testing; `estimatedPhi` is the paper-style estimate and remains absent unless the identifiability gates pass.
 
 ### Compare experiments
 
@@ -83,7 +85,7 @@ Validation and execution-budget failures return HTTP `422`:
 }
 ```
 
-Unknown object fields are rejected. Bodies are capped at 1 MB, parameters are finite and range-checked, interventions cannot change seed/steps/dt, and computation is limited by runs, candidates, steps, returned frames, and an overall integration-step budget.
+Unknown object fields are rejected. Bodies are capped at 1 MB, parameters are finite and range-checked, `rho0` must remain below `rhoCrit`, interventions cannot change seed/steps/dt, and every cumulative intervention state is revalidated. Computation is limited by runs, candidates, steps, returned frames, and an overall internal integration-substep budget.
 
 ## CLI
 
@@ -119,6 +121,7 @@ Proposals are contract-validated drafts with explicit rationale, assumptions, re
 - stable ids and semantic versions;
 - complete parameter labels and bounded defaults;
 - two distinct recurrent cycles;
+- explicit calibration status, parameter units, scenario assumptions, references, and falsification criteria for publication readiness;
 - viable reference behavior;
 - claimed failure and recovery behavior;
 - execution budgets and intervention timing.

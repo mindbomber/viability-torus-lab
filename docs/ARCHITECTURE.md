@@ -11,15 +11,15 @@ The UI is organized into product views inside `app/page.tsx`. All views consume 
 For each step:
 
 1. Apply scheduled parameter interventions.
-2. Draw deterministic seeded perturbations.
-3. Compute divergence pressure `D = πε(1-γ) + Λ + Φ`.
-4. Update debt with accumulation and repayment terms.
-5. Compute radial velocity and update `ρ`.
-6. Advance and wrap local phase `θ` and external phase `φ`.
-7. Derive alignment `A = exp(-ρ)`.
-8. Classify status from documented radial, debt, correction-margin, and phase gates.
+2. Compute divergence pressure `D = πε(1-γ) + Λ + Φ` and correction margin.
+3. Split the requested `dt` into deterministic internal substeps no larger than `0.25`.
+4. On each substep, update debt with `α[D-C]₊ - β[C-D]₊q(A)`, using `q(A)=exp(-ρ)`.
+5. Advance both phases from the same prior state, draw deterministic seeded perturbations, and preserve unwrapped phase travel.
+6. Update radial excursion from restoration, divergence, correction, and prior debt.
+7. Derive alignment `A = exp(-ρ)` and classify viability status.
+8. After the run, apply temporal/spectral phase-identifiability gates, estimate external phase from the synthetic mismatch signal, and classify the phase regime separately from viability.
 
-`engine/simulator.ts` caps a run at 10,000 steps and returns both frames and a reproducible summary. The seeded generator is part of the exported engine surface and is covered by a fixed deterministic test.
+Frame zero is the declared initial state; the first integration occurs at frame one. `engine/simulator.ts` caps a run at 10,000 output steps and returns both frames and a reproducible summary. The seeded generator is part of the exported engine surface and is covered by deterministic reference tests. Public work budgets charge internal substeps, not only returned frames.
 
 ## Machine contract
 
@@ -27,21 +27,30 @@ For each step:
 
 Contract schemas are generated into `public/schemas/v1/`. Breaking changes require an explicit contract/API version decision; model-equation changes require a model-version decision and deterministic reference updates.
 
-## Status thresholds
+## Viability and phase diagnostics
+
+Viability statuses are intentionally independent from phase diagnostics:
 
 - Ruptured: `ρ >= ρcrit`
 - Rupture approaching: `ρ >= 0.84 ρcrit`
 - Recovering: negative radial velocity after material excursion or debt
 - Expanding: radial velocity above `0.055`
 - Debt accumulating: positive debt velocity with debt above `0.28`
-- Phase not identifiable: the combined phase frequencies are below `0.015`
-- Phase locked: the current 2:1 phase residual is within `0.055` radians
 - Drifting: correction margin below `-0.025`
 - Fragile: excursion above half the critical radius or margin below `0.045`
 - Warning: excursion above `0.34 ρcrit` or debt above `0.55`
 - Stable: none of the above gates apply
 
-The ordering is intentional: safety-critical radial states take precedence over descriptive phase states.
+The ordering is intentional: safety-critical radial states take precedence over lower-severity viability descriptions. Recovery is reported only when a warned, non-ruptured run ends with a sustained stable tail.
+
+The external phase estimate is reported only when all of these conditions hold:
+
+- mismatch amplitude is at least `0.02`;
+- dominant spectral concentration is at least `0.2`;
+- the dominant mismatch signal completes at least two cycles over the observation window; and
+- the output sampling interval does not advance the major phase by `π/2` or more.
+
+When identifiable, the phase regime is either recurrent winding or rational phase locking. Locking scans coprime signed ratios with numerator and denominator magnitudes up to four and requires a phase-locking value of at least `0.985`. The latent phase is available for synthetic ground-truth evaluation; the dashboard labels it as simulated and presents the estimator separately.
 
 ## Scenario schema and administration
 
@@ -51,8 +60,9 @@ The ordering is intentional: safety-critical radial states take precedence over 
 2. Map all visible canonical parameters.
 3. Define both recurrent phases and test that they are meaningful in the domain.
 4. Provide conservative viable, warning, rupture, and recovery interpretations.
-5. Add a deterministic reference configuration to the test suite.
-6. Increment the scenario version in exported metadata.
+5. Declare calibration status, parameter units, assumptions, references, and falsification criteria.
+6. Add a deterministic reference configuration to the test suite.
+7. Increment the scenario version in exported metadata.
 
 The current MVP uses version-controlled TypeScript rather than a graphical CMS.
 

@@ -37,6 +37,24 @@ const basePresets = [
 const standardInterventions = ["increase-correction", "improve-feedback", "reduce-pressure", "add-audit", "pause-optimization", "repay-debt"];
 const standardWarnings = ["Correction margin is narrowing", "Radial excursion exceeds the early-warning band", "Alignment debt is accumulating"];
 
+const illustrativeEvidence = (...assumptions: string[]) => ({
+  status: "illustrative" as const,
+  calibrationStatus: "Uncalibrated synthetic mapping; no external domain dataset has been fitted to these defaults or thresholds.",
+  parameterUnits: "Canonical parameters are dimensionless synthetic scales and must not be interpreted as domain measurements without a documented calibration model.",
+  assumptions,
+  falsificationCriteria: [
+    "Do not use the toroidal mapping when two distinct recurrent phases cannot be observed or operationally defined.",
+    "Reject the mapping when canonical parameter changes cannot be tied to observable domain signals with known uncertainty.",
+    "Do not treat simulated rankings as operational recommendations until external data and domain experts validate thresholds, units, and outcomes.",
+  ],
+  references: [
+    {
+      title: "Toroidal Geometry in ATS/AANA/AIx — revised phase-coordinate edition",
+      url: "/paper.pdf",
+    },
+  ],
+});
+
 export const scenarios: ScenarioDefinition[] = [
   {
     id: "llm-deployment",
@@ -58,6 +76,10 @@ export const scenarios: ScenarioDefinition[] = [
     ruptureCondition: "Radial excursion crosses the critical viability boundary after correction falls behind divergence.",
     recoveryCondition: "Excursion contracts, debt stops rising, and verification capacity again exceeds divergence.",
     plainLanguageInterpretation: "Fast deployment can look productive while unresolved failures make future correction harder.",
+    evidence: illustrativeEvidence(
+      "Deployment and environmental adaptation are modeled as distinct recurrent processes.",
+      "Evaluation debt is represented by a single aggregate state rather than measured incident data.",
+    ),
     cycles: {
       minor: {
         label: "Verify → correct",
@@ -102,6 +124,10 @@ export const scenarios: ScenarioDefinition[] = [
     ruptureCondition: "Unreviewed autonomous changes cross a destructive or irreversible repository boundary.",
     recoveryCondition: "Tests, review, and rollback capacity restore a positive correction margin before destructive deployment.",
     plainLanguageInterpretation: "The agent remains viable when its edit-test loop can repair mistakes faster than tasks and repository drift create them.",
+    evidence: illustrativeEvidence(
+      "The edit-test-review loop and repository adaptation loop are treated as distinct recurrent phases.",
+      "Test coverage, review capacity, and technical debt are normalized conceptual variables rather than repository telemetry.",
+    ),
     cycles: {
       minor: { label: "Edit → test", stages: ["Plan", "Edit", "Test", "Review"], description: "Local code correction loop" },
       major: { label: "Task → repository", stages: ["Orient", "Implement", "Integrate", "Learn"], description: "Repository-level adaptation" },
@@ -130,6 +156,10 @@ export const scenarios: ScenarioDefinition[] = [
     ruptureCondition: "Operating debt and external loss push the company outside a recoverable cash, trust, or reliability band.",
     recoveryCondition: "Growth pressure slows while customer feedback and operating capacity repay accumulated debt.",
     plainLanguageInterpretation: "Two companies with the same growth score can have different futures when one has much more hidden operating debt.",
+    evidence: illustrativeEvidence(
+      "Operating iteration and market adaptation are treated as distinct recurrent phases.",
+      "Cash, trust, reliability, and team health are compressed into a single illustrative viability radius.",
+    ),
     cycles: {
       minor: { label: "Build → measure", stages: ["Build", "Ship", "Measure", "Learn"], description: "Operating correction cycle" },
       major: { label: "Market → strategy", stages: ["Sense", "Position", "Scale", "Adapt"], description: "Market adaptation cycle" },
@@ -158,6 +188,10 @@ export const scenarios: ScenarioDefinition[] = [
     ruptureCondition: "Demand and safety debt exceed the modeled critical clinical viability radius.",
     recoveryCondition: "Demand, staffing, feedback, and correction return the system to a contracting regime without preventable harm.",
     plainLanguageInterpretation: "Higher throughput is not viable when it depends on invisible backlog, unsafe waits, or exhausted correction capacity.",
+    evidence: illustrativeEvidence(
+      "Patient-level care cycles and system-capacity planning are treated as distinct recurrent phases.",
+      "No clinical, staffing, or patient-outcome dataset calibrates this scenario; it must not guide care or staffing decisions.",
+    ),
     cycles: {
       minor: { label: "Assess → treat", stages: ["Triage", "Assess", "Treat", "Review"], description: "Patient-level correction cycle" },
       major: { label: "Demand → capacity", stages: ["Forecast", "Staff", "Allocate", "Adapt"], description: "System adaptation cycle" },
@@ -186,6 +220,10 @@ export const scenarios: ScenarioDefinition[] = [
     ruptureCondition: "Accumulated recovery debt and ongoing workload cross the modeled health and functioning boundary.",
     recoveryCondition: "Workload falls and recovery remains strong long enough for debt and excursion to contract.",
     plainLanguageInterpretation: "Returning to an old workload may not restore an old state after prolonged stress has changed recovery requirements.",
+    evidence: illustrativeEvidence(
+      "Daily effort-recovery and longer life-context adaptation are treated as distinct recurrent phases.",
+      "The scenario is educational and is not a medical, psychological, or occupational-health assessment.",
+    ),
     cycles: {
       minor: { label: "Effort → recover", stages: ["Act", "Rest", "Reflect", "Adjust"], description: "Daily correction and recovery cycle" },
       major: { label: "Season → adapt", stages: ["Commit", "Sustain", "Reassess", "Change"], description: "Life-context adaptation cycle" },
@@ -214,6 +252,10 @@ export const scenarios: ScenarioDefinition[] = [
     ruptureCondition: "Harvest, estimation error, and habitat loss drive stock below the modeled recoverable threshold.",
     recoveryCondition: "Monitoring improves and harvest correction remains strong until population debt is repaid.",
     plainLanguageInterpretation: "A stable current yield can hide a declining recovery margin when recruitment debt accumulates below the surface.",
+    evidence: illustrativeEvidence(
+      "Management updates and ecosystem seasonality are treated as distinct recurrent phases.",
+      "No stock-assessment, recruitment, habitat, or harvest dataset calibrates the synthetic thresholds.",
+    ),
     cycles: {
       minor: { label: "Observe → set quota", stages: ["Sample", "Estimate", "Allocate", "Enforce"], description: "Management correction cycle" },
       major: { label: "Season → ecosystem", stages: ["Spawn", "Recruit", "Harvest", "Adapt"], description: "Ecological adaptation cycle" },

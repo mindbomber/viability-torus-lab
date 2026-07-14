@@ -12,7 +12,7 @@ const boundedNumber = (key: keyof typeof PARAMETER_LIMITS) => {
   return schema;
 };
 
-export const simulationParametersSchema = z.object({
+const simulationParametersObject = z.object({
   pressure: boundedNumber("pressure"),
   error: boundedNumber("error"),
   feedback: boundedNumber("feedback"),
@@ -35,8 +35,20 @@ export const simulationParametersSchema = z.object({
   dt: boundedNumber("dt"),
 }).strict();
 
-export const parameterOverridesSchema = simulationParametersSchema.partial().strict();
-export const interventionEffectsSchema = simulationParametersSchema
+export const simulationParametersSchema = simulationParametersObject.superRefine(
+  (value, context) => {
+    if (value.rho0 >= value.rhoCrit) {
+      context.addIssue({
+        code: "custom",
+        path: ["rho0"],
+        message: "rho0 must remain below rhoCrit.",
+      });
+    }
+  },
+);
+
+export const parameterOverridesSchema = simulationParametersObject.partial().strict();
+export const interventionEffectsSchema = simulationParametersObject
   .omit({ seed: true, steps: true, dt: true })
   .partial()
   .strict();
@@ -119,6 +131,18 @@ const parameterLabelsSchema = z.object({
   initialDebt: z.string().min(2).max(80),
 }).strict();
 
+const scenarioEvidenceSchema = z.object({
+  status: z.enum(["illustrative", "calibrated"]),
+  calibrationStatus: z.string().min(10).max(500),
+  parameterUnits: z.string().min(10).max(500),
+  assumptions: z.array(z.string().min(10).max(500)).min(1).max(30),
+  falsificationCriteria: z.array(z.string().min(10).max(500)).min(1).max(30),
+  references: z.array(z.object({
+    title: z.string().min(3).max(300),
+    url: z.string().min(1).max(1_000).optional(),
+  }).strict()).min(1).max(30),
+}).strict();
+
 export const scenarioDefinitionSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
@@ -139,6 +163,7 @@ export const scenarioDefinitionSchema = z.object({
   ruptureCondition: z.string().min(10).max(500),
   recoveryCondition: z.string().min(10).max(500),
   plainLanguageInterpretation: z.string().min(20).max(1_000),
+  evidence: scenarioEvidenceSchema.optional(),
   cycles: z.object({ minor: cycleSchema, major: cycleSchema }).strict(),
   labels: parameterLabelsSchema,
   defaults: simulationParametersSchema,

@@ -16,6 +16,15 @@ export type ParameterKey = keyof Pick<
   | "initialDebt"
 >;
 
+export type ScenarioEvidence = {
+  status: "illustrative" | "calibrated";
+  calibrationStatus: string;
+  parameterUnits: string;
+  assumptions: string[];
+  falsificationCriteria: string[];
+  references: { title: string; url?: string }[];
+};
+
 export type ScenarioDefinition = {
   id: string;
   version: string;
@@ -36,6 +45,7 @@ export type ScenarioDefinition = {
   ruptureCondition: string;
   recoveryCondition: string;
   plainLanguageInterpretation: string;
+  evidence: ScenarioEvidence;
   cycles: {
     minor: { label: string; stages: string[]; description: string };
     major: { label: string; stages: string[]; description: string };
@@ -76,6 +86,7 @@ export type EnsembleSummary = {
 export type ExperimentResult = {
   schemaVersion: string;
   modelVersion: string;
+  experimentId: string;
   scenario: { id: string; version: string; title: string };
   configuration: {
     parameters: SimulationParameters;
@@ -84,6 +95,12 @@ export type ExperimentResult = {
   };
   runs: ExperimentRun[];
   ensemble: EnsembleSummary;
+  evidence: {
+    kind: "synthetic-model";
+    empiricalValidation: false;
+    calibrationStatus: string;
+    warnings: string[];
+  };
 };
 
 export type SweepSpec = {

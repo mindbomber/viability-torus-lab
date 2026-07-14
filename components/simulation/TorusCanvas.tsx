@@ -48,7 +48,7 @@ export function TorusCanvas({
     if (frame.status === "Ruptured") return "ruptured geometry";
     if (severity > 0.78) return "expanding excursion";
     if (frame.status === "Recovering") return "partial recovery";
-    if (frame.status === "Phase locked") return "phase-locked trajectory";
+    if (frame.phaseRegime === "Phase locked") return "phase-locked trajectory";
     if (frame.debt > 0.7) return "hysteretic deformation";
     if (severity > 0.45) return "locally warped torus";
     return "healthy viable torus";
@@ -172,12 +172,12 @@ export function TorusCanvas({
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={`Interactive ${geometryState}. Current alignment ${Math.round((frame?.alignment ?? 0) * 100)} percent, radial excursion ${(frame?.rho ?? 0).toFixed(2)}, debt ${(frame?.debt ?? 0).toFixed(2)}.`}
+        aria-label={`Interactive ${geometryState}. Current alignment ${Math.round((frame?.alignment ?? 0) * 100)} percent, radial excursion ${(frame?.rho ?? 0).toFixed(2)}, debt ${(frame?.debt ?? 0).toFixed(2)}. Phase regime ${frame?.phaseRegime ?? "not available"}; external phase ${frame?.phaseIdentifiable ? "identifiable" : "not identifiable"}.`}
       />
       {!compact && (
         <>
           <div className="torus-legend legend-minor"><strong>Minor cycle (θ)</strong><span>{"Propose → verify → correct"}</span></div>
-          <div className="torus-legend legend-major"><strong>Major cycle (φ)</strong><span>{"Observe → adapt → govern"}</span></div>
+          <div className="torus-legend legend-major"><strong>Major cycle (simulated φ)</strong><span>{"Observe → adapt → govern"}</span></div>
           <div className="torus-legend legend-tube"><strong>Viable tube</strong><span>safe alignment band</span></div>
           <div className="torus-legend legend-warning"><strong>Warning zone</strong><span>high radial excursion</span></div>
           {showLabels && <div className="axis-labels" aria-hidden="true"><span className="axis-x">x</span><span className="axis-y">y</span><span className="axis-z">z</span></div>}

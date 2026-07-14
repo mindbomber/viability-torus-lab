@@ -25,7 +25,7 @@ npm run build
 
 ## Agent and programmatic use
 
-The dashboard, CLI, HTTP API, and MCP server all call the same deterministic engine and use contract version `1.0.0`.
+The dashboard, CLI, HTTP API, and MCP server all call the same deterministic `torus-1.1.0` engine and use contract version `1.0.0`. Results include reproducible experiment fingerprints, scenario calibration statements, and a synthetic-evidence receipt.
 
 Run a checked-in experiment:
 
@@ -62,7 +62,7 @@ See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP too
 ## Product areas
 
 - Live scenario simulator with 3D and accessible 2D torus views
-- Six structured scenarios with domain-specific parameter labels and presets
+- Six structured illustrative scenarios with domain-specific labels, presets, assumptions, units, references, and falsification criteria
 - Deterministic seeded simulation, playback controls, interventions, and explanations
 - Unwrapped phase, time-series, and radial-stability charts with table alternatives
 - Side-by-side compare mode and difference summaries
@@ -90,6 +90,6 @@ See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP too
 
 ## Scientific scope
 
-The simulator demonstrates synthetic model behavior. It is not empirical evidence that any specific hospital, company, person, ecosystem, or AI system follows a toroidal manifold. The model is conditional on two meaningful recurrent phases. When recurrence is weak or unidentifiable, phase should be reported as undefined.
+The simulator demonstrates synthetic model behavior. It is not empirical evidence that any specific hospital, company, person, ecosystem, or AI system follows a toroidal manifold. The model is conditional on two meaningful recurrent phases. Viability status and phase regime are reported independently; when recurrence is weak, too short, spectrally diffuse, or undersampled, the external phase estimate is omitted.
 
 The full paper is served at `/paper.pdf` and cited in the About the Theory view.

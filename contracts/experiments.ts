@@ -1,5 +1,7 @@
 import {
   MODEL_VERSION,
+  MAX_INTERNAL_DT,
+  integrationSubstepsPerStep,
   simulate,
   type ScheduledIntervention,
   type SimulationFrame,
@@ -49,12 +51,49 @@ function enforceExecutionLimits(
   const issues: { path: string; message: string }[] = [];
   if (seeds.length > limits.maxRuns) issues.push({ path: "seeds", message: `At most ${limits.maxRuns} runs are allowed.` });
   if (parameters.steps > limits.maxStepsPerRun) issues.push({ path: "parameters.steps", message: `At most ${limits.maxStepsPerRun} steps per run are allowed.` });
-  if (seeds.length * parameters.steps > limits.maxTotalIntegrationSteps) issues.push({ path: "seeds", message: `This ensemble exceeds the ${limits.maxTotalIntegrationSteps} integration-step work budget.` });
+  const integrationWork =
+    seeds.length *
+    parameters.steps *
+    integrationSubstepsPerStep(parameters.dt);
+  if (integrationWork > limits.maxTotalIntegrationSteps) issues.push({ path: "seeds", message: `This ensemble exceeds the ${limits.maxTotalIntegrationSteps} internal integration-step work budget.` });
   if (interventions.length > limits.maxInterventions) issues.push({ path: "interventions", message: `At most ${limits.maxInterventions} interventions are allowed.` });
   interventions.forEach((event, index) => {
     if (event.step >= parameters.steps) issues.push({ path: `interventions.${index}.step`, message: "Intervention step must occur before the final simulation step." });
   });
+  const activeParameters = { ...parameters };
+  [...interventions]
+    .sort((left, right) => left.step - right.step)
+    .forEach((event, index) => {
+      Object.assign(activeParameters, event.effects);
+      const parsed = simulationParametersSchema.safeParse(activeParameters);
+      if (!parsed.success) {
+        parsed.error.issues.forEach((issue) => issues.push({
+          path: `interventions.${index}.effects.${issue.path.map(String).join(".")}`,
+          message: issue.message,
+        }));
+      }
+    });
   if (issues.length) throw new ContractError("Experiment exceeds execution limits.", issues);
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === undefined) return "null";
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function deterministicFingerprint(value: unknown) {
+  const input = canonicalJson(value);
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `vtl-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
 function sampleFrames(frames: SimulationFrame[], requestedStride: number, maxFrames: number) {
@@ -95,13 +134,32 @@ export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EX
     return { seed, summary: result.summary, frames: sampled.frames, returnedFrameStride: sampled.stride };
   });
 
+  const experimentId = deterministicFingerprint({
+    modelVersion: MODEL_VERSION,
+    scenario: { id: scenario.id, version: scenario.version },
+    parameters,
+    interventions: spec.interventions,
+    seeds,
+  });
+
   return {
     schemaVersion: CONTRACT_VERSION,
     modelVersion: MODEL_VERSION,
+    experimentId,
     scenario: { id: scenario.id, version: scenario.version, title: scenario.title },
     configuration: { parameters, interventions: spec.interventions, seeds },
     runs,
     ensemble: summarizeRuns(runs.map((run) => run.summary)),
+    evidence: {
+      kind: "synthetic-model",
+      empiricalValidation: false,
+      calibrationStatus: scenario.evidence.calibrationStatus,
+      warnings: [
+        "Results demonstrate behavior of the declared synthetic model only.",
+        "Parameter rankings are conditional on the selected scenario mapping, horizon, seeds, and objective.",
+        "Do not use this result as an operational recommendation without external calibration and domain review.",
+      ],
+    },
   };
 }
 
@@ -144,8 +202,14 @@ export function sweepParameters(input: unknown, limits: ExecutionLimits = LOCAL_
   const scenario = scenarioById[spec.base.scenarioId];
   const steps = spec.base.parameters.steps ?? scenario?.defaults.steps ?? 0;
   const runCount = spec.base.seeds?.length ?? 1;
-  if (combinations.length * runCount * steps > limits.maxTotalIntegrationSteps) {
-    throw new ContractError("Sweep exceeds the integration-step work budget.", [{ path: "grid", message: `Candidate count × seeds × steps must not exceed ${limits.maxTotalIntegrationSteps}.` }]);
+  const dt = spec.base.parameters.dt ?? scenario?.defaults.dt ?? MAX_INTERNAL_DT;
+  const totalIntegrationWork =
+    combinations.length *
+    runCount *
+    steps *
+    integrationSubstepsPerStep(dt);
+  if (totalIntegrationWork > limits.maxTotalIntegrationSteps) {
+    throw new ContractError("Sweep exceeds the integration-step work budget.", [{ path: "grid", message: `Candidate count × seeds × steps × internal substeps must not exceed ${limits.maxTotalIntegrationSteps}.` }]);
   }
   const ranked = combinations.map((parameterOverrides) => {
     const experiment = runExperiment({

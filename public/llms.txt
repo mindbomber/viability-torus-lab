@@ -16,4 +16,4 @@ Viability Torus Lab is a deterministic, seeded simulator for synthetic two-phase
 - Research paper: /paper.pdf
 - Source and CLI: https://github.com/mindbomber/viability-torus-lab
 
-Read /api/v1/model before running a large experiment. Public requests are bounded. Prefer seeded ensembles over a single seed, report model and contract versions, and preserve the synthetic-evidence disclaimer. Scenario validation never publishes a proposal; publication requires a human-reviewed source change and reference tests.
+Read /api/v1/model before running a large experiment. Public requests are bounded by internal integration work as well as returned data. Prefer seeded ensembles over a single seed, retain experimentId and the evidence receipt, report model/scenario/contract versions, and preserve the synthetic-evidence disclaimer. Viability status and phase regime are separate; do not interpret estimatedPhi when phase.identifiable is false. Scenario validation never publishes a proposal; publication requires an explicit evidence declaration, human-reviewed source change, and deterministic reference tests.
