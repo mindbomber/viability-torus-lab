@@ -167,7 +167,7 @@ test("reference draft scenario passes evidence checks but is never auto-publisha
 test("generated JSON Schema catalog is valid JSON with stable ids", async () => {
   const index = JSON.parse(await readFile(resolve("public/schemas/v1/index.json"), "utf8"));
   assert.equal(index.schemaVersion, "1.0.0");
-  assert.equal(index.schemas.length, 7);
+  assert.equal(index.schemas.length, 8);
   for (const item of index.schemas) {
     const schema = JSON.parse(await readFile(resolve(`public${item.url}`), "utf8"));
     assert.match(schema.$id, /\/schemas\/v1\/.+\.schema\.json$/);

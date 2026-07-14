@@ -111,6 +111,7 @@ export function RadialStabilityChart({ frames, frameIndex, params }: BaseProps) 
   const ref = useRef<HTMLCanvasElement>(null);
   const frame = frames[Math.min(frameIndex, frames.length - 1)];
   const display = displayExcursion(frame?.rho ?? 0, params.rhoCrit, 1.45);
+  const debtPressure = params.chi * (frame?.debt ?? 0);
   useChart(ref, (ctx, width, height) => {
     const pad = { l: 38, r: 12, t: 15, b: 27 };
     const w = width - pad.l - pad.r;
@@ -118,8 +119,8 @@ export function RadialStabilityChart({ frames, frameIndex, params }: BaseProps) 
     drawGrid(ctx, pad.l, pad.t, w, h);
     const rhoMax = params.rhoCrit * 1.45;
     const curveVelocities = [-0.25, 0, 0.25].flatMap((margin) => [
-      -params.kappa * (0 - params.rho0) + margin,
-      -params.kappa * (rhoMax - params.rho0) + margin,
+      -params.kappa * (0 - params.rho0) - margin + debtPressure,
+      -params.kappa * (rhoMax - params.rho0) - margin + debtPressure,
     ]);
     const velocityScale = Math.max(
       0.35,
@@ -132,7 +133,7 @@ export function RadialStabilityChart({ frames, frameIndex, params }: BaseProps) 
       ctx.beginPath();
       for (let i = 0; i <= 60; i += 1) {
         const rho = (i / 60) * rhoMax;
-        const velocity = -params.kappa * (rho - params.rho0) + margin;
+        const velocity = -params.kappa * (rho - params.rho0) - margin + debtPressure;
         const x = pad.l + (rho / rhoMax) * w;
         const y = velocityY(velocity);
         if (i) ctx.lineTo(x, y);
@@ -159,8 +160,10 @@ export function RadialStabilityChart({ frames, frameIndex, params }: BaseProps) 
     }
     ctx.fillStyle = "rgba(181,204,235,.72)"; ctx.font = "10px ui-monospace";
     ctx.fillText("contraction", pad.l, height - 8); ctx.fillText("ρ critical", criticalX - 20, height - 8); ctx.fillText("dρ/dt", 4, 14);
+    ctx.fillStyle = "rgba(181,204,235,.58)";
+    ctx.fillText(`reference curves include χΔ=${debtPressure.toFixed(2)} · C−D −.25 / 0 / +.25`, pad.l, 11);
   });
-  return <canvas ref={ref} className="chart-canvas" role="img" data-chart-kind="radial-stability" data-offscale={display.offScale ? "true" : "false"} aria-label={`Radial stability plot showing contraction, neutral, and expansion regimes with current state and critical radius. Current excursion ${(frame?.rho ?? 0).toFixed(2)}, or ${display.ratio.toFixed(2)} times the critical radius${display.offScale ? "; the marker is clamped to the chart boundary as an off-scale value" : ""}.`} />;
+  return <canvas ref={ref} className="chart-canvas" role="img" data-chart-kind="radial-stability" data-offscale={display.offScale ? "true" : "false"} aria-label={`Radial stability plot showing d rho over dt against rho. Reference curves use correction margins C minus D of minus 0.25, zero, and plus 0.25 and include current debt pressure chi Delta ${debtPressure.toFixed(3)}. Current excursion ${(frame?.rho ?? 0).toFixed(2)}, or ${display.ratio.toFixed(2)} times the critical radius${display.offScale ? "; the marker is clamped to the chart boundary as an off-scale value" : ""}.`} />;
 }
 
 export function DifferenceChart({ frames, frameIndex, label = "Difference between baseline and comparison run" }: BaseProps) {

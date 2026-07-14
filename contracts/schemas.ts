@@ -212,12 +212,33 @@ export const scenarioDefinitionSchema = z.object({
     if (value.warningRho >= value.criticalRho) context.addIssue({ code: "custom", path: ["warningRho"], message: "warningRho must be below criticalRho." });
     if (value.criticalRho >= value.irreversibleRho) context.addIssue({ code: "custom", path: ["irreversibleRho"], message: "irreversibleRho must be above criticalRho." });
   }).default({ warningRho: 1.6, criticalRho: 2.5, irreversibleRho: 3.4, phaseConfidenceMinimum: 0.2 }),
+  rupturePolicy: z.object({
+    irreversibleRho: z.number().finite().min(0.1).max(20),
+    cumulativeLossThreshold: z.number().finite().min(0).max(100),
+    debtThreshold: z.number().finite().min(0).max(100),
+    persistenceSteps: z.number().int().min(1).max(10_000),
+    provenance: z.literal("illustrative-scenario-policy"),
+    rationale: z.string().min(20).max(1_000),
+  }).strict(),
   defaults: simulationParametersSchema,
   presets: z.array(z.object({
     name: z.string().min(2).max(80),
     description: z.string().min(10).max(300),
     values: parameterOverridesSchema.refine((value) => Object.keys(value).length > 0),
   }).strict()).min(1).max(20),
+}).strict();
+
+export const externalTelemetrySchema = z.object({
+  schemaVersion: z.literal(CONTRACT_VERSION).optional().default(CONTRACT_VERSION),
+  source: z.object({
+    name: z.string().min(1).max(160),
+    units: z.string().min(1).max(120),
+    provenance: z.string().min(5).max(1_000),
+  }).strict(),
+  samples: z.array(z.object({
+    time: z.number().finite(),
+    mismatch: z.number().finite(),
+  }).strict()).min(8).max(5_000),
 }).strict();
 
 export const proposalAssertionsSchema = z.object({

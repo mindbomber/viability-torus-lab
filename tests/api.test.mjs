@@ -4,6 +4,8 @@ import { GET as getModel } from "../app/api/v1/model/route.ts";
 import { GET as getScenarios } from "../app/api/v1/scenarios/route.ts";
 import { POST as simulate } from "../app/api/v1/simulate/route.ts";
 import { POST as sweep } from "../app/api/v1/sweep/route.ts";
+import { GET as reproducePaper } from "../app/api/v1/research/paper/route.ts";
+import { POST as analyzeTelemetry } from "../app/api/v1/telemetry/route.ts";
 
 test("model and scenario endpoints expose versioned machine metadata", async () => {
   const modelResponse = getModel(new Request("https://example.test/api/v1/model"));
@@ -53,4 +55,27 @@ test("public endpoints reject unknown fields and oversized sweeps", async () => 
     body: JSON.stringify({ base: { scenarioId: "llm-deployment", parameters: { steps: 10 } }, grid: { pressure: values, correction: values } }),
   }));
   assert.equal(oversized.status, 422);
+});
+
+test("research endpoints reproduce archived fixtures and analyze imported telemetry", async () => {
+  const paperResponse = await reproducePaper(new Request("https://example.test/api/v1/research/paper?case=stable-periodic"));
+  assert.equal(paperResponse.status, 200);
+  const paper = await paperResponse.json();
+  assert.equal(paper.engineVersion, "paper-2026-legacy");
+  assert.equal(paper.matchesArchive, true);
+  assert.equal(paper.frames, undefined);
+
+  const samples = Array.from({ length: 160 }, (_, index) => ({
+    time: index * 0.2,
+    mismatch: 0.5 + 0.25 * Math.cos(index * Math.PI / 20),
+  }));
+  const telemetryResponse = await analyzeTelemetry(new Request("https://example.test/api/v1/telemetry", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source: { name: "test", units: "mismatch", provenance: "deterministic API test fixture" }, samples }),
+  }));
+  assert.equal(telemetryResponse.status, 200);
+  const telemetry = await telemetryResponse.json();
+  assert.equal(telemetry.samples.length, 160);
+  assert.equal(telemetry.evidence.empiricalValidation, false);
 });

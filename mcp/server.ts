@@ -4,7 +4,9 @@ import { CONTRACT_VERSION, LOCAL_EXECUTION_LIMITS, type ExecutionLimits } from "
 import { compareExperiments, runExperiment, sweepParameters } from "../contracts/experiments.ts";
 import { getModelManifest } from "../contracts/metadata.ts";
 import { validateScenarioProposal } from "../contracts/proposals.ts";
-import { comparisonSpecSchema, experimentSpecSchema, scenarioProposalSchema, sweepSpecSchema } from "../contracts/schemas.ts";
+import { comparisonSpecSchema, experimentSpecSchema, externalTelemetrySchema, scenarioProposalSchema, sweepSpecSchema } from "../contracts/schemas.ts";
+import { analyzeTelemetryRequest } from "../contracts/telemetry.ts";
+import { reproducePaperCase } from "../contracts/research.ts";
 import { scenarioById, scenarios } from "../scenarios/catalog.ts";
 
 const resultSchema = { result: z.unknown() };
@@ -65,6 +67,25 @@ export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIM
     outputSchema: resultSchema,
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async (input) => asToolResult(sweepParameters(input, limits)));
+
+  server.registerTool("reproduce_paper_case", {
+    title: "Reproduce a foundational paper case",
+    description: "Run one exact Paper 2026 legacy regime with archived initial phases and return deterministic fixture verification.",
+    inputSchema: {
+      caseId: z.enum(["stable-periodic", "stable-quasiperiodic", "neutral-tube", "rupture-low-correction"]),
+      includeFrames: z.boolean().optional().default(false),
+    },
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ caseId, includeFrames }) => asToolResult(reproducePaperCase(caseId, includeFrames)));
+
+  server.registerTool("analyze_external_telemetry", {
+    title: "Analyze external mismatch telemetry",
+    description: "Apply the revised phase-identifiability gate and signed temporal phase estimator to bounded imported observations.",
+    inputSchema: externalTelemetrySchema,
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async (input) => asToolResult(analyzeTelemetryRequest(input)));
 
   server.registerTool("validate_scenario_proposal", {
     title: "Validate draft scenario proposal",

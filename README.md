@@ -25,7 +25,7 @@ npm run build
 
 ## Agent and programmatic use
 
-The dashboard, CLI, HTTP API, and MCP server all call the same deterministic `torus-1.1.0` engine and use contract version `1.0.0`. Results include reproducible experiment fingerprints, scenario calibration statements, and a synthetic-evidence receipt.
+The dashboard, CLI, HTTP API, and MCP server all call the same deterministic `torus-1.2.0` engine and use contract version `1.0.0`. Results include reproducible experiment fingerprints, scenario calibration statements, explicit boundary/recovery/terminal states, and a synthetic-evidence receipt.
 
 Run a checked-in experiment:
 
@@ -55,6 +55,8 @@ Public discovery and data contracts:
 - `POST /api/v1/compare` - paired experiment comparison
 - `POST /api/v1/sweep` - bounded parameter search
 - `POST /api/v1/proposals/validate` - draft-only scenario evidence validation
+- `GET /api/v1/research/paper?case=stable-periodic` - exact versioned legacy-paper fixture reproduction
+- `POST /api/v1/telemetry` - external `time,mismatch` telemetry analysis
 - `/schemas/v1/index.json` - JSON Schema catalog
 
 See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP tools.
@@ -64,6 +66,9 @@ See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP too
 - Live scenario simulator with 3D and accessible 2D torus views
 - A 32-scenario pack: 22 red/orange/yellow watchlist systems and 10 featured simulations, each with model-family metadata, recurrent phases, domain labels, AIx layers, presets, assumptions, units, references, and falsification criteria
 - Deterministic seeded simulation, playback controls, interventions, and explanations
+- Separate viability-boundary crossing, recoverable excursion, and policy-triggered irreversible rupture states with a reduced-motion-aware fragment visualization
+- Versioned Experiments workspace for paper reproduction, topology, hysteresis, coupled tori, navigation, and imported telemetry
+- Full eight-component ATS 4.0 AIx display and verifier-grounded AANA decision gate, clearly labeled as an uncalibrated synthetic diagnostic
 - Unwrapped phase, time-series, and radial-stability charts with table alternatives
 - Side-by-side compare mode and difference summaries
 - Template-based custom-system builder
@@ -78,18 +83,20 @@ See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP too
 - `app/` - responsive product shell and application views
 - `components/simulation/` - interactive torus renderer and camera controls
 - `components/charts/` - linked scientific canvas charts
+- `components/research/` - experiment workspaces, evidence views, and ATS/AANA panels
 - `engine/` - equations, seeded simulation, status classification, summaries
 - `contracts/` - versioned validation, limits, experiment operations, and metadata
 - `scenarios/` - structured domain definitions and parameter mappings
 - `mcp/` - shared MCP tool server used by local stdio and public HTTP transports
 - `scripts/` - CLI, MCP entry point, and schema generation
 - `experiments/` - reproducible reference experiment specifications
+- `research/` - live study protocols and archived-result mappings
 - `proposals/` - un-published scenario drafts and evidence
 - `tests/` - deterministic unit and scientific reference cases
 - `docs/` - architecture, extension, accessibility, and operating notes
 
 ## Scientific scope
 
-The simulator demonstrates synthetic model behavior. It is not empirical evidence that any specific hospital, company, person, ecosystem, or AI system follows a toroidal manifold. The model is conditional on two meaningful recurrent phases. Viability status and phase regime are reported independently; when recurrence is weak, too short, spectrally diffuse, or undersampled, the external phase estimate is omitted.
+The simulator demonstrates synthetic model behavior. It is not empirical evidence that any specific hospital, company, person, ecosystem, or AI system follows a toroidal manifold. The model is conditional on two meaningful recurrent phases. Viability status and phase regime are reported independently; when recurrence is weak, too short, spectrally diffuse, or undersampled, the external phase estimate is omitted. A rendered torus is not itself topology evidence, and imported mismatch telemetry can validate only the observable phase estimator—not the domain mapping or toroidal hypothesis by itself.
 
 The full paper is served at `/paper.pdf` and cited in the About the Theory view.

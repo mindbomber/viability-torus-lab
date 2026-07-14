@@ -82,7 +82,7 @@ test("comparison canvas preserves a signed zero baseline and responds to B", asy
   expect(consoleErrors).toEqual([]);
 });
 
-test("permitted extreme parameters keep off-scale rupture evidence visible", async ({ page }) => {
+test("permitted extreme parameters keep terminal rupture evidence visible", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const consoleErrors = await openDashboard(page);
   const values: Array<[string, string]> = [
@@ -105,8 +105,41 @@ test("permitted extreme parameters keep off-scale rupture evidence visible", asy
   await expect(radial).toHaveAttribute("data-offscale", "true");
   await expect(torus).toHaveAttribute("aria-label", /off the display scale/i);
   await expect(radial).toHaveAttribute("aria-label", /marker is clamped to the chart boundary/i);
+  await expect(page.getByText("Terminal rupture", { exact: true })).toBeVisible();
+  await expect(page.getByText("Modeled recurrence has been lost")).toBeVisible();
+  await expect(page.locator(".viability-progression span").last()).toHaveClass(/active/);
+  await expect(page.locator(".status-mini-grid")).toContainText("C−D");
+  await expect(page.locator(".status-mini-grid")).toContainText("C−D−χΔ");
+  await expect(page.locator(".status-mini-grid")).toContainText("dρ/dt");
   const rendered = await canvasFingerprint(page, 'canvas[data-chart-kind="torus"]');
   expect(rendered.data.length).toBeGreaterThan(10_000);
+  await page.screenshot({ path: testInfo.outputPath("terminal-rupture.png"), fullPage: true });
+  expect(consoleErrors).toEqual([]);
+});
+
+test("experiments workspace verifies the paper and exposes all research modules", async ({ page }, testInfo) => {
+  const consoleErrors = await openDashboard(page);
+  await page.getByRole("button", { name: /^Experiments Protocol-driven studies$/i }).click();
+  await expect(page.getByRole("heading", { name: "Experiments", exact: true })).toBeVisible();
+  await expect(page.locator(".module-rail > button")).toHaveCount(6);
+  await expect(page.getByText("Archived result reproduced")).toBeVisible();
+  await expect(page.locator(".verification-strip")).toHaveClass(/verified/);
+  await expect(page.getByText("ATS 4.0 AIx", { exact: true })).toBeVisible();
+  await expect(page.getByText(/AANA gate:/i)).toBeVisible();
+
+  await page.locator(".module-rail > button").filter({ hasText: "Topology" }).click();
+  await expect(page.getByRole("heading", { name: "Topology & phase" })).toBeVisible();
+  await expect(page.getByText("Interpretation boundary")).toBeVisible();
+
+  await page.locator(".module-rail > button").filter({ hasText: "Hysteresis" }).click();
+  await expect(page.getByRole("heading", { name: "Hysteresis" })).toBeVisible();
+  await page.getByRole("button", { name: /Run experiment/i }).click();
+  await expect(page.getByRole("heading", { name: "Debt-dependent recovery" })).toBeVisible();
+
+  await page.locator(".module-rail > button").filter({ hasText: "Telemetry" }).click();
+  await expect(page.getByRole("heading", { name: "External mismatch telemetry" })).toBeVisible();
+  await expect(page.getByText("Bundled recurrent example")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("experiments-workspace.png"), fullPage: true });
   expect(consoleErrors).toEqual([]);
 });
 

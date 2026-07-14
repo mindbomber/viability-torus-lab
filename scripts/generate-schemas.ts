@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import * as z from "zod/v4";
 import {
   comparisonSpecSchema,
+  externalTelemetrySchema,
   experimentSpecSchema,
   scenarioDefinitionSchema,
   scenarioProposalSchema,
@@ -23,6 +24,7 @@ const definitions = [
   ["parameter-sweep", "Parameter sweep", sweepSpecSchema],
   ["scenario", "Scenario definition", scenarioDefinitionSchema],
   ["scenario-proposal", "Draft scenario proposal", scenarioProposalSchema],
+  ["external-telemetry", "External mismatch telemetry", externalTelemetrySchema],
 ] as const;
 
 await mkdir(outputDirectory, { recursive: true });

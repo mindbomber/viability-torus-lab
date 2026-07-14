@@ -1,4 +1,5 @@
 import type {
+  RupturePolicy,
   ScheduledIntervention,
   SimulationFrame,
   SimulationParameters,
@@ -110,6 +111,10 @@ export type ScenarioDefinition = {
     irreversibleRho: number;
     phaseConfidenceMinimum: number;
   };
+  rupturePolicy: RupturePolicy & {
+    provenance: "illustrative-scenario-policy";
+    rationale: string;
+  };
   defaults: SimulationParameters;
   presets: { name: string; description: string; values: Partial<SimulationParameters> }[];
 };
@@ -134,6 +139,9 @@ export type ExperimentRun = {
 
 export type EnsembleSummary = {
   runCount: number;
+  boundaryCrossingRate: number;
+  irreversibleRuptureRate: number;
+  /** @deprecated Retained as the v1 alias for boundaryCrossingRate. */
   ruptureRate: number;
   recoveryRate: number;
   meanStableFraction: number;

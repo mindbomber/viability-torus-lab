@@ -36,6 +36,11 @@
       "name": "scenario-proposal",
       "title": "Draft scenario proposal",
       "url": "/schemas/v1/scenario-proposal.schema.json"
+    },
+    {
+      "name": "external-telemetry",
+      "title": "External mismatch telemetry",
+      "url": "/schemas/v1/external-telemetry.schema.json"
     }
   ]
 }

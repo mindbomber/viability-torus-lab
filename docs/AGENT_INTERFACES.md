@@ -43,7 +43,34 @@ Content-Type: application/json
 
 Frames are omitted by default. Set `includeFrames: true` to receive sampled frames; the server increases the effective stride as needed to remain within the response budget.
 
-Each run summary separates `finalStatus` (viability) from `phase` diagnostics. Treat `phase.identifiable: false` as an instruction not to interpret an external phase coordinate. When frames are included, `phi` is synthetic latent ground truth used for evaluator testing; `estimatedPhi` is the paper-style estimate and remains absent unless the identifiability gates pass.
+Each run summary separates `finalStatus` (legacy radial status), `finalViabilityState` (viable recurrence, boundary crossing, recoverable excursion, or irreversible rupture), and `phase` diagnostics. A boundary crossing is not terminal: the scenario's explicit rupture policy also requires persistence, cumulative irreversible loss, and a severe debt or radial condition. Treat `phase.identifiable: false` as an instruction not to interpret an external phase coordinate. When frames are included, `phi` is synthetic latent ground truth used for evaluator testing; `estimatedPhi` is the paper-style estimate and remains absent unless the identifiability gates pass.
+
+Frames expose all three radial quantities separately: `correctionMargin` = `C−D`, `debtAdjustedMargin` = `C−D−χΔ`, and `radialVelocity` = `dρ/dt`.
+
+### Reproduce a paper fixture
+
+`GET /api/v1/research/paper?case=stable-periodic` runs one case; omit `case` to list the available fixtures. Available cases are `stable-periodic`, `stable-quasiperiodic`, `neutral`, and `rupture`. Results use the locked `paper-2026-legacy` rules, archived initial phases, zero noise, expected metrics, and a versioned SHA-256 payload. This endpoint reproduces the checked-in archive; it does not claim external replication.
+
+### Analyze external mismatch telemetry
+
+```http
+POST /api/v1/telemetry
+Content-Type: application/json
+
+{
+  "source": {
+    "name": "observer export",
+    "units": "normalized mismatch",
+    "provenance": "instrument and preprocessing description"
+  },
+  "samples": [
+    { "time": 0, "mismatch": 0.71 },
+    { "time": 0.25, "mismatch": 0.68 }
+  ]
+}
+```
+
+Provide 8–5,000 monotonically timed samples. The estimator applies sampling, amplitude, spectral-concentration, and observed-cycle gates. A successful phase estimate does not by itself establish torus topology or validate a scenario mapping.
 
 ### Compare experiments
 
@@ -111,6 +138,8 @@ The local server uses stdio and the public `/mcp` route uses stateless Streamabl
 - `compare_runs`
 - `sweep_parameters`
 - `validate_scenario_proposal`
+- `reproduce_paper_case`
+- `analyze_external_telemetry`
 
 The MCP server instructions require agents to preserve the synthetic-evidence boundary and use proposal validation before recommending publication.
 

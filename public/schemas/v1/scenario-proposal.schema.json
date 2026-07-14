@@ -749,6 +749,49 @@
           ],
           "additionalProperties": false
         },
+        "rupturePolicy": {
+          "type": "object",
+          "properties": {
+            "irreversibleRho": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 20
+            },
+            "cumulativeLossThreshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "debtThreshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "persistenceSteps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "provenance": {
+              "type": "string",
+              "const": "illustrative-scenario-policy"
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 1000
+            }
+          },
+          "required": [
+            "irreversibleRho",
+            "cumulativeLossThreshold",
+            "debtThreshold",
+            "persistenceSteps",
+            "provenance",
+            "rationale"
+          ],
+          "additionalProperties": false
+        },
         "defaults": {
           "type": "object",
           "properties": {
@@ -1080,6 +1123,7 @@
         "aixLabels",
         "ranges",
         "thresholds",
+        "rupturePolicy",
         "defaults",
         "presets"
       ],

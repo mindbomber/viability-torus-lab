@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "default": "1.0.0",
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "units": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "provenance": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "name",
+        "units",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "samples": {
+      "minItems": 8,
+      "maxItems": 5000,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "number"
+          },
+          "mismatch": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "time",
+          "mismatch"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "source",
+    "samples"
+  ],
+  "additionalProperties": false,
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/external-telemetry.schema.json",
+  "title": "External mismatch telemetry"
+}

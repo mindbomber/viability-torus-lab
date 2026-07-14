@@ -1,0 +1,14 @@
+Test,Finding,Practical implication
+Future viability forecasting,Phase/dynamic state ROC-AUC 0.986 vs scalar A 0.968; full telemetry Brier 0.037 vs 0.083.,"Use temporal state and calibrated risk, not a point score alone."
+Early warning lead time,"Radial slope warned 18 median steps before rupture, versus 8 for low alignment.",Monitor velocity and margin before the score visibly deteriorates.
+Matched-score futures,Rupture rate 0.000 for recovering states vs 0.695 for debt-heavy states with the same initial A.,Identical current alignment can conceal opposite future trajectories.
+Partial observability,"At 3x noise, regularized rho RMSE 0.136, instantaneous 0.194; misspecified model observer 0.371.",State estimation helps only when the observer model is trustworthy.
+Telemetry value of information,Largest group-removal AUC drop 0.0038 for group:alignment_and_gating.,Use redundant sensor groups rather than one canonical alignment meter.
+Out-of-distribution robustness,Mean full-telemetry ROC-AUC across tested families: 0.987.,"Dynamic telemetry generalized across synthetic shifts, but this is not external validation."
+Missing recent telemetry,"At 50% trailing loss, median filling AUC 0.067; temporal interpolation/carry AUC 0.968.",Freshness is a feedback constraint; stale recent data can invert risk judgments.
+Counterfactual intervention,Combined intervention reduced rupture from 0.842 to 0.346.,"Correction, better feedback, and lower pressure are complementary levers."
+Intervention timing,"Best equal-budget start offset was +10 steps, with rupture rate 0.600.",Target the recoverability window; too early can expire and too late faces debt.
+Policy comparison,"Best joint utility: mpc_like; rupture rate 0.000, mean correction cost 6.426.",Forecasting and action selection are separate optimization problems.
+Hidden-regime discovery,Mapped unsupervised accuracy 0.573; adjusted Rand index 0.423.,Regime beliefs should remain probabilistic and expose ambiguity.
+Change-point detection,"CUSUM median delay 3.5, detection rate 1.000, false-alarm rate 0.000.",Hidden constraint onset can be detected before radial rupture.
+Recurrence restructuring,Rupture-group determinism changed by +0.214 as failure approached.,"Collapse may appear as rigid lock-in, not only loss of recurrence."

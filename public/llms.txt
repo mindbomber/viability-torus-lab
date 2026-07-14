@@ -10,10 +10,12 @@ Viability Torus Lab is a deterministic, seeded simulator for synthetic two-phase
 - Compare experiments: POST /api/v1/compare
 - Sweep parameters: POST /api/v1/sweep
 - Validate a draft scenario: POST /api/v1/proposals/validate
+- Reproduce a versioned paper fixture: GET /api/v1/research/paper?case=stable-periodic
+- Analyze external mismatch telemetry: POST /api/v1/telemetry
 - Streamable HTTP MCP endpoint: /mcp
 - JSON Schema index: /schemas/v1/index.json
 - Service description: /.well-known/viability-torus-lab.json
 - Research paper: /paper.pdf
 - Source and CLI: https://github.com/mindbomber/viability-torus-lab
 
-Read /api/v1/model before running a large experiment. Public requests are bounded by internal integration work as well as returned data. Prefer seeded ensembles over a single seed, retain experimentId and the evidence receipt, report model/scenario/contract versions, and preserve the synthetic-evidence disclaimer. Viability status and phase regime are separate; do not interpret estimatedPhi when phase.identifiable is false. Scenario validation never publishes a proposal; publication requires an explicit evidence declaration, human-reviewed source change, and deterministic reference tests.
+Read /api/v1/model before running a large experiment. Public requests are bounded by internal integration work as well as returned data. Prefer seeded ensembles over a single seed, retain experimentId and the evidence receipt, report model/scenario/contract versions, and preserve the synthetic-evidence disclaimer. Treat viability-boundary crossing, recoverable excursion, and irreversible rupture as distinct states. Inspect correctionMargin (C-D), debtAdjustedMargin (C-D-chi*debt), and radialVelocity (d-rho/dt) separately. Viability and phase regime are independent; do not interpret estimatedPhi when phase.identifiable is false. Imported mismatch telemetry tests an observable estimator but does not establish torus topology or domain validity. Scenario validation never publishes a proposal; publication requires an explicit evidence declaration, human-reviewed source change, and deterministic reference tests.

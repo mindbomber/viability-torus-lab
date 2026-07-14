@@ -37,6 +37,11 @@ export const GENERATED_SCHEMA_INDEX = {
       "name": "scenario-proposal",
       "title": "Draft scenario proposal",
       "url": "/schemas/v1/scenario-proposal.schema.json"
+    },
+    {
+      "name": "external-telemetry",
+      "title": "External mismatch telemetry",
+      "url": "/schemas/v1/external-telemetry.schema.json"
     }
   ]
 } as const;
@@ -2576,6 +2581,49 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         ],
         "additionalProperties": false
       },
+      "rupturePolicy": {
+        "type": "object",
+        "properties": {
+          "irreversibleRho": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 20
+          },
+          "cumulativeLossThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "debtThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "persistenceSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "provenance": {
+            "type": "string",
+            "const": "illustrative-scenario-policy"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "irreversibleRho",
+          "cumulativeLossThreshold",
+          "debtThreshold",
+          "persistenceSteps",
+          "provenance",
+          "rationale"
+        ],
+        "additionalProperties": false
+      },
       "defaults": {
         "type": "object",
         "properties": {
@@ -2907,6 +2955,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "aixLabels",
       "ranges",
       "thresholds",
+      "rupturePolicy",
       "defaults",
       "presets"
     ],
@@ -3665,6 +3714,49 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             ],
             "additionalProperties": false
           },
+          "rupturePolicy": {
+            "type": "object",
+            "properties": {
+              "irreversibleRho": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 20
+              },
+              "cumulativeLossThreshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "debtThreshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "persistenceSteps": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "provenance": {
+                "type": "string",
+                "const": "illustrative-scenario-policy"
+              },
+              "rationale": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "irreversibleRho",
+              "cumulativeLossThreshold",
+              "debtThreshold",
+              "persistenceSteps",
+              "provenance",
+              "rationale"
+            ],
+            "additionalProperties": false
+          },
           "defaults": {
             "type": "object",
             "properties": {
@@ -3996,6 +4088,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "aixLabels",
           "ranges",
           "thresholds",
+          "rupturePolicy",
           "defaults",
           "presets"
         ],
@@ -4405,5 +4498,71 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
     "additionalProperties": false,
     "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/scenario-proposal.schema.json",
     "title": "Draft scenario proposal"
+  },
+  "external-telemetry.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "schemaVersion": {
+        "default": "1.0.0",
+        "type": "string",
+        "const": "1.0.0"
+      },
+      "source": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "units": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "provenance": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "name",
+          "units",
+          "provenance"
+        ],
+        "additionalProperties": false
+      },
+      "samples": {
+        "minItems": 8,
+        "maxItems": 5000,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "time": {
+              "type": "number"
+            },
+            "mismatch": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "time",
+            "mismatch"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "source",
+      "samples"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/external-telemetry.schema.json",
+    "title": "External mismatch telemetry"
   }
 };

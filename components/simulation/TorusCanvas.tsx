@@ -42,6 +42,7 @@ export function TorusCanvas({
   const [showTube, setShowTube] = useState(true);
   const [view2d, setView2d] = useState(false);
   const [motionPaused, setMotionPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const drag = useRef<{ x: number; y: number; pan: boolean } | null>(null);
   const spinRef = useRef(0);
   const trajectoryPoints = useRef<{ index: number; x: number; y: number }[]>([]);
@@ -52,7 +53,9 @@ export function TorusCanvas({
   const phaseReady = phaseAnalysisAvailable(frameIndex, frames.length);
   const geometryState = useMemo(() => {
     if (!frame) return "calibrating";
-    if (frame.status === "Ruptured") return "ruptured geometry";
+    if (frame.viabilityState === "Irreversible rupture") return "irreversible rupture · recurrence lost";
+    if (frame.viabilityState === "Viability-boundary crossing") return "viability-boundary crossing";
+    if (frame.viabilityState === "Recoverable excursion") return "recoverable excursion";
     if (severity > 0.78) return "expanding excursion";
     if (frame.status === "Recovering") return "partial recovery";
     if (phaseReady && frame.phaseRegime === "Phase locked") return "phase-locked trajectory";
@@ -60,6 +63,14 @@ export function TorusCanvas({
     if (severity > 0.45) return "locally warped torus";
     return "healthy viable torus";
   }, [frame, phaseReady, severity]);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -116,17 +127,17 @@ export function TorusCanvas({
           return { x: centerX + x1 * scale * perspective, y: centerY + y2 * scale * perspective, z: z2 };
         };
 
-        drawTorus(ctx, project, frame, params, wireframe, showTube, compact);
-        trajectoryPoints.current = showTrajectory
+        drawTorus(ctx, project, frame, params, wireframe, showTube, compact, now, reducedMotion);
+        trajectoryPoints.current = showTrajectory && frame.viabilityState !== "Irreversible rupture"
           ? drawTrajectory(ctx, project, frames, frameIndex, params, compact)
           : [];
-        drawCurrentMarker(ctx, project, frame, params, compact);
+        if (frame.viabilityState !== "Irreversible rupture") drawCurrentMarker(ctx, project, frame, params, compact);
       }
       animation = requestAnimationFrame(draw);
     };
     animation = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animation);
-  }, [compact, frame, frameIndex, frames, motionPaused, pan, params, pitch, playing, showTrajectory, showTube, view2d, wireframe, yaw, zoom]);
+  }, [compact, frame, frameIndex, frames, motionPaused, pan, params, pitch, playing, reducedMotion, showTrajectory, showTube, view2d, wireframe, yaw, zoom]);
 
   const resetView = () => {
     setYaw(-0.58);
@@ -190,6 +201,7 @@ export function TorusCanvas({
           <div className="torus-legend legend-tube"><strong>Viable tube</strong><span>safe alignment band</span></div>
           <div className="torus-legend legend-warning"><strong>Warning zone</strong><span>high radial excursion</span></div>
           {showLabels && <div className="axis-labels" aria-hidden="true"><span className="axis-x">x</span><span className="axis-y">y</span><span className="axis-z">z</span></div>}
+          {frame?.viabilityState === "Irreversible rupture" && <div className="terminal-rupture-label"><strong>Terminal rupture</strong><span>Modeled recurrence has been lost</span></div>}
           <div className="torus-mode-badge"><span className="live-dot" />{geometryState}</div>
         </>
       )}
@@ -228,11 +240,15 @@ function drawTorus(
   wireframe: boolean,
   showTube: boolean,
   compact: boolean,
+  now: number,
+  reducedMotion: boolean,
 ) {
   const uCount = compact ? 28 : 42;
   const vCount = compact ? 13 : 19;
   const severity = Math.min(1.25, frame.rho / params.rhoCrit);
   const visualDebt = displayDebt(frame.debt);
+  const terminal = frame.viabilityState === "Irreversible rupture";
+  const ruptureProgress = terminal ? Math.max(0.32, frame.ruptureProgress) : 0;
   const quads: { points: Point2[]; depth: number; u: number; v: number }[] = [];
   for (let u = 0; u < uCount; u += 1) {
     for (let v = 0; v < vCount; v += 1) {
@@ -254,6 +270,8 @@ function drawTorus(
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   for (const quad of quads) {
+    const fragmentNoise = ruptureHash(quad.u * 101 + quad.v * 313);
+    if (terminal && fragmentNoise < 0.12 + ruptureProgress * 0.7) continue;
     const phase = quad.u / uCount;
     const tube = quad.v / vCount;
     const red = Math.round(36 + phase * 215 + severity * 26);
@@ -263,7 +281,7 @@ function drawTorus(
     quad.points.forEach((point, index) => (index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)));
     ctx.closePath();
     if (!wireframe) {
-      const alpha = 0.09 + (quad.depth + 3.2) * 0.026;
+      const alpha = (0.09 + (quad.depth + 3.2) * 0.026) * (terminal ? 0.56 : 1);
       ctx.fillStyle = `rgba(${red}, ${green}, ${blue}, ${Math.max(0.07, Math.min(0.32, alpha))})`;
       ctx.fill();
     }
@@ -271,7 +289,7 @@ function drawTorus(
     ctx.lineWidth = wireframe ? 0.85 : 0.45;
     ctx.stroke();
   }
-  if (showTube) {
+  if (showTube && !terminal) {
     ctx.strokeStyle = "rgba(117, 110, 255, .42)";
     ctx.lineWidth = compact ? 7 : 12;
     ctx.shadowColor = "rgba(102, 76, 255, .45)";
@@ -287,19 +305,77 @@ function drawTorus(
       ctx.stroke();
     }
   }
-  ctx.strokeStyle = "rgba(255, 77, 62, .72)";
-  ctx.lineWidth = compact ? 3 : 5;
-  ctx.shadowColor = "#ff3f36";
-  ctx.shadowBlur = 13;
-  ctx.beginPath();
-  for (let i = 0; i <= 22; i += 1) {
-    const phi = -0.42 + (i / 22) * 0.7;
-    const point = project(rotatePoint(Math.PI * 0.16, phi, severity * 0.5 + 0.14, visualDebt));
-    if (i) ctx.lineTo(point.x, point.y);
-    else ctx.moveTo(point.x, point.y);
+  if (terminal) {
+    drawRuptureParticles(ctx, project, frame, params, compact, now, reducedMotion);
+  } else {
+    ctx.strokeStyle = "rgba(255, 77, 62, .72)";
+    ctx.lineWidth = compact ? 3 : 5;
+    ctx.shadowColor = "#ff3f36";
+    ctx.shadowBlur = 13;
+    ctx.beginPath();
+    for (let i = 0; i <= 22; i += 1) {
+      const phi = -0.42 + (i / 22) * 0.7;
+      const point = project(rotatePoint(Math.PI * 0.16, phi, severity * 0.5 + 0.14, visualDebt));
+      if (i) ctx.lineTo(point.x, point.y);
+      else ctx.moveTo(point.x, point.y);
+    }
+    ctx.stroke();
   }
-  ctx.stroke();
   ctx.restore();
+}
+
+function drawRuptureParticles(
+  ctx: CanvasRenderingContext2D,
+  project: (point: Point3) => Point2,
+  frame: SimulationFrame,
+  params: SimulationParameters,
+  compact: boolean,
+  now: number,
+  reducedMotion: boolean,
+) {
+  const particleCount = compact ? 280 : 620;
+  const progress = Math.max(0.32, frame.ruptureProgress);
+  const time = reducedMotion ? 0 : now * 0.00016;
+  const visualDebt = displayDebt(frame.debt);
+  const severity = Math.min(1.4, frame.rho / Math.max(params.rhoCrit, Number.EPSILON));
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let index = 0; index < particleCount; index += 1) {
+    const phi = ruptureHash(index * 17 + 5) * TAU;
+    const theta = ruptureHash(index * 29 + 11) * TAU;
+    const base = rotatePoint(theta, phi, severity * 0.22, visualDebt);
+    const radialLength = Math.max(0.001, Math.hypot(base.x, base.y, base.z));
+    const speed = 0.28 + ruptureHash(index * 47 + 19) * 1.42;
+    const drift = (0.18 + progress * 1.15) * speed;
+    const flutter = Math.sin(time * (0.7 + speed) + index) * (reducedMotion ? 0 : 0.035);
+    const point = project({
+      x: base.x + (base.x / radialLength) * drift + flutter,
+      y: base.y + (base.y / radialLength) * drift + (ruptureHash(index * 71) - 0.5) * progress * 0.7,
+      z: base.z + (base.z / radialLength) * drift - flutter,
+    });
+    const phase = phi / TAU;
+    const hot = ruptureHash(index * 89 + 7) > 0.64;
+    const color = hot
+      ? [255, 73 + Math.round(phase * 82), 55]
+      : phase < 0.48
+        ? [48, 178, 255]
+        : [155, 82, 255];
+    const alpha = 0.24 + ruptureHash(index * 97 + 23) * 0.68;
+    const radius = (compact ? 0.7 : 0.9) + ruptureHash(index * 53 + 31) * (compact ? 1.35 : 2.15);
+    ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
+    ctx.shadowColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+    ctx.shadowBlur = hot ? 7 : 4;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function ruptureHash(seed: number) {
+  const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return value - Math.floor(value);
 }
 
 function drawTrajectory(

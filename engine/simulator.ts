@@ -21,6 +21,23 @@ export type PhaseDiagnosticReason =
   | "low-spectral-concentration"
   | "undersampled";
 
+export type ViabilityState =
+  | "Viable recurrence"
+  | "Viability-boundary crossing"
+  | "Recoverable excursion"
+  | "Irreversible rupture";
+
+export type RupturePolicy = {
+  irreversibleRho: number;
+  cumulativeLossThreshold: number;
+  debtThreshold: number;
+  persistenceSteps: number;
+};
+
+export type SimulationOptions = {
+  rupturePolicy?: Partial<RupturePolicy>;
+};
+
 export type SimulationParameters = {
   pressure: number;
   error: number;
@@ -57,7 +74,9 @@ export type SimulationFrame = {
   divergence: number;
   correction: number;
   correctionMargin: number;
+  debtAdjustedMargin: number;
   irreversibleLoss: number;
+  cumulativeIrreversibleLoss: number;
   radialVelocity: number;
   debtVelocity: number;
   externalMismatch: number;
@@ -65,6 +84,8 @@ export type SimulationFrame = {
   phaseIdentifiable: boolean;
   phaseConfidence: number;
   phaseRegime: PhaseRegime;
+  viabilityState: ViabilityState;
+  ruptureProgress: number;
   status: SimulationStatus;
 };
 
@@ -96,17 +117,54 @@ export type SimulationSummary = {
   finalDebt: number;
   finalStatus: SimulationStatus;
   firstWarningStep?: number;
+  boundaryCrossingStep?: number;
+  irreversibleRuptureStep?: number;
+  finalViabilityState: ViabilityState;
+  recoveredAfterCrossing: boolean;
+  /** @deprecated Use boundaryCrossingStep. Retained for v1 contract compatibility. */
   ruptureStep?: number;
   recovered: boolean;
   recoveryTime?: number;
   interventionCost: number;
   windingRatio: number;
   phase: PhaseDiagnostics;
+  aix: AixAssessment;
 };
 
-export const MODEL_VERSION = "torus-1.1.0";
+export type AixComponentKey = "P" | "B" | "C" | "F" | "M" | "G" | "R" | "Pi";
+
+export type AixAssessment = {
+  framework: "ATS-4.0";
+  score: number;
+  normalizedScore: number;
+  components: Record<AixComponentKey, { score: number; weight: number; evidence: string }>;
+  beta: number;
+  riskTier: "standard" | "elevated" | "high" | "strict";
+  thresholds: { accept: number; revise: number; defer: number };
+  decision: "accept" | "revise" | "defer" | "refuse";
+  recommendedAction: "accept" | "revise" | "defer" | "refuse";
+  hardBlockers: string[];
+  calibrationStatus: string;
+};
+
+export type ExternalTelemetrySample = { time: number; mismatch: number };
+export type ExternalTelemetryPoint = ExternalTelemetrySample & { estimatedPhase?: number };
+export type ExternalTelemetryAnalysis = {
+  diagnostics: PhaseDiagnostics;
+  samples: ExternalTelemetryPoint[];
+  provenance: "imported-observation";
+  establishesToroidalGeometry: false;
+  warnings: string[];
+};
+
+export const MODEL_VERSION = "torus-1.2.0";
 export const MAX_INTERNAL_DT = 0.25;
 export const MIN_RHO = 0.03;
+export const DEFAULT_RUPTURE_POLICY = {
+  cumulativeLossThreshold: 0.5,
+  debtThreshold: 1,
+  persistenceSteps: 12,
+} as const;
 
 export const defaultParameters: SimulationParameters = {
   pressure: 1.65,
@@ -136,6 +194,41 @@ const PHASE_AMPLITUDE_FLOOR = 0.02;
 const PHASE_SPECTRAL_FLOOR = 0.2;
 const PHASE_MIN_CYCLES = 2;
 const PHASE_LOCKING_FLOOR = 0.985;
+
+const AIX_WEIGHTS: Record<AixComponentKey, number> = {
+  P: 0.16,
+  B: 0.16,
+  C: 0.12,
+  F: 0.12,
+  M: 0.12,
+  G: 0.1,
+  R: 0.11,
+  Pi: 0.11,
+};
+
+const AIX_THRESHOLDS = {
+  standard: { accept: 0.78, revise: 0.6, defer: 0.42 },
+  elevated: { accept: 0.82, revise: 0.66, defer: 0.48 },
+  high: { accept: 0.86, revise: 0.72, defer: 0.55 },
+  strict: { accept: 0.9, revise: 0.78, defer: 0.62 },
+} as const;
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+export function rupturePolicyFor(
+  params: SimulationParameters,
+  overrides: Partial<RupturePolicy> = {},
+): RupturePolicy {
+  return {
+    irreversibleRho: params.rhoCrit * 1.35,
+    cumulativeLossThreshold: DEFAULT_RUPTURE_POLICY.cumulativeLossThreshold,
+    debtThreshold: DEFAULT_RUPTURE_POLICY.debtThreshold,
+    persistenceSteps: DEFAULT_RUPTURE_POLICY.persistenceSteps,
+    ...overrides,
+  };
+}
 
 export function wrapAngle(value: number) {
   return ((value % TAU) + TAU) % TAU;
@@ -361,9 +454,169 @@ function annotatePhaseEstimates(
   });
 }
 
+export function analyzeExternalTelemetry(
+  input: ExternalTelemetrySample[],
+): ExternalTelemetryAnalysis {
+  if (input.length < 8) {
+    throw new RangeError("At least eight telemetry samples are required.");
+  }
+  if (input.length > 5_000) {
+    throw new RangeError("At most 5,000 telemetry samples may be analyzed at once.");
+  }
+  const samples = input.map((sample) => ({
+    time: Number(sample.time),
+    mismatch: Number(sample.mismatch),
+  }));
+  samples.forEach((sample, index) => {
+    if (!Number.isFinite(sample.time) || !Number.isFinite(sample.mismatch)) {
+      throw new RangeError(`Telemetry sample ${index} must contain finite time and mismatch values.`);
+    }
+    if (index > 0 && sample.time <= samples[index - 1].time) {
+      throw new RangeError("Telemetry time values must be strictly increasing.");
+    }
+  });
+
+  const indices = sampledIndices(samples.length, 512);
+  const sampled = indices.map((index) => samples[index]);
+  const mean = sampled.reduce((sum, sample) => sum + sample.mismatch, 0) / sampled.length;
+  const centered = sampled.map((sample) => sample.mismatch - mean);
+  const amplitude = Math.sqrt(centered.reduce((sum, value) => sum + value * value, 0) / centered.length);
+  let totalPower = 0;
+  let dominantPower = 0;
+  let dominantBin = 0;
+  for (let bin = 1; bin <= Math.floor(centered.length / 2); bin += 1) {
+    let real = 0;
+    let imaginary = 0;
+    for (let index = 0; index < centered.length; index += 1) {
+      const angle = (TAU * bin * index) / centered.length;
+      real += centered[index] * Math.cos(angle);
+      imaginary -= centered[index] * Math.sin(angle);
+    }
+    const power = real * real + imaginary * imaginary;
+    totalPower += power;
+    if (power > dominantPower) {
+      dominantPower = power;
+      dominantBin = bin;
+    }
+  }
+  const spectralConcentration = totalPower > 0 ? dominantPower / totalPower : 0;
+  const duration = samples.at(-1)!.time - samples[0].time;
+  const dominantAngularFrequency = dominantBin > 0 ? (TAU * dominantBin) / duration : 0;
+  let largestGap = 0;
+  for (let index = 1; index < samples.length; index += 1) {
+    largestGap = Math.max(largestGap, samples[index].time - samples[index - 1].time);
+  }
+  let reason: PhaseDiagnosticReason = "identified";
+  if (dominantAngularFrequency * largestGap >= Math.PI / 2) reason = "undersampled";
+  else if (amplitude < PHASE_AMPLITUDE_FLOOR) reason = "low-amplitude";
+  else if (dominantBin < PHASE_MIN_CYCLES) reason = "insufficient-cycles";
+  else if (spectralConcentration < PHASE_SPECTRAL_FLOOR) reason = "low-spectral-concentration";
+  const identifiable = reason === "identified";
+  const diagnostics: PhaseDiagnostics = {
+    identifiable,
+    reason,
+    regime: identifiable ? "Recurrent winding" : "Not identifiable",
+    spectralConcentration,
+    amplitude,
+    observedMajorCycles: dominantBin,
+    estimatedMajorCycles: dominantBin,
+    dominantAngularFrequency,
+    phaseLockingValue: 0,
+  };
+  const tau = dominantAngularFrequency > 0 ? 1 / dominantAngularFrequency : 0;
+  const annotated: ExternalTelemetryPoint[] = samples.map((sample, index) => {
+    const previous = samples[Math.max(0, index - 1)];
+    const next = samples[Math.min(samples.length - 1, index + 1)];
+    const derivative = next === previous
+      ? 0
+      : (next.mismatch - previous.mismatch) / Math.max(next.time - previous.time, Number.EPSILON);
+    return {
+      ...sample,
+      estimatedPhase: identifiable
+        ? wrapAngle(Math.atan2(-tau * derivative, sample.mismatch - mean))
+        : undefined,
+    };
+  });
+  return {
+    diagnostics,
+    samples: annotated,
+    provenance: "imported-observation",
+    establishesToroidalGeometry: false,
+    warnings: [
+      "Imported telemetry is not treated as calibrated evidence unless its provenance, units, and measurement process are independently documented.",
+      "An identifiable external phase does not establish toroidal geometry by itself; a distinct internal recurrent phase and joint-state test are still required.",
+    ],
+  };
+}
+
+export function evaluateAix(
+  frame: SimulationFrame,
+  params: SimulationParameters,
+): AixAssessment {
+  const radialRatio = frame.rho / params.rhoCrit;
+  const debtRatio = frame.debt / Math.max(1, frame.debt + 1);
+  const totalRadialPressure = frame.divergence + params.chi * frame.debt;
+  const correctionCoverage = frame.correction / Math.max(frame.correction + totalRadialPressure, Number.EPSILON);
+  const gracefulDegradation = frame.viabilityState === "Irreversible rupture"
+    ? 0
+    : clamp01(1 - Math.max(0, radialRatio - 0.35) / 1.15);
+  const components: AixAssessment["components"] = {
+    P: { score: clamp01(frame.alignment), weight: AIX_WEIGHTS.P, evidence: `A=exp(-rho)=${frame.alignment.toFixed(3)}` },
+    B: { score: clamp01(1 - 0.55 * debtRatio - 0.45 * clamp01(radialRatio)), weight: AIX_WEIGHTS.B, evidence: `debt ${frame.debt.toFixed(3)}; radial ratio ${radialRatio.toFixed(3)}` },
+    C: { score: clamp01(correctionCoverage), weight: AIX_WEIGHTS.C, evidence: `correction coverage ${correctionCoverage.toFixed(3)}` },
+    F: { score: clamp01(params.feedback), weight: AIX_WEIGHTS.F, evidence: `feedback fidelity gamma=${params.feedback.toFixed(3)}` },
+    M: { score: clamp01(1 - params.error), weight: AIX_WEIGHTS.M, evidence: `misclassification control 1-epsilon=${(1 - params.error).toFixed(3)}` },
+    G: { score: gracefulDegradation, weight: AIX_WEIGHTS.G, evidence: `viability state ${frame.viabilityState}; radial velocity ${frame.radialVelocity.toFixed(3)}` },
+    R: { score: clamp01(correctionCoverage * params.feedback), weight: AIX_WEIGHTS.R, evidence: `feedback-adjusted correction ${(correctionCoverage * params.feedback).toFixed(3)}` },
+    Pi: { score: clamp01(1 - params.pressure / 3), weight: AIX_WEIGHTS.Pi, evidence: `normalized pressure control ${(1 - params.pressure / 3).toFixed(3)}` },
+  };
+  const normalizedScore = (Object.keys(components) as AixComponentKey[])
+    .reduce((sum, key) => sum + components[key].score * components[key].weight, 0);
+  const beta = clamp01(
+    clamp01(frame.debt / 2) *
+    clamp01(radialRatio) *
+    (1 - params.feedback) /
+    (1 + frame.cumulativeIrreversibleLoss),
+  );
+  const riskTier: AixAssessment["riskTier"] = frame.viabilityState === "Irreversible rupture" || params.irreversibleLoss >= 0.25
+    ? "strict"
+    : params.irreversibleLoss >= 0.12 || frame.debt >= 1
+      ? "high"
+      : params.irreversibleLoss >= 0.05 || radialRatio >= 0.65
+        ? "elevated"
+        : "standard";
+  const thresholds = AIX_THRESHOLDS[riskTier];
+  const hardBlockers: string[] = [];
+  if (frame.viabilityState === "Irreversible rupture") hardBlockers.push("irreversible-rupture");
+  if (frame.alignment < 0.05 && frame.radialVelocity > 0) hardBlockers.push("unbounded-low-alignment-expansion");
+  const decision: AixAssessment["decision"] = hardBlockers.length
+    ? "refuse"
+    : normalizedScore >= thresholds.accept
+      ? "accept"
+      : normalizedScore >= thresholds.revise
+        ? "revise"
+        : normalizedScore >= thresholds.defer
+          ? "defer"
+          : "refuse";
+  return {
+    framework: "ATS-4.0",
+    score: normalizedScore * 100,
+    normalizedScore,
+    components,
+    beta,
+    riskTier,
+    thresholds,
+    decision,
+    recommendedAction: decision,
+    hardBlockers,
+    calibrationStatus: "Illustrative verifier-grounded synthetic diagnostic; component mappings are transparent model heuristics, not empirically calibrated domain scores.",
+  };
+}
+
 export function simulate(
   base: SimulationParameters,
   interventions: ScheduledIntervention[] = [],
+  options: SimulationOptions = {},
 ): { frames: SimulationFrame[]; summary: SimulationSummary } {
   const params = { ...base };
   if (params.rho0 >= params.rhoCrit) {
@@ -379,9 +632,14 @@ export function simulate(
   let phiUnwrapped = phi;
   let rho = params.rho0;
   let debt = Math.max(0, params.initialDebt);
+  let cumulativeIrreversibleLoss = 0;
   const frames: SimulationFrame[] = [];
   let maximumRho = rho;
-  let ruptureStep: number | undefined;
+  let boundaryCrossingStep: number | undefined;
+  let irreversibleRuptureStep: number | undefined;
+  let outsideStreak = 0;
+  let wasOutside = rho >= params.rhoCrit;
+  const policy = rupturePolicyFor(params, options.rupturePolicy);
 
   for (let step = 0; step < steps; step += 1) {
     while (eventIndex < events.length && events[eventIndex].step === step) {
@@ -418,6 +676,7 @@ export function simulate(
             Math.max(correction - divergence, 0) *
             alignmentBeforeCorrection;
         debt = Math.max(0, debt + debtRate * internalDt);
+        cumulativeIrreversibleLoss += params.irreversibleLoss * internalDt;
 
         const priorTheta = theta;
         const priorPhi = phi;
@@ -445,24 +704,51 @@ export function simulate(
             (random() - 0.5) * 0.012 * noiseScale,
         );
         maximumRho = Math.max(maximumRho, rho);
-        if (ruptureStep === undefined && rho >= params.rhoCrit)
-          ruptureStep = step;
       }
       radialVelocity = (rho - startRho) / params.dt;
       debtVelocity = (debt - startDebt) / params.dt;
-    } else if (rho >= params.rhoCrit) {
-      ruptureStep = 0;
     }
 
+    const outside = rho >= params.rhoCrit;
+    const crossingNow = outside && !wasOutside;
+    if (boundaryCrossingStep === undefined && (outside || crossingNow)) boundaryCrossingStep = step;
+    outsideStreak = outside ? outsideStreak + 1 : 0;
+    if (
+      irreversibleRuptureStep === undefined &&
+      outsideStreak >= policy.persistenceSteps &&
+      cumulativeIrreversibleLoss >= policy.cumulativeLossThreshold &&
+      (rho >= policy.irreversibleRho || debt >= policy.debtThreshold)
+    ) {
+      irreversibleRuptureStep = step;
+    }
+    wasOutside = outside;
+
+    const viabilityState: ViabilityState = irreversibleRuptureStep !== undefined
+      ? "Irreversible rupture"
+      : crossingNow || (step === 0 && outside)
+        ? "Viability-boundary crossing"
+        : outside
+          ? "Recoverable excursion"
+          : "Viable recurrence";
+    const ruptureProgress = viabilityState === "Irreversible rupture"
+      ? clamp01(0.32 + 0.23 * Math.max(
+          rho / Math.max(policy.irreversibleRho, Number.EPSILON) - 1,
+          cumulativeIrreversibleLoss / Math.max(policy.cumulativeLossThreshold, Number.EPSILON) - 1,
+          debt / Math.max(policy.debtThreshold, Number.EPSILON) - 1,
+        ))
+      : 0;
+
     const alignment = Math.exp(-rho);
-    const status = classifyStatus(
-      rho,
-      debt,
-      correctionMargin,
-      radialVelocity,
-      debtVelocity,
-      params.rhoCrit,
-    );
+    const status = irreversibleRuptureStep !== undefined
+      ? "Ruptured"
+      : classifyStatus(
+          rho,
+          debt,
+          correctionMargin,
+          radialVelocity,
+          debtVelocity,
+          params.rhoCrit,
+        );
     frames.push({
       step,
       time: step * params.dt,
@@ -476,7 +762,9 @@ export function simulate(
       divergence,
       correction,
       correctionMargin,
+      debtAdjustedMargin: correctionMargin - params.chi * debt,
       irreversibleLoss: params.irreversibleLoss,
+      cumulativeIrreversibleLoss,
       radialVelocity,
       debtVelocity,
       externalMismatch: syntheticExternalMismatch(phi),
@@ -484,6 +772,8 @@ export function simulate(
       phaseIdentifiable: false,
       phaseConfidence: 0,
       phaseRegime: "Not identifiable",
+      viabilityState,
+      ruptureProgress,
       status,
     });
   }
@@ -502,9 +792,13 @@ export function simulate(
     warningIndex >= 0 &&
     stableTailStart > warningIndex &&
     stableTailStart < frames.length &&
-    ruptureStep === undefined
+    irreversibleRuptureStep === undefined
       ? stableTailStart
       : -1;
+  const recoveredAfterCrossing =
+    boundaryCrossingStep !== undefined &&
+    recoveryIndex > boundaryCrossingStep &&
+    irreversibleRuptureStep === undefined;
   const thetaTravel = Math.abs(
     final.thetaUnwrapped - frames[0].thetaUnwrapped,
   );
@@ -519,7 +813,11 @@ export function simulate(
       finalDebt: final.debt,
       finalStatus: final.status,
       firstWarningStep: warningIndex >= 0 ? warningIndex : undefined,
-      ruptureStep,
+      boundaryCrossingStep,
+      irreversibleRuptureStep,
+      finalViabilityState: final.viabilityState,
+      recoveredAfterCrossing,
+      ruptureStep: boundaryCrossingStep,
       recovered: recoveryIndex >= 0,
       recoveryTime:
         recoveryIndex >= 0
@@ -528,7 +826,367 @@ export function simulate(
       interventionCost: interventions.reduce((sum, event) => sum + event.cost, 0),
       windingRatio: phiTravel > 0.001 ? thetaTravel / phiTravel : 0,
       phase,
+      aix: evaluateAix(final, params),
     },
+  };
+}
+
+export type PaperLegacyCaseId =
+  | "stable-periodic"
+  | "stable-quasiperiodic"
+  | "neutral-tube"
+  | "rupture-low-correction";
+
+export type PaperLegacyMetrics = {
+  meanRhoLast: number;
+  maxRho: number;
+  outsideFraction: number;
+  finalDebt: number;
+  meanAlignmentLast: number;
+  windingTheta: number;
+  windingPhi: number;
+  windingRatio: number;
+  correctionMargin: number;
+};
+
+export type PaperLegacyResult = {
+  engineVersion: "paper-2026-legacy";
+  caseId: PaperLegacyCaseId;
+  title: string;
+  protocol: string;
+  steps: number;
+  seed: number;
+  metrics: PaperLegacyMetrics;
+  expected: PaperLegacyMetrics;
+  maximumAbsoluteError: number;
+  matchesArchive: boolean;
+  verificationPayload: string;
+  frames: Pick<SimulationFrame, "step" | "time" | "theta" | "phi" | "thetaUnwrapped" | "phiUnwrapped" | "rho" | "debt" | "alignment" | "divergence" | "correction" | "correctionMargin">[];
+};
+
+type PaperLegacyCase = {
+  id: PaperLegacyCaseId;
+  title: string;
+  steps: number;
+  seed: number;
+  theta0: number;
+  phi0: number;
+  omegaTheta: number;
+  omegaPhi: number;
+  couplingA: number;
+  couplingB: number;
+  correction: number;
+  expected: PaperLegacyMetrics;
+};
+
+const PAPER_LEGACY_CASES: Record<PaperLegacyCaseId, PaperLegacyCase> = {
+  "stable-periodic": {
+    id: "stable-periodic",
+    title: "Stable periodic correction",
+    steps: 7_000,
+    seed: 42,
+    theta0: 4.862909272689599,
+    phi0: 2.757554564287996,
+    omegaTheta: 0.2,
+    omegaPhi: 0.1,
+    couplingA: 0,
+    couplingB: 0,
+    correction: 0.157,
+    expected: { meanRhoLast: 0.0018181818181816495, maxRho: 0.22, outsideFraction: 0, finalDebt: 0, meanAlignmentLast: 0.9981834700730823, windingTheta: 0.03182530451326856, windingPhi: 0.015912652256634276, windingRatio: 2.0000000000000004, correctionMargin: 0.01200000000000001 },
+  },
+  "stable-quasiperiodic": {
+    id: "stable-quasiperiodic",
+    title: "Stable quasiperiodic winding",
+    steps: 12_000,
+    seed: 43,
+    theta0: 4.098517143286439,
+    phi0: 0.2750484703055747,
+    omegaTheta: 0.21,
+    omegaPhi: 0.21 / Math.sqrt(2),
+    couplingA: 0.02,
+    couplingB: 0.02,
+    correction: 0.157,
+    expected: { meanRhoLast: 0.0018181818181816493, maxRho: 0.22, outsideFraction: 0, finalDebt: 0, meanAlignmentLast: 0.9981834700730823, windingTheta: 0.033420690803500894, windingPhi: 0.02363246303048015, windingRatio: 1.4141856801128305, correctionMargin: 0.01200000000000001 },
+  },
+  "neutral-tube": {
+    id: "neutral-tube",
+    title: "Neutral bounded tube",
+    steps: 7_000,
+    seed: 44,
+    theta0: 0.7701018095498474,
+    phi0: 1.6217722790032334,
+    omegaTheta: 0.21,
+    omegaPhi: 0.21 / Math.sqrt(2),
+    couplingA: 0.02,
+    couplingB: 0.02,
+    correction: 0.145,
+    expected: { meanRhoLast: 0.22, maxRho: 0.22, outsideFraction: 0, finalDebt: 0, meanAlignmentLast: 0.8025187979624785, windingTheta: 0.03341609395050339, windingPhi: 0.023628084231574118, windingRatio: 1.4142532091471722, correctionMargin: 0 },
+  },
+  "rupture-low-correction": {
+    id: "rupture-low-correction",
+    title: "Low-correction radial escape",
+    steps: 7_000,
+    seed: 45,
+    theta0: 3.6010861228267514,
+    phi0: 3.320607798307932,
+    omegaTheta: 0.21,
+    omegaPhi: 0.21 / Math.sqrt(2),
+    couplingA: 0.02,
+    couplingB: 0.02,
+    correction: 0.09,
+    expected: { meanRhoLast: 7.279499545454636, maxRho: 8, outsideFraction: 0.9934285714285714, finalDebt: 30.795600000002423, meanAlignmentLast: 0.00184915021436519, windingTheta: 0.03340966674807827, windingPhi: 0.023629907118325768, windingRatio: 1.4138721147222784, correctionMargin: -0.05500000000000001 },
+  },
+};
+
+export const paperLegacyCases = Object.values(PAPER_LEGACY_CASES).map((item) => ({
+  id: item.id,
+  title: item.title,
+  steps: item.steps,
+  seed: item.seed,
+}));
+
+export const PAPER_LEGACY_EXPECTED_DIGESTS: Record<PaperLegacyCaseId, string> = {
+  "stable-periodic": "c7e780cc0743949e0b397c823af91e7300ea30cce39033659424ef3b2ccad3c5",
+  "stable-quasiperiodic": "7fa4c7f618b5f4464367795a7c9da535193326c790f5829b740425dd30c4bc27",
+  "neutral-tube": "a6ef89c758a27a58ec7cfd2de7e324a2fa6543e4fe77ba97b870855e129efc2a",
+  "rupture-low-correction": "03c23fad6c38b446ccdf99dc22c405c0b5da3be3dfe05a87e49d05f60d27f9cd",
+};
+
+export function paperVerificationPayload(caseId: PaperLegacyCaseId, metrics: PaperLegacyMetrics) {
+  const ordered = [
+    metrics.meanRhoLast,
+    metrics.maxRho,
+    metrics.outsideFraction,
+    metrics.finalDebt,
+    metrics.meanAlignmentLast,
+    metrics.windingTheta,
+    metrics.windingPhi,
+    metrics.windingRatio,
+    metrics.correctionMargin,
+  ];
+  return `paper-2026-legacy|${caseId}|${ordered.map((value) => value.toFixed(12)).join("|")}`;
+}
+
+export function simulateLegacyPaperCase(caseId: PaperLegacyCaseId): PaperLegacyResult {
+  const reference = PAPER_LEGACY_CASES[caseId];
+  if (!reference) throw new RangeError(`Unknown paper case '${caseId}'.`);
+  const divergence = 1 * 0.3 * (1 - 0.65) + 0.02 + 0.02;
+  const rhoCrit = 1.2;
+  let theta = reference.theta0;
+  let phi = reference.phi0;
+  let thetaUnwrapped = theta;
+  let phiUnwrapped = phi;
+  let rho = 0.22;
+  let debt = 0;
+  let maxRho = rho;
+  let outsideCount = 0;
+  const burn = Math.max(100, Math.floor(reference.steps / 5));
+  let rhoTailSum = 0;
+  let alignmentTailSum = 0;
+  let tailCount = 0;
+  let thetaAtBurn = theta;
+  let phiAtBurn = phi;
+  const frameStride = Math.max(1, Math.ceil(reference.steps / 720));
+  const frames: PaperLegacyResult["frames"] = [];
+
+  for (let step = 0; step < reference.steps; step += 1) {
+    const alignment = Math.exp(-rho);
+    if (step >= burn) {
+      if (step === burn) {
+        thetaAtBurn = thetaUnwrapped;
+        phiAtBurn = phiUnwrapped;
+      }
+      rhoTailSum += rho;
+      alignmentTailSum += alignment;
+      tailCount += 1;
+    }
+    if (rho > rhoCrit) outsideCount += 1;
+    if (step % frameStride === 0 || step === reference.steps - 1) {
+      frames.push({
+        step,
+        time: step,
+        theta,
+        phi,
+        thetaUnwrapped,
+        phiUnwrapped,
+        rho,
+        debt,
+        alignment,
+        divergence,
+        correction: reference.correction,
+        correctionMargin: reference.correction - divergence,
+      });
+    }
+    if (step === reference.steps - 1) break;
+    const priorTheta = theta;
+    const priorPhi = phi;
+    const thetaIncrement = reference.omegaTheta + reference.couplingA * Math.sin(priorPhi);
+    const phiIncrement = reference.omegaPhi + reference.couplingB * Math.sin(priorTheta);
+    thetaUnwrapped += thetaIncrement;
+    phiUnwrapped += phiIncrement;
+    theta = wrapAngle(thetaUnwrapped);
+    phi = wrapAngle(phiUnwrapped);
+    const surplus = Math.max(reference.correction - divergence, 0);
+    const deficit = Math.max(divergence - reference.correction, 0);
+    const nextDebt = Math.max(0, debt + 0.08 * deficit - 0.045 * surplus * alignment);
+    const nextRho = Math.max(0, Math.min(8, rho - 0.055 * (rho - 0.22) + divergence - reference.correction + 0.025 * debt));
+    debt = nextDebt;
+    rho = nextRho;
+    maxRho = Math.max(maxRho, rho);
+  }
+
+  const windingTheta = (thetaUnwrapped - thetaAtBurn) / (TAU * (reference.steps - burn));
+  const windingPhi = (phiUnwrapped - phiAtBurn) / (TAU * (reference.steps - burn));
+  const metrics: PaperLegacyMetrics = {
+    meanRhoLast: rhoTailSum / tailCount,
+    maxRho,
+    outsideFraction: outsideCount / reference.steps,
+    finalDebt: debt,
+    meanAlignmentLast: alignmentTailSum / tailCount,
+    windingTheta,
+    windingPhi,
+    windingRatio: windingTheta / windingPhi,
+    correctionMargin: reference.correction - divergence,
+  };
+  const differences = (Object.keys(metrics) as (keyof PaperLegacyMetrics)[])
+    .map((key) => Math.abs(metrics[key] - reference.expected[key]));
+  const maximumAbsoluteError = Math.max(...differences);
+  return {
+    engineVersion: "paper-2026-legacy",
+    caseId,
+    title: reference.title,
+    protocol: "Exact unit-step discrete equations from run_toroidal_lab.py with archived initial phases, zero noise, rho clipped to [0,8], and the original 20% burn-in convention.",
+    steps: reference.steps,
+    seed: reference.seed,
+    metrics,
+    expected: reference.expected,
+    maximumAbsoluteError,
+    matchesArchive: maximumAbsoluteError <= 1e-9,
+    verificationPayload: paperVerificationPayload(caseId, metrics),
+    frames,
+  };
+}
+
+export type TopologyDiagnostic = {
+  gridSize: number;
+  occupiedCells: number;
+  coverage: number;
+  connectedComponents: number;
+  spansTheta: boolean;
+  spansPhi: boolean;
+  heuristicBetti: [number, number, number];
+  limitation: string;
+};
+
+export function analyzePhaseOccupancy(frames: Pick<SimulationFrame, "theta" | "phi">[], gridSize = 32): TopologyDiagnostic {
+  const grid = Array.from({ length: gridSize }, () => Array.from({ length: gridSize }, () => false));
+  frames.forEach((frame) => {
+    const theta = Math.min(gridSize - 1, Math.floor(wrapAngle(frame.theta) / TAU * gridSize));
+    const phi = Math.min(gridSize - 1, Math.floor(wrapAngle(frame.phi) / TAU * gridSize));
+    grid[theta][phi] = true;
+  });
+  const occupiedCells = grid.reduce((sum, row) => sum + row.filter(Boolean).length, 0);
+  const visited = new Set<string>();
+  let connectedComponents = 0;
+  for (let row = 0; row < gridSize; row += 1) {
+    for (let column = 0; column < gridSize; column += 1) {
+      const key = `${row}:${column}`;
+      if (!grid[row][column] || visited.has(key)) continue;
+      connectedComponents += 1;
+      const queue = [[row, column]];
+      visited.add(key);
+      while (queue.length) {
+        const [currentRow, currentColumn] = queue.shift()!;
+        for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nextRow = (currentRow + dr + gridSize) % gridSize;
+          const nextColumn = (currentColumn + dc + gridSize) % gridSize;
+          const nextKey = `${nextRow}:${nextColumn}`;
+          if (grid[nextRow][nextColumn] && !visited.has(nextKey)) {
+            visited.add(nextKey);
+            queue.push([nextRow, nextColumn]);
+          }
+        }
+      }
+    }
+  }
+  const spansTheta = grid.every((row) => row.some(Boolean));
+  const spansPhi = Array.from({ length: gridSize }, (_, column) => grid.some((row) => row[column])).every(Boolean);
+  const beta1 = spansTheta && spansPhi && occupiedCells / (gridSize * gridSize) > 0.12 ? 2 : 1;
+  return {
+    gridSize,
+    occupiedCells,
+    coverage: occupiedCells / (gridSize * gridSize),
+    connectedComponents,
+    spansTheta,
+    spansPhi,
+    heuristicBetti: [connectedComponents, beta1, beta1 === 2 ? 1 : 0],
+    limitation: "The live Betti tuple is an occupancy-grid heuristic. The archived research module remains the authoritative cubical-homology result.",
+  };
+}
+
+export type CoupledToriResult = {
+  coupling: number;
+  agents: number;
+  steps: number;
+  meanOrderLast: number;
+  meanRhoLast: number;
+  finalDebtMean: number;
+  coordinationWithoutAlignment: boolean;
+};
+
+export function simulateCoupledTori(coupling: number, seed = 84, agents = 24, steps = 1_200): CoupledToriResult {
+  if (!Number.isFinite(coupling) || coupling < 0 || coupling > 0.25) throw new RangeError("Coupling must be between 0 and 0.25.");
+  const random = seededRandom(seed);
+  let theta = Array.from({ length: agents }, () => random() * TAU);
+  let phi = Array.from({ length: agents }, () => random() * TAU);
+  const omegaTheta = Array.from({ length: agents }, () => 0.21 + (random() - 0.5) * 0.04);
+  const omegaPhi = Array.from({ length: agents }, () => 0.21 / Math.sqrt(2) + (random() - 0.5) * 0.03);
+  let rho = Array.from({ length: agents }, () => 0.22);
+  const debt = Array.from({ length: agents }, () => 0);
+  let orderTail = 0;
+  let rhoTail = 0;
+  let tailCount = 0;
+  for (let step = 0; step < steps; step += 1) {
+    const real = theta.reduce((sum, angle) => sum + Math.cos(angle), 0) / agents;
+    const imaginary = theta.reduce((sum, angle) => sum + Math.sin(angle), 0) / agents;
+    const order = Math.hypot(real, imaginary);
+    if (step >= steps - 400) {
+      orderTail += order;
+      rhoTail += rho.reduce((sum, value) => sum + value, 0) / agents;
+      tailCount += 1;
+    }
+    const nextTheta = [...theta];
+    const nextPhi = [...phi];
+    for (let index = 0; index < agents; index += 1) {
+      const neighbors = [(index - 1 + agents) % agents, (index + 1) % agents];
+      const thetaCoupling = neighbors.reduce((sum, neighbor) => sum + Math.sin(theta[neighbor] - theta[index]), 0);
+      const phiCoupling = neighbors.reduce((sum, neighbor) => sum + Math.sin(phi[neighbor] - phi[index]), 0);
+      nextTheta[index] = wrapAngle(theta[index] + omegaTheta[index] + coupling * thetaCoupling);
+      nextPhi[index] = wrapAngle(phi[index] + omegaPhi[index] + coupling * phiCoupling);
+    }
+    const effectiveError = 0.3 + 0.35 * coupling * order;
+    const divergence = effectiveError * (1 - 0.65) + 0.02 + 0.02;
+    const correction = 0.16;
+    rho = rho.map((value, index) => {
+      const surplus = Math.max(correction - divergence, 0);
+      const deficit = Math.max(divergence - correction, 0);
+      debt[index] = Math.max(0, debt[index] + 0.08 * deficit - 0.045 * surplus * Math.exp(-value));
+      return Math.max(0, Math.min(8, value - 0.055 * (value - 0.22) + divergence - correction + 0.025 * debt[index]));
+    });
+    theta = nextTheta;
+    phi = nextPhi;
+  }
+  const meanOrderLast = orderTail / Math.max(1, tailCount);
+  const meanRhoLast = rhoTail / Math.max(1, tailCount);
+  const finalDebtMean = debt.reduce((sum, value) => sum + value, 0) / agents;
+  return {
+    coupling,
+    agents,
+    steps,
+    meanOrderLast,
+    meanRhoLast,
+    finalDebtMean,
+    coordinationWithoutAlignment: meanOrderLast >= 0.7 && meanRhoLast >= 1.2,
   };
 }
 
@@ -548,14 +1206,18 @@ export function deterministicExplanation(
       ? "Alignment debt accumulated and pushed the equilibrium radius outward"
       : "Debt remained contained or was repaid";
   const outcome =
-    summary.ruptureStep !== undefined && summary.ruptureStep <= final.step
-      ? `The viable boundary was crossed at step ${summary.ruptureStep}.`
+    summary.irreversibleRuptureStep !== undefined && summary.irreversibleRuptureStep <= final.step
+      ? `The viable boundary was crossed at step ${summary.boundaryCrossingStep ?? summary.irreversibleRuptureStep}. Irreversible rupture was declared at step ${summary.irreversibleRuptureStep} after persistent boundary excursion, accumulated loss, and severe debt or radial expansion.`
+      : summary.boundaryCrossingStep !== undefined && summary.boundaryCrossingStep <= final.step && final.viabilityState !== "Viable recurrence"
+        ? `The viable boundary was crossed at step ${summary.boundaryCrossingStep}; this remains a modeled recoverable excursion unless the terminal policy also fires.`
       : !complete
         ? `At the selected time, the system is in a ${final.status.toLowerCase()} regime; the final outcome is not yet shown.`
-      : summary.recovered
-        ? "The system returned to a sustained stable regime before rupture."
+        : summary.recoveredAfterCrossing
+          ? "The system crossed the viability boundary and then returned to sustained viable recurrence without terminal rupture."
+          : summary.recovered
+            ? "The system returned to a sustained stable regime before terminal rupture."
         : summary.finalStatus === "Stable"
           ? "The system finished inside the modeled viable tube."
-          : `The system finished in a ${summary.finalStatus.toLowerCase()} regime without crossing the rupture boundary.`;
+          : `The system finished in a ${summary.finalStatus.toLowerCase()} regime without terminal rupture.`;
   return `${pressureStory}. ${debtStory}. ${outcome}`;
 }
