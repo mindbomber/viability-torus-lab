@@ -3,10 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TorusCanvas } from "@/components/simulation/TorusCanvas";
 import {
+  DifferenceChart,
   RadialStabilityChart,
   TimeSeriesChart,
   UnwrappedChart,
 } from "@/components/charts/SimulationCharts";
+import {
+  createSignedDifferenceFrames,
+  phaseAnalysisAvailable,
+} from "@/components/charts/visualizationMath";
 import {
   MODEL_VERSION,
   defaultParameters,
@@ -74,9 +79,14 @@ export default function Home() {
   const [locked, setLocked] = useState<ParameterKey[]>([]);
   const [scenarioFilter, setScenarioFilter] = useState<string>("All");
   const importRef = useRef<HTMLInputElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const scenario = scenarioById[scenarioId];
 
   const run = useMemo(() => simulate(params, scheduled), [params, scheduled]);
+
+  useEffect(() => {
+    shellRef.current?.setAttribute("data-hydrated", "true");
+  }, []);
 
   const announce = useCallback((message: string) => {
     setToast(message);
@@ -313,7 +323,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`app-shell ${highContrast ? "high-contrast" : ""}`}>
+    <div ref={shellRef} className={`app-shell ${highContrast ? "high-contrast" : ""}`}>
       <a className="skip-link" href="#main-content">Skip to simulator</a>
       <aside id="primary-nav" className={`sidebar ${mobileNav ? "open" : ""}`} aria-label="Primary navigation">
         <div className="brand">
@@ -430,6 +440,7 @@ type SimulatorProps = {
 function SimulatorView(props: SimulatorProps) {
   const { scenario, params, frames, summary, frameIndex, setFrameIndex, playing, scheduled, mode } = props;
   const frame = frames[Math.min(frameIndex, frames.length - 1)];
+  const phaseReady = phaseAnalysisAvailable(frameIndex, frames.length);
   const statusTone = statusToneFor(frame.status);
   const metricRows = [
     ["Alignment score", frame.alignment, 1, "green"],
@@ -465,7 +476,7 @@ function SimulatorView(props: SimulatorProps) {
           <Panel className="status-panel" title="System Status" subtitle={`t = ${frame.time.toFixed(1)} · step ${frame.step}`}>
             <div className={`status-banner ${statusTone}`}><span className="status-orb" aria-hidden="true" /><div><strong>{frame.status.toUpperCase()}</strong><small>{statusMessage(frame)}</small></div><span className="shield" aria-hidden="true">◇</span></div>
             <div className="metric-list">{metricRows.map(([label, value, max, tone]) => <Metric key={label} label={label} value={value} max={max} tone={tone} />)}</div>
-            <div className="status-mini-grid"><span><small>Radial velocity</small>{signed(frame.radialVelocity)}</span><span><small>Divergence</small>{frame.divergence.toFixed(3)}</span><span><small>Minor phase (simulated)</small>{phaseName(frame.theta, scenario.cycles.minor.stages)}</span><span><small>Major phase estimate</small>{frame.phaseIdentifiable && frame.estimatedPhi !== undefined ? phaseName(frame.estimatedPhi, scenario.cycles.major.stages) : "Not identifiable"}</span><span><small>Phase regime</small>{frame.phaseRegime}</span><span><small>Spectral concentration</small>{Math.round(frame.phaseConfidence * 100)}%</span></div>
+            <div className="status-mini-grid"><span><small>Radial velocity</small>{signed(frame.radialVelocity)}</span><span><small>Divergence</small>{frame.divergence.toFixed(3)}</span><span><small>Minor phase (simulated)</small>{phaseName(frame.theta, scenario.cycles.minor.stages)}</span><span><small>Offline major phase estimate</small>{phaseReady ? frame.phaseIdentifiable && frame.estimatedPhi !== undefined ? phaseName(frame.estimatedPhi, scenario.cycles.major.stages) : "Not identifiable" : "Available after full run"}</span><span><small>Full-run phase regime</small>{phaseReady ? frame.phaseRegime : "Pending"}</span><span><small>Full-run spectral concentration</small>{phaseReady ? `${Math.round(frame.phaseConfidence * 100)}%` : "Pending"}</span></div>
           </Panel>
           <Panel className="intervention-panel" title="Interventions" subtitle="Act while the simulation is running">
             <div className="intervention-grid">{interventions.map((item) => <button key={item.id} className={item.id === "pause-optimization" ? "wide warning" : ""} onClick={() => props.applyIntervention(item)}><span aria-hidden="true">{item.icon}</span><strong>{item.label}</strong><small>{item.detail} · cost {item.cost}</small></button>)}</div>
@@ -487,12 +498,12 @@ function SimulatorView(props: SimulatorProps) {
       </div>
 
       <section className="chart-grid">
-        <Panel title="Unwrapped Torus" subtitle="θ vs φ · click to link time"><UnwrappedChart frames={frames} frameIndex={frameIndex} params={params} onSelect={(index) => { props.setPlaying(false); setFrameIndex(index); }} /></Panel>
+        <Panel title="Unwrapped Torus" subtitle="Simulated θ vs latent φ · click to link time"><UnwrappedChart frames={frames} frameIndex={frameIndex} params={params} onSelect={(index) => { props.setPlaying(false); setFrameIndex(index); }} /></Panel>
         <Panel className="wide-chart" title="Alignment & Debt Over Time" subtitle="Alignment A · Debt Δ · Excursion ρ"><TimeSeriesChart frames={frames} frameIndex={frameIndex} params={params} onSelect={(index) => { props.setPlaying(false); setFrameIndex(index); }} /></Panel>
         <Panel title="Radial Stability" subtitle="dρ/dt vs ρ"><RadialStabilityChart frames={frames} frameIndex={frameIndex} params={params} /></Panel>
       </section>
 
-      <section className="run-insight"><div><span className="insight-icon">◎</span><div><strong>Why this run looks this way</strong><p>{deterministicExplanation(frames.slice(0, Math.max(1, frameIndex + 1)), summary)}</p></div></div><div className="insight-actions"><button onClick={props.shareRun}>⌘ Copy share link</button><button onClick={props.exportConfiguration}>⇩ Config JSON</button><button onClick={() => downloadJson(`${scenario.id}-summary.json`, { schemaVersion: CONTRACT_VERSION, exportedAt: new Date().toISOString(), modelVersion: MODEL_VERSION, scenarioVersion: scenario.version, seed: params.seed, evidence: scenario.evidence, summary })}>⇩ Summary JSON</button><button onClick={() => exportCanvas(".torus-panel canvas", `${scenario.id}-torus.png`)}>◉ Torus PNG</button><button onClick={() => exportCanvas(".chart-grid canvas", `${scenario.id}-chart.png`)}>▥ Chart PNG</button><button onClick={() => exportChartSvg(frames, `${scenario.id}-timeseries.svg`)}>◇ Chart SVG</button><button onClick={props.importConfiguration}>⇧ Import</button><button onClick={props.loadSavedPreset}>♡ Load saved</button></div></section>
+      <section className="run-insight"><div><span className="insight-icon">◎</span><div><strong>Why this run looks this way</strong><p>{deterministicExplanation(frames.slice(0, Math.max(1, frameIndex + 1)), summary, { complete: frameIndex >= frames.length - 1 })}</p></div></div><div className="insight-actions"><button onClick={props.shareRun}>⌘ Copy share link</button><button onClick={props.exportConfiguration}>⇩ Config JSON</button><button onClick={() => downloadJson(`${scenario.id}-summary.json`, { schemaVersion: CONTRACT_VERSION, exportedAt: new Date().toISOString(), modelVersion: MODEL_VERSION, scenarioVersion: scenario.version, seed: params.seed, evidence: scenario.evidence, summary })}>⇩ Summary JSON</button><button onClick={() => exportCanvas(".torus-panel canvas", `${scenario.id}-torus.png`)}>◉ Torus PNG</button><button onClick={() => exportCanvas(".chart-grid canvas", `${scenario.id}-chart.png`)}>▥ Chart PNG</button><button onClick={() => exportChartSvg(frames, params, `${scenario.id}-timeseries.svg`)}>◇ Chart SVG</button><button onClick={props.importConfiguration}>⇧ Import</button><button onClick={props.loadSavedPreset}>♡ Load saved</button></div></section>
 
       <details className="scenario-evidence"><summary>Scenario evidence, assumptions, and falsification criteria</summary><div><p><strong>{scenario.evidence.status} · {scenario.evidence.calibrationStatus}</strong> {scenario.evidence.parameterUnits}</p><h3>Assumptions</h3><ul>{scenario.evidence.assumptions.map((item) => <li key={item}>{item}</li>)}</ul><h3>What would challenge this mapping</h3><ul>{scenario.evidence.falsificationCriteria.map((item) => <li key={item}>{item}</li>)}</ul><p>{scenario.evidence.references.map((reference, index) => <span key={reference.title}>{index ? " · " : ""}{reference.url ? <a href={reference.url}>{reference.title}</a> : reference.title}</span>)}</p></div></details>
 
@@ -584,7 +595,7 @@ function CompareMode({ scenario, params, scheduled, primaryFrames, primarySummar
     <div className="compare-grid">
       <Panel title="A · Active configuration" subtitle={`${scenario.shortTitle} · ${scheduled.length} intervention${scheduled.length === 1 ? "" : "s"}`}><TorusCanvas compact frames={primaryFrames} frameIndex={index} params={params} playing={false} onSelectFrame={() => {}} /><CompareSummary summary={primarySummary} /></Panel>
       <Panel title="B · Controlled variation" subtitle={`${scenario.shortTitle} · same seed · ${comparisonInterventions.length} intervention${comparisonInterventions.length === 1 ? "" : "s"}`}><TorusCanvas compact frames={comparison.frames} frameIndex={index} params={compareParams} playing={false} onSelectFrame={() => {}} /><CompareSummary summary={comparison.summary} /></Panel>
-      <Panel className="full-span" title="Outcome difference · A minus B" subtitle={`${changedParameters} controlled change${changedParameters === 1 ? "" : "s"} · all other inputs held constant`}><div className="difference-cards"><SummaryStat label="Δ alignment" value={signed(delta.alignment)} tone={delta.alignment >= 0 ? "good" : "bad"} /><SummaryStat label="Δ max excursion" value={signed(delta.rho)} tone={delta.rho <= 0 ? "good" : "bad"} /><SummaryStat label="Δ debt" value={signed(delta.debt)} tone={delta.debt <= 0 ? "good" : "bad"} /><SummaryStat label="Time to warning" value={`${primarySummary.firstWarningStep ?? "∞"} / ${comparison.summary.firstWarningStep ?? "∞"}`} /></div><TimeSeriesChart frames={differenceFrames(primaryFrames, comparison.frames)} frameIndex={index} params={params} label="Normalized difference chart for alignment, debt, and radial excursion" /><p className="compare-conclusion">{changedParameters === 0 ? "A and B are identical controls; their outcomes match exactly." : delta.alignment > .04 ? "Configuration A preserves meaningfully more alignment." : Math.abs(delta.alignment) < .02 ? "The runs finish with similar alignment, but their debt and recovery requirements may differ." : "Configuration B preserves more alignment under these settings."}</p></Panel>
+      <Panel className="full-span" title="Outcome difference · A minus B" subtitle={`${changedParameters} controlled change${changedParameters === 1 ? "" : "s"} · all other inputs held constant`}><div className="difference-cards"><SummaryStat label="Δ alignment" value={signed(delta.alignment)} tone={delta.alignment >= 0 ? "good" : "bad"} /><SummaryStat label="Δ max excursion" value={signed(delta.rho)} tone={delta.rho <= 0 ? "good" : "bad"} /><SummaryStat label="Δ debt" value={signed(delta.debt)} tone={delta.debt <= 0 ? "good" : "bad"} /><SummaryStat label="Time to warning" value={`${primarySummary.firstWarningStep ?? "∞"} / ${comparison.summary.firstWarningStep ?? "∞"}`} /></div><DifferenceChart frames={createSignedDifferenceFrames(primaryFrames, comparison.frames)} frameIndex={index} params={params} label="Signed difference chart for alignment, debt, and radial excursion" /><p className="compare-conclusion">{changedParameters === 0 ? "A and B are identical controls; their outcomes match exactly." : delta.alignment > .04 ? "Configuration A preserves meaningfully more alignment." : Math.abs(delta.alignment) < .02 ? "The runs finish with similar alignment, but their debt and recovery requirements may differ." : "Configuration B preserves more alignment under these settings."}</p></Panel>
     </div>
   </div>;
 }
@@ -648,5 +659,4 @@ function downloadText(filename: string, content: string, type = "text/plain") { 
 function downloadCsv(filename: string, frames: SimulationFrame[]) { const header = "step,time,theta,phi,thetaUnwrapped,phiUnwrapped,estimatedPhi,phaseIdentifiable,phaseConfidence,phaseRegime,rho,debt,alignment,divergence,correction,correctionMargin,irreversibleLoss,status"; const rows = frames.map((f) => [f.step, f.time, f.theta, f.phi, f.thetaUnwrapped, f.phiUnwrapped, f.estimatedPhi ?? "", f.phaseIdentifiable, f.phaseConfidence, f.phaseRegime, f.rho, f.debt, f.alignment, f.divergence, f.correction, f.correctionMargin, f.irreversibleLoss, f.status].map(csvCell).join(",")); downloadText(filename, [header, ...rows].join("\n"), "text/csv"); }
 function csvCell(value: string | number | boolean) { const text = String(value); return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text; }
 function exportCanvas(selector: string, filename: string) { const canvas = document.querySelector<HTMLCanvasElement>(selector); if (!canvas) return; canvas.toBlob((blob) => { if (!blob) return; const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = filename; anchor.click(); URL.revokeObjectURL(url); }, "image/png"); }
-function exportChartSvg(frames: SimulationFrame[], filename: string) { const width = 1200; const height = 600; const pad = 64; const maxDebt = Math.max(1, ...frames.map((frame) => frame.debt)); const maxRho = Math.max(1, ...frames.map((frame) => frame.rho)); const path = (value: (frame: SimulationFrame) => number) => frames.map((frame, index) => `${index ? "L" : "M"}${(pad + index / Math.max(1, frames.length - 1) * (width - pad * 2)).toFixed(1)},${(height - pad - value(frame) * (height - pad * 2)).toFixed(1)}`).join(" "); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#06101f"/><g stroke="#18304d" stroke-width="1">${Array.from({ length: 7 }, (_, index) => `<path d="M${pad} ${pad + index * (height - pad * 2) / 6}H${width - pad}"/>`).join("")}</g><path d="${path((frame) => frame.alignment)}" fill="none" stroke="#71e17d" stroke-width="3"/><path d="${path((frame) => frame.debt / maxDebt)}" fill="none" stroke="#ff5b62" stroke-width="3"/><path d="${path((frame) => frame.rho / maxRho)}" fill="none" stroke="#49bfff" stroke-width="3" stroke-dasharray="8 6"/><text x="${pad}" y="38" fill="#dcecff" font-family="system-ui" font-size="22">Viability Torus Lab — Alignment, Debt, and Excursion</text><text x="${pad}" y="${height - 20}" fill="#91a4bf" font-family="monospace" font-size="14">A (green) · Δ (red) · ρ (blue) · model ${MODEL_VERSION}</text></svg>`; downloadText(filename, svg, "image/svg+xml"); }
-function differenceFrames(a: SimulationFrame[], b: SimulationFrame[]) { const length = Math.min(a.length, b.length); return Array.from({ length }, (_, index) => ({ ...a[index], alignment: .5 + (a[index].alignment - b[index].alignment) * .5, debt: Math.abs(a[index].debt - b[index].debt), rho: Math.abs(a[index].rho - b[index].rho) })); }
+function exportChartSvg(frames: SimulationFrame[], params: SimulationParameters, filename: string) { const width = 1200; const height = 600; const pad = 64; const maxDebt = Math.max(1, ...frames.map((frame) => frame.debt)); const maxRho = Math.max(params.rhoCrit, ...frames.map((frame) => frame.rho)); const path = (value: (frame: SimulationFrame) => number) => frames.map((frame, index) => `${index ? "L" : "M"}${(pad + index / Math.max(1, frames.length - 1) * (width - pad * 2)).toFixed(1)},${(height - pad - value(frame) * (height - pad * 2)).toFixed(1)}`).join(" "); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#06101f"/><g stroke="#18304d" stroke-width="1">${Array.from({ length: 7 }, (_, index) => `<path d="M${pad} ${pad + index * (height - pad * 2) / 6}H${width - pad}"/>`).join("")}</g><path d="${path((frame) => frame.alignment)}" fill="none" stroke="#71e17d" stroke-width="3"/><path d="${path((frame) => frame.debt / maxDebt)}" fill="none" stroke="#ff5b62" stroke-width="3"/><path d="${path((frame) => frame.rho / maxRho)}" fill="none" stroke="#49bfff" stroke-width="3" stroke-dasharray="8 6"/><text x="${pad}" y="38" fill="#dcecff" font-family="system-ui" font-size="22">Viability Torus Lab — Alignment, Debt, and Excursion</text><text x="${pad}" y="${height - 20}" fill="#91a4bf" font-family="monospace" font-size="14">Independent scales: A 0–1 · Δ 0–${maxDebt.toFixed(3)} · ρ 0–${maxRho.toFixed(3)} · model ${MODEL_VERSION}</text></svg>`; downloadText(filename, svg, "image/svg+xml"); }

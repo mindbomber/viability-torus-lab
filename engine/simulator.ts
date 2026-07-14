@@ -535,19 +535,23 @@ export function simulate(
 export function deterministicExplanation(
   frames: SimulationFrame[],
   summary: SimulationSummary,
+  options: { complete?: boolean } = {},
 ) {
   const final = frames.at(-1)!;
+  const complete = options.complete ?? true;
   const pressureStory =
     final.correctionMargin < 0
       ? "Divergence pressure exceeded correction capacity"
       : "Correction capacity remained above divergence pressure";
   const debtStory =
-    summary.finalDebt > frames[0].debt + 0.08
+    final.debt > frames[0].debt + 0.08
       ? "Alignment debt accumulated and pushed the equilibrium radius outward"
       : "Debt remained contained or was repaid";
   const outcome =
-    summary.ruptureStep !== undefined
+    summary.ruptureStep !== undefined && summary.ruptureStep <= final.step
       ? `The viable boundary was crossed at step ${summary.ruptureStep}.`
+      : !complete
+        ? `At the selected time, the system is in a ${final.status.toLowerCase()} regime; the final outcome is not yet shown.`
       : summary.recovered
         ? "The system returned to a sustained stable regime before rupture."
         : summary.finalStatus === "Stable"
