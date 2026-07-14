@@ -1,0 +1,564 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 160
+    },
+    "shortTitle": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 80
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 500
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "AI",
+        "Organizations",
+        "Healthcare",
+        "Ecology"
+      ]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "Introductory",
+        "Intermediate",
+        "Advanced"
+      ]
+    },
+    "icon": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12
+    },
+    "accent": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "optimizedOutcome": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 300
+    },
+    "viableRegion": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "hiddenConstraint": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "debtMechanism": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "irreversibleMechanism": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "interventionIds": {
+      "minItems": 1,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      }
+    },
+    "warningConditions": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 300
+      }
+    },
+    "ruptureCondition": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "recoveryCondition": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "plainLanguageInterpretation": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "cycles": {
+      "type": "object",
+      "properties": {
+        "minor": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 120
+            },
+            "stages": {
+              "minItems": 2,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            },
+            "description": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "label",
+            "stages",
+            "description"
+          ],
+          "additionalProperties": false
+        },
+        "major": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 120
+            },
+            "stages": {
+              "minItems": 2,
+              "maxItems": 20,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              }
+            },
+            "description": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "label",
+            "stages",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "minor",
+        "major"
+      ],
+      "additionalProperties": false
+    },
+    "labels": {
+      "type": "object",
+      "properties": {
+        "pressure": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "error": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "feedback": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "correction": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "drift": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "irreversibleLoss": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "initialDebt": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "pressure",
+        "error",
+        "feedback",
+        "correction",
+        "drift",
+        "irreversibleLoss",
+        "initialDebt"
+      ],
+      "additionalProperties": false
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "pressure": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Optimization or deployment pressure."
+        },
+        "error": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Constraint misunderstanding or error rate."
+        },
+        "feedback": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Feedback fidelity."
+        },
+        "correction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1.5,
+          "description": "Correction capacity."
+        },
+        "drift": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5,
+          "description": "Environmental drift."
+        },
+        "irreversibleLoss": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.35,
+          "description": "Irreversible loss rate."
+        },
+        "initialDebt": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Initial alignment debt."
+        },
+        "kappa": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Radial restoring coefficient."
+        },
+        "chi": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Debt-to-excursion coupling."
+        },
+        "omegaTheta": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2,
+          "description": "Minor-cycle angular frequency."
+        },
+        "omegaPhi": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2,
+          "description": "Major-cycle angular frequency."
+        },
+        "couplingA": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Major-to-minor phase coupling."
+        },
+        "couplingB": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Minor-to-major phase coupling."
+        },
+        "rho0": {
+          "type": "number",
+          "minimum": 0.03,
+          "maximum": 5,
+          "description": "Reference radial excursion."
+        },
+        "rhoCrit": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10,
+          "description": "Critical radial viability boundary."
+        },
+        "alpha": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Debt accumulation coefficient."
+        },
+        "beta": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Debt repayment coefficient."
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Unsigned deterministic seed."
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Integration steps."
+        },
+        "dt": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 10,
+          "description": "Integration time step."
+        }
+      },
+      "required": [
+        "pressure",
+        "error",
+        "feedback",
+        "correction",
+        "drift",
+        "irreversibleLoss",
+        "initialDebt",
+        "kappa",
+        "chi",
+        "omegaTheta",
+        "omegaPhi",
+        "couplingA",
+        "couplingB",
+        "rho0",
+        "rhoCrit",
+        "alpha",
+        "beta",
+        "seed",
+        "steps",
+        "dt"
+      ],
+      "additionalProperties": false
+    },
+    "presets": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 300
+          },
+          "values": {
+            "type": "object",
+            "properties": {
+              "pressure": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3,
+                "description": "Optimization or deployment pressure."
+              },
+              "error": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Constraint misunderstanding or error rate."
+              },
+              "feedback": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Feedback fidelity."
+              },
+              "correction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1.5,
+                "description": "Correction capacity."
+              },
+              "drift": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.5,
+                "description": "Environmental drift."
+              },
+              "irreversibleLoss": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.35,
+                "description": "Irreversible loss rate."
+              },
+              "initialDebt": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Initial alignment debt."
+              },
+              "kappa": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Radial restoring coefficient."
+              },
+              "chi": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Debt-to-excursion coupling."
+              },
+              "omegaTheta": {
+                "type": "number",
+                "minimum": -2,
+                "maximum": 2,
+                "description": "Minor-cycle angular frequency."
+              },
+              "omegaPhi": {
+                "type": "number",
+                "minimum": -2,
+                "maximum": 2,
+                "description": "Major-cycle angular frequency."
+              },
+              "couplingA": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1,
+                "description": "Major-to-minor phase coupling."
+              },
+              "couplingB": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1,
+                "description": "Minor-to-major phase coupling."
+              },
+              "rho0": {
+                "type": "number",
+                "minimum": 0.03,
+                "maximum": 5,
+                "description": "Reference radial excursion."
+              },
+              "rhoCrit": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 10,
+                "description": "Critical radial viability boundary."
+              },
+              "alpha": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Debt accumulation coefficient."
+              },
+              "beta": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Debt repayment coefficient."
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Unsigned deterministic seed."
+              },
+              "steps": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Integration steps."
+              },
+              "dt": {
+                "type": "number",
+                "minimum": 0.001,
+                "maximum": 10,
+                "description": "Integration time step."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "values"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "title",
+    "shortTitle",
+    "summary",
+    "category",
+    "difficulty",
+    "icon",
+    "accent",
+    "optimizedOutcome",
+    "viableRegion",
+    "hiddenConstraint",
+    "debtMechanism",
+    "irreversibleMechanism",
+    "interventionIds",
+    "warningConditions",
+    "ruptureCondition",
+    "recoveryCondition",
+    "plainLanguageInterpretation",
+    "cycles",
+    "labels",
+    "defaults",
+    "presets"
+  ],
+  "additionalProperties": false,
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/scenario.schema.json",
+  "title": "Scenario definition"
+}

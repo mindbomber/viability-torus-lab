@@ -2,7 +2,7 @@
 
 ## Application architecture
 
-The site is a client-side scientific dashboard delivered through the vinext Sites runtime. The application keeps the MVP intentionally local-first: there are no accounts, uploads, or cloud records. A saved preset uses browser storage, while shared runs serialize a validated subset of scenario, seed, and parameters into the URL.
+The site is a scientific dashboard delivered through the vinext Sites runtime. It remains local-first for user state: there are no accounts, uploads, or cloud records. A saved preset uses browser storage, while shared runs serialize a validated subset of scenario, seed, and parameters into the URL. Stateless HTTP and MCP routes expose bounded, read-only computation without persisting requests or results.
 
 The UI is organized into product views inside `app/page.tsx`. All views consume the same scenario definitions and simulation engine. The live torus, charts, status panel, explanations, comparisons, tables, and exports therefore derive from one authoritative frame sequence.
 
@@ -20,6 +20,12 @@ For each step:
 8. Classify status from documented radial, debt, correction-margin, and phase gates.
 
 `engine/simulator.ts` caps a run at 10,000 steps and returns both frames and a reproducible summary. The seeded generator is part of the exported engine surface and is covered by a fixed deterministic test.
+
+## Machine contract
+
+`contracts/` is the shared boundary for the CLI, HTTP API, MCP tools, configuration imports, proposal validation, and generated JSON Schemas. These surfaces call `engine/simulator.ts`; none reimplement the dynamics. Public operations apply both per-field limits and aggregate work budgets. Frames are opt-in and sampled to a total response budget.
+
+Contract schemas are generated into `public/schemas/v1/`. Breaking changes require an explicit contract/API version decision; model-equation changes require a model-version decision and deterministic reference updates.
 
 ## Status thresholds
 
@@ -39,7 +45,7 @@ The ordering is intentional: safety-critical radial states take precedence over 
 
 ## Scenario schema and administration
 
-`scenarios/catalog.ts` is the version-controlled scenario registry. A scenario separates canonical variables from domain labels and supplies its title, category, cycles, viable region, hidden constraints, debt and loss mechanisms, defaults, and presets. To publish a scenario:
+`scenarios/catalog.ts` is the version-controlled published scenario registry. A scenario separates canonical variables from domain labels and supplies its title, version, category, cycles, viable region, hidden constraints, debt and loss mechanisms, defaults, and presets. Agent-created definitions remain draft proposal files until reviewed. To publish a scenario:
 
 1. Add a typed definition to `scenarios`.
 2. Map all visible canonical parameters.
@@ -73,7 +79,7 @@ The torus uses adaptive mesh detail, a device-pixel-ratio cap, and a single anim
 
 ## Security and privacy
 
-The public MVP has no account, backend, dataset upload, or arbitrary code path. Imported JSON is size-limited, schema-checked, range-checked, and never evaluated or rendered as HTML. Local analytics store only named UI events and structured values in session storage. No raw custom-system text is collected.
+The public application has no account, persistence, dataset upload, or arbitrary code path. Imported and posted JSON is size-limited, schema-checked, range-checked, and never evaluated or rendered as HTML. API and MCP operations are read-only and bounded by runs, steps, candidates, returned frames, and total integration work. Local analytics store only named UI events and structured values in session storage. No raw custom-system text is collected.
 
 ## Troubleshooting
 
@@ -84,4 +90,4 @@ The public MVP has no account, backend, dataset upload, or arbitrary code path. 
 
 ## Known limitations
 
-The model is synthetic and scenario thresholds are illustrative. The custom-system builder generates a template-based definition rather than arbitrary equations. Presets are device-local. There is no user authentication, collaborative experiment history, uploaded data, server-side ensemble execution, or public scenario marketplace in this MVP.
+The model is synthetic and scenario thresholds are illustrative. The custom-system builder generates a template-based definition rather than arbitrary equations. Presets are device-local. There is no user authentication, collaborative experiment history, uploaded data, durable job queue, empirical calibration pipeline, or automatic scenario marketplace. Public ensembles and sweeps are intentionally bounded synchronous computations.

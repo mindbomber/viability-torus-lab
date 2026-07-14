@@ -271,7 +271,8 @@ function drawTorus(
       for (let i = 0; i <= 100; i += 1) {
         const phi = (i / 100) * TAU;
         const point = project(rotatePoint(Math.PI / 2 + band * 0.42, phi, 0.08, frame.debt));
-        i ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y);
+        if (i) ctx.lineTo(point.x, point.y);
+        else ctx.moveTo(point.x, point.y);
       }
       ctx.stroke();
     }
@@ -284,7 +285,8 @@ function drawTorus(
   for (let i = 0; i <= 22; i += 1) {
     const phi = -0.42 + (i / 22) * 0.7;
     const point = project(rotatePoint(Math.PI * 0.16, phi, severity * 0.5 + 0.14, frame.debt));
-    i ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y);
+    if (i) ctx.lineTo(point.x, point.y);
+    else ctx.moveTo(point.x, point.y);
   }
   ctx.stroke();
   ctx.restore();

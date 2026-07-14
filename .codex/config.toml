@@ -1,0 +1,5 @@
+[mcp_servers.viability_torus_lab]
+command = "npm"
+args = ["--silent", "run", "mcp"]
+startup_timeout_sec = 20
+tool_timeout_sec = 120

@@ -31,7 +31,8 @@ export function TimeSeriesChart({ frames, frameIndex, params, onSelect, label = 
       frames.forEach((frame, index) => {
         const x = pad.l + (index / Math.max(1, frames.length - 1)) * w;
         const y = pad.t + h - item.value(frame) * h;
-        index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        if (index) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
       });
       ctx.strokeStyle = item.color;
       ctx.lineWidth = 1.7;
@@ -119,7 +120,8 @@ export function RadialStabilityChart({ frames, frameIndex, params }: BaseProps) 
         const velocity = -params.kappa * (rho - params.rho0) + margin;
         const x = pad.l + (rho / (params.rhoCrit * 1.45)) * w;
         const y = pad.t + h / 2 - velocity * h * .85;
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        if (i) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
       }
       ctx.strokeStyle = ["#ff5d62", "rgba(194,213,239,.58)", "#48bfff"][line];
       ctx.setLineDash(line === 1 ? [4, 3] : []);

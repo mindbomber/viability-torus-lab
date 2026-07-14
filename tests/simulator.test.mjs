@@ -27,6 +27,13 @@ test("identical seed and configuration reproduce every frame", () => {
   assert.deepEqual(first.summary, second.summary);
 });
 
+test("phase locking counts as viable without creating a warning", () => {
+  const result = simulate({ ...defaultParameters, steps: 720 });
+  assert.equal(result.summary.stableFraction, 1);
+  assert.equal(result.summary.firstWarningStep, undefined);
+  assert.ok(result.frames.some((frame) => frame.status === "Phase locked"));
+});
+
 test("stable reference case remains below the viable boundary", () => {
   const result = simulate({
     ...defaultParameters,

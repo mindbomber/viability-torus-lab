@@ -1,44 +1,7 @@
-import type { SimulationParameters } from "@/engine/simulator";
-import { defaultParameters } from "@/engine/simulator";
+import { defaultParameters } from "../engine/simulator.ts";
+import type { ParameterKey, ScenarioDefinition } from "../contracts/types.ts";
 
-export type ParameterKey = keyof Pick<
-  SimulationParameters,
-  | "pressure"
-  | "error"
-  | "feedback"
-  | "correction"
-  | "drift"
-  | "irreversibleLoss"
-  | "initialDebt"
->;
-
-export type ScenarioDefinition = {
-  id: string;
-  title: string;
-  shortTitle: string;
-  summary: string;
-  category: "AI" | "Organizations" | "Healthcare" | "Ecology";
-  difficulty: "Introductory" | "Intermediate" | "Advanced";
-  icon: string;
-  accent: string;
-  optimizedOutcome: string;
-  viableRegion: string;
-  hiddenConstraint: string;
-  debtMechanism: string;
-  irreversibleMechanism: string;
-  interventionIds: string[];
-  warningConditions: string[];
-  ruptureCondition: string;
-  recoveryCondition: string;
-  plainLanguageInterpretation: string;
-  cycles: {
-    minor: { label: string; stages: string[]; description: string };
-    major: { label: string; stages: string[]; description: string };
-  };
-  labels: Record<ParameterKey, string>;
-  defaults: SimulationParameters;
-  presets: { name: string; description: string; values: Partial<SimulationParameters> }[];
-};
+export type { ParameterKey, ScenarioDefinition } from "../contracts/types.ts";
 
 const labels = (
   overrides: Partial<Record<ParameterKey, string>> = {},
@@ -77,6 +40,7 @@ const standardWarnings = ["Correction margin is narrowing", "Radial excursion ex
 export const scenarios: ScenarioDefinition[] = [
   {
     id: "llm-deployment",
+    version: "1.0.0",
     title: "LLM Under Deployment Pressure",
     shortTitle: "LLM Deployment",
     summary: "A production model balancing rapid release, verification, and shifting user constraints.",
@@ -120,6 +84,7 @@ export const scenarios: ScenarioDefinition[] = [
   },
   {
     id: "coding-agent",
+    version: "1.0.0",
     title: "Autonomous Coding Agent",
     shortTitle: "Coding Agent",
     summary: "An agent operating across a repository while tests, specifications, and dependencies change.",
@@ -147,6 +112,7 @@ export const scenarios: ScenarioDefinition[] = [
   },
   {
     id: "startup-growth",
+    version: "1.0.0",
     title: "High-Growth Startup",
     shortTitle: "Startup Scaling",
     summary: "A company pursuing growth while operations, culture, and customer needs evolve.",
@@ -174,6 +140,7 @@ export const scenarios: ScenarioDefinition[] = [
   },
   {
     id: "hospital-throughput",
+    version: "1.0.0",
     title: "Hospital Throughput",
     shortTitle: "Hospital Throughput",
     summary: "A care system balancing patient flow, safety, staff capacity, and unpredictable demand.",
@@ -201,6 +168,7 @@ export const scenarios: ScenarioDefinition[] = [
   },
   {
     id: "burnout-recovery",
+    version: "1.0.0",
     title: "Personal Burnout & Recovery",
     shortTitle: "Burnout & Recovery",
     summary: "A person balancing output, recovery, feedback, commitments, and changing life demands.",
@@ -228,6 +196,7 @@ export const scenarios: ScenarioDefinition[] = [
   },
   {
     id: "fishery-management",
+    version: "1.0.0",
     title: "Fishery Management",
     shortTitle: "Fishery Management",
     summary: "A shared resource balancing yield, population renewal, monitoring, and climate variability.",

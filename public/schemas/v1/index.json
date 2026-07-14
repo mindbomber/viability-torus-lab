@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "dialect": "https://json-schema.org/draft/2020-12/schema",
+  "schemas": [
+    {
+      "name": "simulation-parameters",
+      "title": "Simulation parameters",
+      "url": "/schemas/v1/simulation-parameters.schema.json"
+    },
+    {
+      "name": "scheduled-intervention",
+      "title": "Scheduled intervention",
+      "url": "/schemas/v1/scheduled-intervention.schema.json"
+    },
+    {
+      "name": "experiment",
+      "title": "Experiment specification",
+      "url": "/schemas/v1/experiment.schema.json"
+    },
+    {
+      "name": "comparison",
+      "title": "Experiment comparison",
+      "url": "/schemas/v1/comparison.schema.json"
+    },
+    {
+      "name": "parameter-sweep",
+      "title": "Parameter sweep",
+      "url": "/schemas/v1/parameter-sweep.schema.json"
+    },
+    {
+      "name": "scenario",
+      "title": "Scenario definition",
+      "url": "/schemas/v1/scenario.schema.json"
+    },
+    {
+      "name": "scenario-proposal",
+      "title": "Draft scenario proposal",
+      "url": "/schemas/v1/scenario-proposal.schema.json"
+    }
+  ]
+}

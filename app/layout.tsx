@@ -20,11 +20,29 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: ["ATS", "AANA", "AIx", "toroidal geometry", "systems simulation", "alignment"],
     authors: [{ name: "Armando Sori" }],
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
-    openGraph: { title, description, type: "website", url: origin },
-    twitter: { card: "summary", title, description },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: origin,
+      images: [{ url: `${origin}/og.png`, width: 1732, height: 909, alt: "Viability Torus Lab — agent-operable toroidal viability experiments" }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [`${origin}/og.png`] },
   };
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body></html>;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Viability Torus Lab",
+    applicationCategory: "ScientificApplication",
+    operatingSystem: "Web",
+    description: "Deterministic two-phase toroidal viability simulation for alignment-aware systems research.",
+    url: "https://viability-torus-lab.citizen-of-earth.chatgpt.site/",
+    codeRepository: "https://github.com/mindbomber/viability-torus-lab",
+    softwareVersion: "torus-1.0.0",
+    isAccessibleForFree: true,
+  };
+  return <html lang="en"><head><link rel="service-desc" href="/.well-known/viability-torus-lab.json" /><link rel="alternate" type="text/plain" href="/llms.txt" title="Agent-readable documentation" /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} /></head><body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body></html>;
 }

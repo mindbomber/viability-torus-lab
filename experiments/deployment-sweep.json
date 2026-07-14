@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0.0",
+  "base": {
+    "schemaVersion": "1.0.0",
+    "name": "Deployment stabilization search",
+    "scenarioId": "llm-deployment",
+    "parameters": {
+      "pressure": 2.5,
+      "error": 0.55,
+      "feedback": 0.35,
+      "correction": 0.35,
+      "drift": 0.12,
+      "initialDebt": 0.45
+    },
+    "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  },
+  "grid": {
+    "pressure": [1.6, 1.8, 2.0],
+    "feedback": [0.65, 0.75, 0.85],
+    "correction": [0.55, 0.65, 0.75]
+  },
+  "objective": "minimize-rupture-then-maximize-alignment",
+  "topK": 10
+}

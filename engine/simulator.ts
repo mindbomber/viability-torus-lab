@@ -225,7 +225,9 @@ export function simulate(
     });
   }
 
-  const warningIndex = frames.findIndex((frame) => frame.status !== "Stable");
+  const warningIndex = frames.findIndex(
+    (frame) => !["Stable", "Phase locked"].includes(frame.status),
+  );
   const ruptureIndex = frames.findIndex((frame) => frame.status === "Ruptured");
   const stableCount = frames.filter((frame) =>
     ["Stable", "Phase locked"].includes(frame.status),
