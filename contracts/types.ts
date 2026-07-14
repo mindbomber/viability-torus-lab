@@ -16,6 +16,43 @@ export type ParameterKey = keyof Pick<
   | "initialDebt"
 >;
 
+export type ScenarioCategory =
+  | "AI"
+  | "Ecology"
+  | "Healthcare"
+  | "Organizations"
+  | "Infrastructure"
+  | "Economy"
+  | "Society";
+
+export type WatchlistTier = "red" | "orange" | "yellow" | "featured";
+
+export type CalibrationLevel =
+  | "illustrative"
+  | "literature-informed"
+  | "empirically-calibrated"
+  | "externally-validated";
+
+export type ModelFamily =
+  | "regenerative-stock"
+  | "threshold-regime-shift"
+  | "resistance-contagion"
+  | "trust-legitimacy"
+  | "capability-correction"
+  | "network-cascade"
+  | "financial-leverage"
+  | "human-capacity";
+
+export type PhaseSource =
+  | "operational-stage"
+  | "seasonal"
+  | "market-cycle"
+  | "policy-cycle"
+  | "estimated"
+  | "synthetic";
+
+export type ScenarioParameterRange = { min: number; max: number; step: number };
+
 export type ScenarioEvidence = {
   status: "illustrative" | "calibrated";
   calibrationStatus: string;
@@ -31,7 +68,10 @@ export type ScenarioDefinition = {
   title: string;
   shortTitle: string;
   summary: string;
-  category: "AI" | "Organizations" | "Healthcare" | "Ecology";
+  category: ScenarioCategory;
+  watchlistTier: WatchlistTier;
+  modelFamily: ModelFamily;
+  calibration: CalibrationLevel;
   difficulty: "Introductory" | "Intermediate" | "Advanced";
   icon: string;
   accent: string;
@@ -41,16 +81,35 @@ export type ScenarioDefinition = {
   debtMechanism: string;
   irreversibleMechanism: string;
   interventionIds: string[];
+  events: string[];
+  interventions: string[];
   warningConditions: string[];
   ruptureCondition: string;
   recoveryCondition: string;
   plainLanguageInterpretation: string;
   evidence: ScenarioEvidence;
   cycles: {
-    minor: { label: string; stages: string[]; description: string };
-    major: { label: string; stages: string[]; description: string };
+    minor: { label: string; stages: string[]; description: string; defaultFrequency: number; phaseSource: PhaseSource };
+    major: { label: string; stages: string[]; description: string; defaultFrequency: number; phaseSource: PhaseSource };
   };
-  labels: Record<ParameterKey, string>;
+  labels: Record<ParameterKey, string> & {
+    restoration: string;
+    debtCoupling: string;
+    radialExcursion: string;
+  };
+  aixLabels: {
+    physical: string;
+    biological: string;
+    constructed: string;
+    feedback: string;
+  };
+  ranges: Record<ParameterKey, ScenarioParameterRange>;
+  thresholds: {
+    warningRho: number;
+    criticalRho: number;
+    irreversibleRho: number;
+    phaseConfidenceMinimum: number;
+  };
   defaults: SimulationParameters;
   presets: { name: string; description: string; values: Partial<SimulationParameters> }[];
 };

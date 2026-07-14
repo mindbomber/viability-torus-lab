@@ -62,7 +62,7 @@ See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP too
 ## Product areas
 
 - Live scenario simulator with 3D and accessible 2D torus views
-- Six structured illustrative scenarios with domain-specific labels, presets, assumptions, units, references, and falsification criteria
+- A 32-scenario pack: 22 red/orange/yellow watchlist systems and 10 featured simulations, each with model-family metadata, recurrent phases, domain labels, AIx layers, presets, assumptions, units, references, and falsification criteria
 - Deterministic seeded simulation, playback controls, interventions, and explanations
 - Unwrapped phase, time-series, and radial-stability charts with table alternatives
 - Side-by-side compare mode and difference summaries

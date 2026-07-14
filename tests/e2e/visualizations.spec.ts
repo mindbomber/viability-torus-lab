@@ -86,13 +86,13 @@ test("permitted extreme parameters keep off-scale rupture evidence visible", asy
   test.setTimeout(60_000);
   const consoleErrors = await openDashboard(page);
   const values: Array<[string, string]> = [
-    ["Deployment pressure numeric value", "3"],
-    ["Feedback quality numeric value", "0"],
-    ["Verification & correction numeric value", "0"],
-    ["Constraint misunderstanding numeric value", "1"],
-    ["Unresolved failure debt numeric value", "2"],
-    ["Environment change numeric value", "0.5"],
-    ["Downstream damage numeric value", "0.35"],
+    ["Response speed & automation pressure numeric value", "3"],
+    ["Retrieval and verifier fidelity numeric value", "0"],
+    ["Correction iterations & human escalation numeric value", "0"],
+    ["Hallucination & hidden-constraint error numeric value", "1"],
+    ["Unresolved failure patterns numeric value", "2"],
+    ["User-context and distribution shift numeric value", "0.5"],
+    ["Irreversible downstream action numeric value", "0.5"],
   ];
   for (const [label, value] of values) await page.getByLabel(label).fill(value);
 
@@ -110,12 +110,43 @@ test("permitted extreme parameters keep off-scale rupture evidence visible", asy
   expect(consoleErrors).toEqual([]);
 });
 
+test("scenario pack filters by tier and loads complete machine-readable mappings", async ({ page }) => {
+  const consoleErrors = await openDashboard(page);
+  await page.locator(".sidebar nav button").filter({ hasText: "Scenarios" }).click();
+  await expect(page.getByRole("heading", { name: /Choose a familiar system/i })).toBeVisible();
+  await expect(page.getByText("32 published simulations")).toBeVisible();
+  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(32);
+
+  await page.getByRole("button", { name: "Red watchlist", exact: true }).click();
+  await expect(page.getByText("Showing 6 scenarios")).toBeVisible();
+  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(6);
+
+  await page.getByRole("button", { name: /Climate & Biosphere/i }).click();
+  await expect(page.getByRole("heading", { name: "Climate System & Biosphere Stability" })).toBeVisible();
+  await expect(page.getByText("RED /", { exact: false })).toBeVisible();
+  const evidence = page.locator(".scenario-evidence");
+  await evidence.locator("summary").click();
+  await expect(evidence.getByRole("heading", { name: "Canonical parameter map" })).toBeVisible();
+  await expect(evidence.getByText("Climate and biosphere overshoot", { exact: true })).toBeVisible();
+  await expect(evidence.getByRole("heading", { name: "Scenario-specific AIx layers" })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
 test("mobile dashboard renders the visualization fallback without clipping the canvas", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const consoleErrors = await openDashboard(page);
-  await expect(page.getByRole("button", { name: /Open primary navigation menu/i })).toBeVisible();
+  const mobileMenu = page.getByRole("button", { name: /Open primary navigation menu/i });
+  await expect(mobileMenu).toBeVisible();
+  await expect(mobileMenu.locator("span").first()).toBeVisible();
   const torus = await canvasFingerprint(page, 'canvas[data-chart-kind="torus"]');
   expect(torus.width).toBeGreaterThanOrEqual(300);
   expect(torus.height).toBeGreaterThanOrEqual(150);
+  await mobileMenu.click();
+  await expect(page.locator(".sidebar")).toHaveClass(/open/);
+  await page.locator(".sidebar nav button").filter({ hasText: "Scenarios" }).click();
+  await expect(page.getByRole("heading", { name: /Choose a familiar system/i })).toBeVisible();
+  await page.getByRole("button", { name: "Featured", exact: true }).click();
+  await expect(page.getByText("Showing 10 scenarios")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   expect(consoleErrors).toEqual([]);
 });

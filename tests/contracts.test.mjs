@@ -26,12 +26,38 @@ test("every published scenario discloses its evidence and calibration status", (
 
 test(`all scenario stress references remain stable for ${MODEL_VERSION}`, () => {
   const references = {
-    "llm-deployment": ["0.195145", "3.261498", "1.634010", "Debt accumulating", undefined],
-    "coding-agent": ["0.453329", "1.170110", "0.791138", "Fragile", undefined],
-    "startup-growth": ["0.122725", "4.412298", "2.097807", "Debt accumulating", undefined],
-    "hospital-throughput": ["0.137303", "4.133804", "1.985568", "Rupture approaching", undefined],
-    "burnout-recovery": ["0.195145", "3.261498", "1.634010", "Debt accumulating", undefined],
-    "fishery-management": ["0.068987", "5.841591", "2.673842", "Ruptured", 862],
+    "climate-biosphere": ["0.000000", "26.180032", "132.875597", "Ruptured", 8],
+    "groundwater-depletion": ["0.000000", "26.180032", "69.055440", "Ruptured", 10],
+    "soil-fertility": ["0.000000", "26.180032", "69.055440", "Ruptured", 10],
+    "antimicrobial-resistance": ["0.000000", "26.180032", "63.140439", "Ruptured", 10],
+    "information-integrity": ["0.000000", "26.180032", "63.140439", "Ruptured", 10],
+    "institutional-trust": ["0.000000", "26.180032", "77.492695", "Ruptured", 9],
+    "ai-agent-ecosystems": ["0.970446", "0.000000", "0.361145", "Stable", null],
+    "public-health-preparedness": ["0.970446", "0.000000", "0.549051", "Stable", null],
+    "energy-grid": ["0.970446", "0.000000", "0.704683", "Stable", null],
+    "sovereign-debt": ["0.970446", "0.000000", "0.953794", "Stable", null],
+    "semiconductor-supply-chain": ["0.970446", "0.000000", "0.704683", "Stable", null],
+    "fishery-management": ["0.970446", "0.000000", "0.895283", "Stable", null],
+    "housing-affordability": ["0.970446", "0.000000", "0.953794", "Stable", null],
+    "youth-mental-health": ["0.970446", "0.000000", "0.549051", "Stable", null],
+    "pollinator-collapse": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "education-quality": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "healthcare-workforce": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "aging-infrastructure": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "water-quality": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "geopolitical-escalation": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "disaster-insurance": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "data-governance": ["0.970446", "0.000000", "0.350000", "Stable", null],
+    "llm-deployment": ["0.036118", "3.261498", "3.320958", "Ruptured", 631],
+    "coding-agent": ["0.247970", "1.170110", "1.394447", "Fragile", null],
+    "startup-growth": ["0.001852", "4.412298", "6.291342", "Ruptured", 245],
+    "hospital-throughput": ["0.002701", "4.133804", "5.914185", "Ruptured", 198],
+    "burnout-recovery": ["0.008801", "3.261498", "4.732842", "Ruptured", 374],
+    "public-transit": ["0.002249", "3.261498", "6.097103", "Ruptured", 251],
+    "engagement-recommender": ["0.036118", "3.261498", "3.320958", "Ruptured", 631],
+    "urban-reservoir": ["0.000139", "3.261498", "8.883904", "Ruptured", 125],
+    "emergency-response": ["0.002249", "3.261498", "6.097103", "Ruptured", 251],
+    "research-integrity": ["0.000048", "3.261498", "9.937221", "Ruptured", 104],
   };
   for (const scenario of scenarios) {
     const preset = scenario.presets.find((candidate) => candidate.name === "Growth at risk");
@@ -42,7 +68,22 @@ test(`all scenario stress references remain stable for ${MODEL_VERSION}`, () => 
     assert.equal(summary.finalDebt.toFixed(6), debt, scenario.id);
     assert.equal(summary.maxRho.toFixed(6), maxRho, scenario.id);
     assert.equal(summary.finalStatus, finalStatus, scenario.id);
-    assert.equal(summary.ruptureStep, ruptureStep, scenario.id);
+    assert.equal(summary.ruptureStep ?? null, ruptureStep, scenario.id);
+  }
+});
+
+test("the scenario pack publishes 22 watchlist systems and 10 featured simulations", () => {
+  assert.equal(scenarios.length, 32);
+  assert.equal(new Set(scenarios.map((scenario) => scenario.id)).size, 32);
+  const counts = Object.fromEntries(["red", "orange", "yellow", "featured"].map((tier) => [tier, scenarios.filter((scenario) => scenario.watchlistTier === tier).length]));
+  assert.deepEqual(counts, { red: 6, orange: 8, yellow: 8, featured: 10 });
+  for (const scenario of scenarios) {
+    assert.equal(scenario.cycles.minor.defaultFrequency, scenario.defaults.omegaTheta, scenario.id);
+    assert.equal(scenario.cycles.major.defaultFrequency, scenario.defaults.omegaPhi, scenario.id);
+    assert.ok(scenario.labels.restoration.length > 2, scenario.id);
+    assert.ok(scenario.labels.debtCoupling.length > 2, scenario.id);
+    assert.ok(scenario.labels.radialExcursion.length > 2, scenario.id);
+    assert.equal(scenario.calibration, "illustrative", scenario.id);
   }
 });
 

@@ -16,6 +16,14 @@ test("model and scenario endpoints expose versioned machine metadata", async () 
   const catalog = await scenarioResponse.json();
   assert.ok(catalog.scenarios.length >= 2);
   assert.ok(catalog.scenarios.every((scenario) => scenario.category === "AI"));
+  assert.equal(catalog.total, 32);
+  assert.deepEqual(catalog.watchlistCounts, { red: 6, orange: 8, yellow: 8, featured: 10 });
+  assert.ok(catalog.scenarios.every((scenario) => scenario.aixLabels && scenario.modelFamily && scenario.watchlistTier));
+
+  const redResponse = getScenarios(new Request("https://example.test/api/v1/scenarios?tier=red"));
+  const redCatalog = await redResponse.json();
+  assert.equal(redCatalog.count, 6);
+  assert.ok(redCatalog.scenarios.every((scenario) => scenario.watchlistTier === "red"));
 });
 
 test("simulation endpoint validates and executes a bounded ensemble", async () => {

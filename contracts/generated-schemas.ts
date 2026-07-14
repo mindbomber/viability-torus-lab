@@ -66,7 +66,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "correction": {
         "type": "number",
         "minimum": 0,
-        "maximum": 1.5,
+        "maximum": 2,
         "description": "Correction capacity."
       },
       "drift": {
@@ -78,7 +78,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "irreversibleLoss": {
         "type": "number",
         "minimum": 0,
-        "maximum": 0.35,
+        "maximum": 0.5,
         "description": "Irreversible loss rate."
       },
       "initialDebt": {
@@ -235,7 +235,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "correction": {
             "type": "number",
             "minimum": 0,
-            "maximum": 1.5,
+            "maximum": 2,
             "description": "Correction capacity."
           },
           "drift": {
@@ -247,7 +247,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "irreversibleLoss": {
             "type": "number",
             "minimum": 0,
-            "maximum": 0.35,
+            "maximum": 0.5,
             "description": "Irreversible loss rate."
           },
           "initialDebt": {
@@ -379,7 +379,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "correction": {
             "type": "number",
             "minimum": 0,
-            "maximum": 1.5,
+            "maximum": 2,
             "description": "Correction capacity."
           },
           "drift": {
@@ -391,7 +391,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "irreversibleLoss": {
             "type": "number",
             "minimum": 0,
-            "maximum": 0.35,
+            "maximum": 0.5,
             "description": "Irreversible loss rate."
           },
           "initialDebt": {
@@ -527,7 +527,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "correction": {
                   "type": "number",
                   "minimum": 0,
-                  "maximum": 1.5,
+                  "maximum": 2,
                   "description": "Correction capacity."
                 },
                 "drift": {
@@ -539,7 +539,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "irreversibleLoss": {
                   "type": "number",
                   "minimum": 0,
-                  "maximum": 0.35,
+                  "maximum": 0.5,
                   "description": "Irreversible loss rate."
                 },
                 "initialDebt": {
@@ -712,7 +712,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "correction": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 1.5,
+                "maximum": 2,
                 "description": "Correction capacity."
               },
               "drift": {
@@ -724,7 +724,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "irreversibleLoss": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 0.35,
+                "maximum": 0.5,
                 "description": "Irreversible loss rate."
               },
               "initialDebt": {
@@ -860,7 +860,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "correction": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 1.5,
+                      "maximum": 2,
                       "description": "Correction capacity."
                     },
                     "drift": {
@@ -872,7 +872,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "irreversibleLoss": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 0.35,
+                      "maximum": 0.5,
                       "description": "Irreversible loss rate."
                     },
                     "initialDebt": {
@@ -1034,7 +1034,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "correction": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 1.5,
+                "maximum": 2,
                 "description": "Correction capacity."
               },
               "drift": {
@@ -1046,7 +1046,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "irreversibleLoss": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 0.35,
+                "maximum": 0.5,
                 "description": "Irreversible loss rate."
               },
               "initialDebt": {
@@ -1182,7 +1182,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "correction": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 1.5,
+                      "maximum": 2,
                       "description": "Correction capacity."
                     },
                     "drift": {
@@ -1194,7 +1194,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "irreversibleLoss": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 0.35,
+                      "maximum": 0.5,
                       "description": "Irreversible loss rate."
                     },
                     "initialDebt": {
@@ -1375,7 +1375,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "correction": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 1.5,
+                "maximum": 2,
                 "description": "Correction capacity."
               },
               "drift": {
@@ -1387,7 +1387,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "irreversibleLoss": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 0.35,
+                "maximum": 0.5,
                 "description": "Irreversible loss rate."
               },
               "initialDebt": {
@@ -1523,7 +1523,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "correction": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 1.5,
+                      "maximum": 2,
                       "description": "Correction capacity."
                     },
                     "drift": {
@@ -1535,7 +1535,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "irreversibleLoss": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 0.35,
+                      "maximum": 0.5,
                       "description": "Irreversible loss rate."
                     },
                     "initialDebt": {
@@ -1698,7 +1698,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "items": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1.5,
+              "maximum": 2,
               "description": "Correction capacity."
             }
           },
@@ -1720,7 +1720,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "items": {
               "type": "number",
               "minimum": 0,
-              "maximum": 0.35,
+              "maximum": 0.5,
               "description": "Irreversible loss rate."
             }
           },
@@ -1902,9 +1902,46 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         "type": "string",
         "enum": [
           "AI",
-          "Organizations",
+          "Ecology",
           "Healthcare",
-          "Ecology"
+          "Organizations",
+          "Infrastructure",
+          "Economy",
+          "Society"
+        ]
+      },
+      "watchlistTier": {
+        "default": "featured",
+        "type": "string",
+        "enum": [
+          "red",
+          "orange",
+          "yellow",
+          "featured"
+        ]
+      },
+      "modelFamily": {
+        "default": "capability-correction",
+        "type": "string",
+        "enum": [
+          "regenerative-stock",
+          "threshold-regime-shift",
+          "resistance-contagion",
+          "trust-legitimacy",
+          "capability-correction",
+          "network-cascade",
+          "financial-leverage",
+          "human-capacity"
+        ]
+      },
+      "calibration": {
+        "default": "illustrative",
+        "type": "string",
+        "enum": [
+          "illustrative",
+          "literature-informed",
+          "empirically-calibrated",
+          "externally-validated"
         ]
       },
       "difficulty": {
@@ -1956,6 +1993,29 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         "items": {
           "type": "string",
           "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      },
+      "events": {
+        "default": [],
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        }
+      },
+      "interventions": {
+        "default": [
+          "Expand correction capacity"
+        ],
+        "minItems": 1,
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
         }
       },
       "warningConditions": {
@@ -2083,12 +2143,32 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "type": "string",
                 "minLength": 10,
                 "maxLength": 500
+              },
+              "defaultFrequency": {
+                "default": 0.05,
+                "type": "number",
+                "minimum": -2,
+                "maximum": 2
+              },
+              "phaseSource": {
+                "default": "synthetic",
+                "type": "string",
+                "enum": [
+                  "operational-stage",
+                  "seasonal",
+                  "market-cycle",
+                  "policy-cycle",
+                  "estimated",
+                  "synthetic"
+                ]
               }
             },
             "required": [
               "label",
               "stages",
-              "description"
+              "description",
+              "defaultFrequency",
+              "phaseSource"
             ],
             "additionalProperties": false
           },
@@ -2114,12 +2194,32 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "type": "string",
                 "minLength": 10,
                 "maxLength": 500
+              },
+              "defaultFrequency": {
+                "default": 0.05,
+                "type": "number",
+                "minimum": -2,
+                "maximum": 2
+              },
+              "phaseSource": {
+                "default": "synthetic",
+                "type": "string",
+                "enum": [
+                  "operational-stage",
+                  "seasonal",
+                  "market-cycle",
+                  "policy-cycle",
+                  "estimated",
+                  "synthetic"
+                ]
               }
             },
             "required": [
               "label",
               "stages",
-              "description"
+              "description",
+              "defaultFrequency",
+              "phaseSource"
             ],
             "additionalProperties": false
           }
@@ -2167,6 +2267,264 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "type": "string",
             "minLength": 2,
             "maxLength": 80
+          },
+          "restoration": {
+            "default": "Restoring strength",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "debtCoupling": {
+            "default": "Debt pressure",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "radialExcursion": {
+            "default": "Distance from viable recurrent operation",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "pressure",
+          "error",
+          "feedback",
+          "correction",
+          "drift",
+          "irreversibleLoss",
+          "initialDebt",
+          "restoration",
+          "debtCoupling",
+          "radialExcursion"
+        ],
+        "additionalProperties": false
+      },
+      "aixLabels": {
+        "default": {
+          "physical": "Physical and factual validity",
+          "biological": "Human and ecological viability",
+          "constructed": "Task and institutional coherence",
+          "feedback": "Feedback and audit integrity"
+        },
+        "type": "object",
+        "properties": {
+          "physical": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+          },
+          "biological": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+          },
+          "constructed": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+          },
+          "feedback": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "physical",
+          "biological",
+          "constructed",
+          "feedback"
+        ],
+        "additionalProperties": false
+      },
+      "ranges": {
+        "default": {
+          "pressure": {
+            "min": 0,
+            "max": 2,
+            "step": 0.01
+          },
+          "error": {
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "feedback": {
+            "min": 0,
+            "max": 1,
+            "step": 0.01
+          },
+          "correction": {
+            "min": 0,
+            "max": 2,
+            "step": 0.01
+          },
+          "drift": {
+            "min": 0,
+            "max": 0.5,
+            "step": 0.01
+          },
+          "irreversibleLoss": {
+            "min": 0,
+            "max": 0.5,
+            "step": 0.01
+          },
+          "initialDebt": {
+            "min": 0,
+            "max": 2,
+            "step": 0.01
+          }
+        },
+        "type": "object",
+        "properties": {
+          "pressure": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "step"
+            ],
+            "additionalProperties": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "step"
+            ],
+            "additionalProperties": false
+          },
+          "feedback": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "step"
+            ],
+            "additionalProperties": false
+          },
+          "correction": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "step"
+            ],
+            "additionalProperties": false
+          },
+          "drift": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "step"
+            ],
+            "additionalProperties": false
+          },
+          "irreversibleLoss": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "step"
+            ],
+            "additionalProperties": false
+          },
+          "initialDebt": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "min",
+              "max",
+              "step"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -2177,6 +2535,44 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "drift",
           "irreversibleLoss",
           "initialDebt"
+        ],
+        "additionalProperties": false
+      },
+      "thresholds": {
+        "default": {
+          "warningRho": 1.6,
+          "criticalRho": 2.5,
+          "irreversibleRho": 3.4,
+          "phaseConfidenceMinimum": 0.2
+        },
+        "type": "object",
+        "properties": {
+          "warningRho": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "criticalRho": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10
+          },
+          "irreversibleRho": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 20
+          },
+          "phaseConfidenceMinimum": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "warningRho",
+          "criticalRho",
+          "irreversibleRho",
+          "phaseConfidenceMinimum"
         ],
         "additionalProperties": false
       },
@@ -2204,7 +2600,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "correction": {
             "type": "number",
             "minimum": 0,
-            "maximum": 1.5,
+            "maximum": 2,
             "description": "Correction capacity."
           },
           "drift": {
@@ -2216,7 +2612,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "irreversibleLoss": {
             "type": "number",
             "minimum": 0,
-            "maximum": 0.35,
+            "maximum": 0.5,
             "description": "Irreversible loss rate."
           },
           "initialDebt": {
@@ -2369,7 +2765,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "correction": {
                   "type": "number",
                   "minimum": 0,
-                  "maximum": 1.5,
+                  "maximum": 2,
                   "description": "Correction capacity."
                 },
                 "drift": {
@@ -2381,7 +2777,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "irreversibleLoss": {
                   "type": "number",
                   "minimum": 0,
-                  "maximum": 0.35,
+                  "maximum": 0.5,
                   "description": "Irreversible loss rate."
                 },
                 "initialDebt": {
@@ -2488,6 +2884,9 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "shortTitle",
       "summary",
       "category",
+      "watchlistTier",
+      "modelFamily",
+      "calibration",
       "difficulty",
       "icon",
       "accent",
@@ -2497,12 +2896,17 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "debtMechanism",
       "irreversibleMechanism",
       "interventionIds",
+      "events",
+      "interventions",
       "warningConditions",
       "ruptureCondition",
       "recoveryCondition",
       "plainLanguageInterpretation",
       "cycles",
       "labels",
+      "aixLabels",
+      "ranges",
+      "thresholds",
       "defaults",
       "presets"
     ],
@@ -2587,9 +2991,46 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "type": "string",
             "enum": [
               "AI",
-              "Organizations",
+              "Ecology",
               "Healthcare",
-              "Ecology"
+              "Organizations",
+              "Infrastructure",
+              "Economy",
+              "Society"
+            ]
+          },
+          "watchlistTier": {
+            "default": "featured",
+            "type": "string",
+            "enum": [
+              "red",
+              "orange",
+              "yellow",
+              "featured"
+            ]
+          },
+          "modelFamily": {
+            "default": "capability-correction",
+            "type": "string",
+            "enum": [
+              "regenerative-stock",
+              "threshold-regime-shift",
+              "resistance-contagion",
+              "trust-legitimacy",
+              "capability-correction",
+              "network-cascade",
+              "financial-leverage",
+              "human-capacity"
+            ]
+          },
+          "calibration": {
+            "default": "illustrative",
+            "type": "string",
+            "enum": [
+              "illustrative",
+              "literature-informed",
+              "empirically-calibrated",
+              "externally-validated"
             ]
           },
           "difficulty": {
@@ -2641,6 +3082,29 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "items": {
               "type": "string",
               "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            }
+          },
+          "events": {
+            "default": [],
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200
+            }
+          },
+          "interventions": {
+            "default": [
+              "Expand correction capacity"
+            ],
+            "minItems": 1,
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200
             }
           },
           "warningConditions": {
@@ -2768,12 +3232,32 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "type": "string",
                     "minLength": 10,
                     "maxLength": 500
+                  },
+                  "defaultFrequency": {
+                    "default": 0.05,
+                    "type": "number",
+                    "minimum": -2,
+                    "maximum": 2
+                  },
+                  "phaseSource": {
+                    "default": "synthetic",
+                    "type": "string",
+                    "enum": [
+                      "operational-stage",
+                      "seasonal",
+                      "market-cycle",
+                      "policy-cycle",
+                      "estimated",
+                      "synthetic"
+                    ]
                   }
                 },
                 "required": [
                   "label",
                   "stages",
-                  "description"
+                  "description",
+                  "defaultFrequency",
+                  "phaseSource"
                 ],
                 "additionalProperties": false
               },
@@ -2799,12 +3283,32 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "type": "string",
                     "minLength": 10,
                     "maxLength": 500
+                  },
+                  "defaultFrequency": {
+                    "default": 0.05,
+                    "type": "number",
+                    "minimum": -2,
+                    "maximum": 2
+                  },
+                  "phaseSource": {
+                    "default": "synthetic",
+                    "type": "string",
+                    "enum": [
+                      "operational-stage",
+                      "seasonal",
+                      "market-cycle",
+                      "policy-cycle",
+                      "estimated",
+                      "synthetic"
+                    ]
                   }
                 },
                 "required": [
                   "label",
                   "stages",
-                  "description"
+                  "description",
+                  "defaultFrequency",
+                  "phaseSource"
                 ],
                 "additionalProperties": false
               }
@@ -2852,6 +3356,264 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "type": "string",
                 "minLength": 2,
                 "maxLength": 80
+              },
+              "restoration": {
+                "default": "Restoring strength",
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 120
+              },
+              "debtCoupling": {
+                "default": "Debt pressure",
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 120
+              },
+              "radialExcursion": {
+                "default": "Distance from viable recurrent operation",
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 160
+              }
+            },
+            "required": [
+              "pressure",
+              "error",
+              "feedback",
+              "correction",
+              "drift",
+              "irreversibleLoss",
+              "initialDebt",
+              "restoration",
+              "debtCoupling",
+              "radialExcursion"
+            ],
+            "additionalProperties": false
+          },
+          "aixLabels": {
+            "default": {
+              "physical": "Physical and factual validity",
+              "biological": "Human and ecological viability",
+              "constructed": "Task and institutional coherence",
+              "feedback": "Feedback and audit integrity"
+            },
+            "type": "object",
+            "properties": {
+              "physical": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 160
+              },
+              "biological": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 160
+              },
+              "constructed": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 160
+              },
+              "feedback": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 160
+              }
+            },
+            "required": [
+              "physical",
+              "biological",
+              "constructed",
+              "feedback"
+            ],
+            "additionalProperties": false
+          },
+          "ranges": {
+            "default": {
+              "pressure": {
+                "min": 0,
+                "max": 2,
+                "step": 0.01
+              },
+              "error": {
+                "min": 0,
+                "max": 1,
+                "step": 0.01
+              },
+              "feedback": {
+                "min": 0,
+                "max": 1,
+                "step": 0.01
+              },
+              "correction": {
+                "min": 0,
+                "max": 2,
+                "step": 0.01
+              },
+              "drift": {
+                "min": 0,
+                "max": 0.5,
+                "step": 0.01
+              },
+              "irreversibleLoss": {
+                "min": 0,
+                "max": 0.5,
+                "step": 0.01
+              },
+              "initialDebt": {
+                "min": 0,
+                "max": 2,
+                "step": 0.01
+              }
+            },
+            "type": "object",
+            "properties": {
+              "pressure": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "min",
+                  "max",
+                  "step"
+                ],
+                "additionalProperties": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "min",
+                  "max",
+                  "step"
+                ],
+                "additionalProperties": false
+              },
+              "feedback": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "min",
+                  "max",
+                  "step"
+                ],
+                "additionalProperties": false
+              },
+              "correction": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "min",
+                  "max",
+                  "step"
+                ],
+                "additionalProperties": false
+              },
+              "drift": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "min",
+                  "max",
+                  "step"
+                ],
+                "additionalProperties": false
+              },
+              "irreversibleLoss": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "min",
+                  "max",
+                  "step"
+                ],
+                "additionalProperties": false
+              },
+              "initialDebt": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  },
+                  "step": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                },
+                "required": [
+                  "min",
+                  "max",
+                  "step"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -2862,6 +3624,44 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "drift",
               "irreversibleLoss",
               "initialDebt"
+            ],
+            "additionalProperties": false
+          },
+          "thresholds": {
+            "default": {
+              "warningRho": 1.6,
+              "criticalRho": 2.5,
+              "irreversibleRho": 3.4,
+              "phaseConfidenceMinimum": 0.2
+            },
+            "type": "object",
+            "properties": {
+              "warningRho": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10
+              },
+              "criticalRho": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 10
+              },
+              "irreversibleRho": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 20
+              },
+              "phaseConfidenceMinimum": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "warningRho",
+              "criticalRho",
+              "irreversibleRho",
+              "phaseConfidenceMinimum"
             ],
             "additionalProperties": false
           },
@@ -2889,7 +3689,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "correction": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 1.5,
+                "maximum": 2,
                 "description": "Correction capacity."
               },
               "drift": {
@@ -2901,7 +3701,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "irreversibleLoss": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 0.35,
+                "maximum": 0.5,
                 "description": "Irreversible loss rate."
               },
               "initialDebt": {
@@ -3054,7 +3854,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "correction": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 1.5,
+                      "maximum": 2,
                       "description": "Correction capacity."
                     },
                     "drift": {
@@ -3066,7 +3866,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "irreversibleLoss": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 0.35,
+                      "maximum": 0.5,
                       "description": "Irreversible loss rate."
                     },
                     "initialDebt": {
@@ -3173,6 +3973,9 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "shortTitle",
           "summary",
           "category",
+          "watchlistTier",
+          "modelFamily",
+          "calibration",
           "difficulty",
           "icon",
           "accent",
@@ -3182,12 +3985,17 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "debtMechanism",
           "irreversibleMechanism",
           "interventionIds",
+          "events",
+          "interventions",
           "warningConditions",
           "ruptureCondition",
           "recoveryCondition",
           "plainLanguageInterpretation",
           "cycles",
           "labels",
+          "aixLabels",
+          "ranges",
+          "thresholds",
           "defaults",
           "presets"
         ],
@@ -3257,7 +4065,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "correction": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 1.5,
+                      "maximum": 2,
                       "description": "Correction capacity."
                     },
                     "drift": {
@@ -3269,7 +4077,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                     "irreversibleLoss": {
                       "type": "number",
                       "minimum": 0,
-                      "maximum": 0.35,
+                      "maximum": 0.5,
                       "description": "Irreversible loss rate."
                     },
                     "initialDebt": {
@@ -3405,7 +4213,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                           "correction": {
                             "type": "number",
                             "minimum": 0,
-                            "maximum": 1.5,
+                            "maximum": 2,
                             "description": "Correction capacity."
                           },
                           "drift": {
@@ -3417,7 +4225,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                           "irreversibleLoss": {
                             "type": "number",
                             "minimum": 0,
-                            "maximum": 0.35,
+                            "maximum": 0.5,
                             "description": "Irreversible loss rate."
                           },
                           "initialDebt": {

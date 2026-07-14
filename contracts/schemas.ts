@@ -119,6 +119,8 @@ const cycleSchema = z.object({
   label: z.string().min(3).max(120),
   stages: z.array(z.string().min(1).max(80)).min(2).max(20),
   description: z.string().min(10).max(500),
+  defaultFrequency: z.number().finite().min(-2).max(2).default(0.05),
+  phaseSource: z.enum(["operational-stage", "seasonal", "market-cycle", "policy-cycle", "estimated", "synthetic"]).default("synthetic"),
 }).strict();
 
 const parameterLabelsSchema = z.object({
@@ -129,6 +131,27 @@ const parameterLabelsSchema = z.object({
   drift: z.string().min(2).max(80),
   irreversibleLoss: z.string().min(2).max(80),
   initialDebt: z.string().min(2).max(80),
+  restoration: z.string().min(2).max(120).default("Restoring strength"),
+  debtCoupling: z.string().min(2).max(120).default("Debt pressure"),
+  radialExcursion: z.string().min(2).max(160).default("Distance from viable recurrent operation"),
+}).strict();
+
+const parameterRangeSchema = z.object({
+  min: z.number().finite(),
+  max: z.number().finite(),
+  step: z.number().finite().positive(),
+}).strict().refine((value) => value.min < value.max, {
+  message: "A scenario parameter range must have min below max.",
+});
+
+const parameterRangesSchema = z.object({
+  pressure: parameterRangeSchema,
+  error: parameterRangeSchema,
+  feedback: parameterRangeSchema,
+  correction: parameterRangeSchema,
+  drift: parameterRangeSchema,
+  irreversibleLoss: parameterRangeSchema,
+  initialDebt: parameterRangeSchema,
 }).strict();
 
 const scenarioEvidenceSchema = z.object({
@@ -149,7 +172,10 @@ export const scenarioDefinitionSchema = z.object({
   title: z.string().min(4).max(160),
   shortTitle: z.string().min(2).max(80),
   summary: z.string().min(20).max(500),
-  category: z.enum(["AI", "Organizations", "Healthcare", "Ecology"]),
+  category: z.enum(["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"]),
+  watchlistTier: z.enum(["red", "orange", "yellow", "featured"]).default("featured"),
+  modelFamily: z.enum(["regenerative-stock", "threshold-regime-shift", "resistance-contagion", "trust-legitimacy", "capability-correction", "network-cascade", "financial-leverage", "human-capacity"]).default("capability-correction"),
+  calibration: z.enum(["illustrative", "literature-informed", "empirically-calibrated", "externally-validated"]).default("illustrative"),
   difficulty: z.enum(["Introductory", "Intermediate", "Advanced"]),
   icon: z.string().min(1).max(12),
   accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -159,6 +185,8 @@ export const scenarioDefinitionSchema = z.object({
   debtMechanism: z.string().min(10).max(500),
   irreversibleMechanism: z.string().min(10).max(500),
   interventionIds: z.array(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)).min(1).max(30),
+  events: z.array(z.string().min(3).max(200)).max(30).default([]),
+  interventions: z.array(z.string().min(3).max(200)).min(1).max(30).default(["Expand correction capacity"]),
   warningConditions: z.array(z.string().min(5).max(300)).min(1).max(20),
   ruptureCondition: z.string().min(10).max(500),
   recoveryCondition: z.string().min(10).max(500),
@@ -166,6 +194,24 @@ export const scenarioDefinitionSchema = z.object({
   evidence: scenarioEvidenceSchema.optional(),
   cycles: z.object({ minor: cycleSchema, major: cycleSchema }).strict(),
   labels: parameterLabelsSchema,
+  aixLabels: z.object({
+    physical: z.string().min(3).max(160),
+    biological: z.string().min(3).max(160),
+    constructed: z.string().min(3).max(160),
+    feedback: z.string().min(3).max(160),
+  }).strict().default({ physical: "Physical and factual validity", biological: "Human and ecological viability", constructed: "Task and institutional coherence", feedback: "Feedback and audit integrity" }),
+  ranges: parameterRangesSchema.default({
+    pressure: { min: 0, max: 2, step: 0.01 }, error: { min: 0, max: 1, step: 0.01 }, feedback: { min: 0, max: 1, step: 0.01 }, correction: { min: 0, max: 2, step: 0.01 }, drift: { min: 0, max: 0.5, step: 0.01 }, irreversibleLoss: { min: 0, max: 0.5, step: 0.01 }, initialDebt: { min: 0, max: 2, step: 0.01 },
+  }),
+  thresholds: z.object({
+    warningRho: z.number().finite().min(0).max(10),
+    criticalRho: z.number().finite().min(0.1).max(10),
+    irreversibleRho: z.number().finite().min(0.1).max(20),
+    phaseConfidenceMinimum: z.number().finite().min(0).max(1),
+  }).strict().superRefine((value, context) => {
+    if (value.warningRho >= value.criticalRho) context.addIssue({ code: "custom", path: ["warningRho"], message: "warningRho must be below criticalRho." });
+    if (value.criticalRho >= value.irreversibleRho) context.addIssue({ code: "custom", path: ["irreversibleRho"], message: "irreversibleRho must be above criticalRho." });
+  }).default({ warningRho: 1.6, criticalRho: 2.5, irreversibleRho: 3.4, phaseConfidenceMinimum: 0.2 }),
   defaults: simulationParametersSchema,
   presets: z.array(z.object({
     name: z.string().min(2).max(80),

@@ -49,7 +49,7 @@
             "correction": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1.5,
+              "maximum": 2,
               "description": "Correction capacity."
             },
             "drift": {
@@ -61,7 +61,7 @@
             "irreversibleLoss": {
               "type": "number",
               "minimum": 0,
-              "maximum": 0.35,
+              "maximum": 0.5,
               "description": "Irreversible loss rate."
             },
             "initialDebt": {
@@ -197,7 +197,7 @@
                   "correction": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1.5,
+                    "maximum": 2,
                     "description": "Correction capacity."
                   },
                   "drift": {
@@ -209,7 +209,7 @@
                   "irreversibleLoss": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 0.35,
+                    "maximum": 0.5,
                     "description": "Irreversible loss rate."
                   },
                   "initialDebt": {
@@ -371,7 +371,7 @@
             "correction": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1.5,
+              "maximum": 2,
               "description": "Correction capacity."
             },
             "drift": {
@@ -383,7 +383,7 @@
             "irreversibleLoss": {
               "type": "number",
               "minimum": 0,
-              "maximum": 0.35,
+              "maximum": 0.5,
               "description": "Irreversible loss rate."
             },
             "initialDebt": {
@@ -519,7 +519,7 @@
                   "correction": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 1.5,
+                    "maximum": 2,
                     "description": "Correction capacity."
                   },
                   "drift": {
@@ -531,7 +531,7 @@
                   "irreversibleLoss": {
                     "type": "number",
                     "minimum": 0,
-                    "maximum": 0.35,
+                    "maximum": 0.5,
                     "description": "Irreversible loss rate."
                   },
                   "initialDebt": {
