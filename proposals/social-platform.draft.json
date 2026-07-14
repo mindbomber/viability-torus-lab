@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "draft",
+  "action": "create",
+  "proposedBy": {
+    "kind": "agent",
+    "name": "Viability Torus Lab reference agent"
+  },
+  "rationale": "This draft tests whether content-ranking correction and platform-level governance can be represented as two distinct recurrent cycles without treating engagement or synchronization as alignment.",
+  "scenario": {
+    "id": "social-platform",
+    "version": "0.1.0",
+    "title": "Social Platform Under Engagement Pressure",
+    "shortTitle": "Social Platform",
+    "summary": "A social platform balancing engagement optimization, content correction, governance adaptation, user feedback, and cumulative trust debt.",
+    "category": "AI",
+    "difficulty": "Advanced",
+    "icon": "◎",
+    "accent": "#ff8a4c",
+    "optimizedOutcome": "Useful and sustainable participation",
+    "viableRegion": "Engagement that preserves user agency, information quality, safety, and institutional trust",
+    "hiddenConstraint": "Ranking metrics incompletely represent long-horizon user and societal effects",
+    "debtMechanism": "Unresolved moderation failures, incentive distortions, appeals backlog, and trust erosion",
+    "irreversibleMechanism": "Severe harm, entrenched manipulation, institutional capture, or lasting community loss",
+    "interventionIds": ["increase-correction", "improve-feedback", "reduce-pressure", "add-audit", "pause-optimization", "repay-debt"],
+    "warningConditions": [
+      "Engagement pressure rises while trustworthy feedback weakens",
+      "Moderation and appeals debt accumulates across ranking cycles",
+      "Radial excursion grows despite apparently stable engagement"
+    ],
+    "ruptureCondition": "Cumulative trust and safety debt pushes modeled excursion beyond the critical viability boundary.",
+    "recoveryCondition": "Engagement pressure falls while feedback, correction, and governance capacity remain strong enough to contract excursion and repay debt.",
+    "plainLanguageInterpretation": "A platform can improve a short-term engagement metric while making future correction more difficult and narrowing the set of trustworthy operating states.",
+    "cycles": {
+      "minor": {
+        "label": "Rank → observe → correct",
+        "stages": ["Rank", "Distribute", "Observe", "Moderate", "Correct"],
+        "description": "Fast content-ranking, feedback, moderation, and correction cycle"
+      },
+      "major": {
+        "label": "Govern → adapt",
+        "stages": ["Set policy", "Audit effects", "Consult stakeholders", "Revise governance"],
+        "description": "Slower institutional adaptation to users, adversaries, policy, and social context"
+      }
+    },
+    "labels": {
+      "pressure": "Engagement pressure",
+      "error": "Constraint misunderstanding",
+      "feedback": "User and safety signal quality",
+      "correction": "Moderation and governance capacity",
+      "drift": "Social and adversarial change",
+      "irreversibleLoss": "Lasting user or community harm",
+      "initialDebt": "Trust and moderation debt"
+    },
+    "defaults": {
+      "pressure": 1.7,
+      "error": 0.35,
+      "feedback": 0.6,
+      "correction": 0.48,
+      "drift": 0.08,
+      "irreversibleLoss": 0.02,
+      "initialDebt": 0.25,
+      "kappa": 0.26,
+      "chi": 0.08,
+      "omegaTheta": 0.09,
+      "omegaPhi": 0.055,
+      "couplingA": 0.03,
+      "couplingB": 0.02,
+      "rho0": 0.35,
+      "rhoCrit": 2.5,
+      "alpha": 0.16,
+      "beta": 0.1,
+      "seed": 4217,
+      "steps": 720,
+      "dt": 0.25
+    },
+    "presets": [
+      {
+        "name": "Deliberative balance",
+        "description": "Feedback and correction remain ahead of engagement divergence.",
+        "values": { "pressure": 1.35, "feedback": 0.78, "correction": 0.62, "initialDebt": 0.12 }
+      },
+      {
+        "name": "Engagement at risk",
+        "description": "High engagement pressure and weak feedback narrow the correction margin.",
+        "values": { "pressure": 2.5, "error": 0.6, "feedback": 0.3, "correction": 0.3, "drift": 0.15, "initialDebt": 0.5 }
+      },
+      {
+        "name": "Trust recovery",
+        "description": "Lower pressure and stronger governance support debt repayment.",
+        "values": { "pressure": 1.2, "feedback": 0.85, "correction": 0.78, "initialDebt": 0.8 }
+      }
+    ]
+  },
+  "evidence": {
+    "hypothesis": "The platform remains viable when ranking-level correction and governance-level adaptation both recur and correction capacity remains ahead of engagement-driven divergence.",
+    "assumptions": [
+      "The ranking and governance cycles are meaningfully distinct and recurrent.",
+      "The canonical variables are qualitative mappings rather than calibrated platform measurements.",
+      "Synchronization or engagement alone is not treated as alignment.",
+      "The selected thresholds are illustrative and require domain review before publication."
+    ],
+    "references": [
+      "Sori, A. (2026). Toroidal Geometry in ATS/AANA/AIx, revised phase-coordinate edition.",
+      "Viability Torus Lab architecture and status-threshold documentation."
+    ],
+    "evaluations": [
+      {
+        "name": "Nominal viable reference",
+        "seeds": [101, 211, 307, 401, 503],
+        "assertions": {
+          "maxRuptureRate": 0,
+          "minFinalAlignment": 0.9,
+          "maxFinalDebt": 0.05,
+          "minStableFraction": 0.95
+        }
+      },
+      {
+        "name": "Engagement failure reference",
+        "parameters": {
+          "pressure": 2.5,
+          "error": 0.6,
+          "feedback": 0.3,
+          "correction": 0.3,
+          "drift": 0.15,
+          "initialDebt": 0.5
+        },
+        "seeds": [101, 211, 307, 401, 503],
+        "assertions": {
+          "minRuptureRate": 1,
+          "maxFinalAlignment": 0.01
+        }
+      },
+      {
+        "name": "Early governance intervention reference",
+        "parameters": {
+          "pressure": 2.5,
+          "error": 0.6,
+          "feedback": 0.3,
+          "correction": 0.3,
+          "drift": 0.15,
+          "initialDebt": 0.5
+        },
+        "interventions": [
+          {
+            "id": "early-governance-intervention",
+            "label": "Improve feedback and governance while reducing engagement pressure",
+            "step": 10,
+            "effects": { "feedback": 0.85, "correction": 0.78, "pressure": 1.6, "error": 0.25 },
+            "cost": 4
+          }
+        ],
+        "seeds": [101, 211, 307, 401, 503],
+        "assertions": {
+          "maxRuptureRate": 0,
+          "minFinalAlignment": 0.9,
+          "minStableFraction": 0.9
+        }
+      }
+    ]
+  }
+}

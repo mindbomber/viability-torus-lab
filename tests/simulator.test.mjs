@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  analyzePhaseDynamics,
+  circularDistance,
   classifyStatus,
   defaultParameters,
   seededRandom,
@@ -25,6 +27,53 @@ test("identical seed and configuration reproduce every frame", () => {
   const second = simulate({ ...defaultParameters, steps: 180 });
   assert.deepEqual(first.frames, second.frames);
   assert.deepEqual(first.summary, second.summary);
+});
+
+test("phase regime is diagnosed separately from viability status", () => {
+  const result = simulate({ ...defaultParameters, steps: 960 });
+  assert.equal(result.summary.stableFraction, 1);
+  assert.equal(result.summary.firstWarningStep, undefined);
+  assert.equal(result.summary.phase.identifiable, true);
+  assert.notEqual(result.summary.phase.regime, "Not identifiable");
+  assert.ok(result.frames.every((frame) => frame.status === "Stable"));
+});
+
+test("short runs do not claim an identifiable external phase", () => {
+  const result = simulate({ ...defaultParameters, steps: 100 });
+  assert.equal(result.summary.phase.identifiable, false);
+  assert.equal(result.summary.phase.reason, "insufficient-cycles");
+  assert.ok(result.frames.every((frame) => frame.estimatedPhi === undefined));
+});
+
+test("the phase estimator tracks the simulated external phase only after its gates pass", () => {
+  const result = simulate({ ...defaultParameters, steps: 960 });
+  const errors = result.frames.map((frame) => circularDistance(frame.estimatedPhi, frame.phi));
+  const meanError = errors.reduce((sum, value) => sum + value, 0) / errors.length;
+  assert.ok(meanError < 0.35, `mean circular error ${meanError}`);
+});
+
+test("rational phase locking is symmetric and reports the detected ratio", () => {
+  const template = simulate({ ...defaultParameters, steps: 1 }).frames[0];
+  const frames = Array.from({ length: 420 }, (_, step) => {
+    const phiUnwrapped = 0.22 + step * 0.06;
+    const thetaUnwrapped = 0.7 + step * 0.12;
+    const phi = wrapAngle(phiUnwrapped);
+    return {
+      ...template,
+      step,
+      time: step * 0.25,
+      theta: wrapAngle(thetaUnwrapped),
+      phi,
+      thetaUnwrapped,
+      phiUnwrapped,
+      externalMismatch: 0.5 + 0.28 * Math.cos(phi) + 0.04 * Math.cos(2 * phi),
+    };
+  });
+  const phase = analyzePhaseDynamics(frames);
+  assert.equal(phase.identifiable, true);
+  assert.equal(phase.regime, "Phase locked");
+  assert.equal(phase.phaseLockingRatio, "2:1");
+  assert.ok(phase.phaseLockingValue > 0.999);
 });
 
 test("stable reference case remains below the viable boundary", () => {
@@ -82,7 +131,25 @@ test("scheduled intervention changes the active run outcome", () => {
   assert.equal(corrected.summary.interventionCost, 2);
 });
 
-test("status classifier exposes rupture and non-identifiable phase gates", () => {
-  assert.equal(classifyStatus(2.6, 0, 0, 0, 0, 2.5, 0, 0, 0.1, 0.05), "Ruptured");
-  assert.equal(classifyStatus(0.2, 0, 0.3, 0, 0, 2.5, 0, 0, 0.001, 0.001), "Phase not identifiable");
+test("bounded internal substeps prevent large-dt Euler artifacts", () => {
+  const fine = simulate({ ...defaultParameters, steps: 401, dt: 0.25 });
+  const coarse = simulate({ ...defaultParameters, steps: 11, dt: 10 });
+  assert.equal(fine.frames.at(-1).time, coarse.frames.at(-1).time);
+  assert.equal(fine.summary.finalAlignment, coarse.summary.finalAlignment);
+  assert.equal(fine.summary.finalDebt, coarse.summary.finalDebt);
+  assert.equal(fine.summary.maxRho, coarse.summary.maxRho);
+  assert.equal(coarse.summary.ruptureStep, undefined);
+});
+
+test("the initial frame is the declared initial state", () => {
+  const result = simulate({ ...defaultParameters, steps: 2, rho0: 0.41, initialDebt: 0.73 });
+  assert.equal(result.frames[0].rho, 0.41);
+  assert.equal(result.frames[0].debt, 0.73);
+  assert.equal(result.frames[0].time, 0);
+});
+
+test("status classifier reports viability only and invalid radial bounds fail closed", () => {
+  assert.equal(classifyStatus(2.6, 0, 0, 0, 0, 2.5), "Ruptured");
+  assert.equal(classifyStatus(0.2, 0, 0.3, 0, 0, 2.5), "Stable");
+  assert.throws(() => simulate({ ...defaultParameters, rho0: 2.5, rhoCrit: 2.5 }), /rho0 must remain below rhoCrit/i);
 });

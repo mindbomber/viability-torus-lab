@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SimulationFrame, SimulationParameters } from "@/engine/simulator";
+import {
+  displayDebt,
+  displayExcursion,
+  phaseAnalysisAvailable,
+} from "@/components/charts/visualizationMath";
 
 type Props = {
   frames: SimulationFrame[];
@@ -42,17 +47,19 @@ export function TorusCanvas({
   const trajectoryPoints = useRef<{ index: number; x: number; y: number }[]>([]);
 
   const frame = frames[Math.min(frameIndex, frames.length - 1)] ?? frames[0];
-  const severity = frame ? Math.min(1, frame.rho / params.rhoCrit) : 0;
+  const excursion = displayExcursion(frame?.rho ?? 0, params.rhoCrit);
+  const severity = Math.min(1, excursion.ratio);
+  const phaseReady = phaseAnalysisAvailable(frameIndex, frames.length);
   const geometryState = useMemo(() => {
     if (!frame) return "calibrating";
     if (frame.status === "Ruptured") return "ruptured geometry";
     if (severity > 0.78) return "expanding excursion";
     if (frame.status === "Recovering") return "partial recovery";
-    if (frame.status === "Phase locked") return "phase-locked trajectory";
+    if (phaseReady && frame.phaseRegime === "Phase locked") return "phase-locked trajectory";
     if (frame.debt > 0.7) return "hysteretic deformation";
     if (severity > 0.45) return "locally warped torus";
     return "healthy viable torus";
-  }, [frame, severity]);
+  }, [frame, phaseReady, severity]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -172,12 +179,14 @@ export function TorusCanvas({
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label={`Interactive ${geometryState}. Current alignment ${Math.round((frame?.alignment ?? 0) * 100)} percent, radial excursion ${(frame?.rho ?? 0).toFixed(2)}, debt ${(frame?.debt ?? 0).toFixed(2)}.`}
+        data-chart-kind="torus"
+        data-offscale={excursion.offScale ? "true" : "false"}
+        aria-label={`Interactive ${geometryState}. Current alignment ${Math.round((frame?.alignment ?? 0) * 100)} percent, radial excursion ${(frame?.rho ?? 0).toFixed(2)}, debt ${(frame?.debt ?? 0).toFixed(2)}${excursion.offScale ? `; excursion is off the display scale at ${excursion.ratio.toFixed(1)} times the critical radius` : ""}. ${phaseReady ? `Offline full-run phase regime ${frame?.phaseRegime ?? "not available"}; external phase ${frame?.phaseIdentifiable ? "identifiable" : "not identifiable"}` : "Offline phase analysis is available after the full run"}.`}
       />
       {!compact && (
         <>
           <div className="torus-legend legend-minor"><strong>Minor cycle (θ)</strong><span>{"Propose → verify → correct"}</span></div>
-          <div className="torus-legend legend-major"><strong>Major cycle (φ)</strong><span>{"Observe → adapt → govern"}</span></div>
+          <div className="torus-legend legend-major"><strong>Major cycle (simulated φ)</strong><span>{"Observe → adapt → govern"}</span></div>
           <div className="torus-legend legend-tube"><strong>Viable tube</strong><span>safe alignment band</span></div>
           <div className="torus-legend legend-warning"><strong>Warning zone</strong><span>high radial excursion</span></div>
           {showLabels && <div className="axis-labels" aria-hidden="true"><span className="axis-x">x</span><span className="axis-y">y</span><span className="axis-z">z</span></div>}
@@ -223,6 +232,7 @@ function drawTorus(
   const uCount = compact ? 28 : 42;
   const vCount = compact ? 13 : 19;
   const severity = Math.min(1.25, frame.rho / params.rhoCrit);
+  const visualDebt = displayDebt(frame.debt);
   const quads: { points: Point2[]; depth: number; u: number; v: number }[] = [];
   for (let u = 0; u < uCount; u += 1) {
     for (let v = 0; v < vCount; v += 1) {
@@ -232,10 +242,10 @@ function drawTorus(
       const v1 = ((v + 1) / vCount) * TAU;
       const deform = severity * (0.15 + Math.max(0, Math.cos(u0 - 0.1)) * 0.35);
       const p = [
-        project(rotatePoint(v0, u0, deform, frame.debt)),
-        project(rotatePoint(v0, u1, deform, frame.debt)),
-        project(rotatePoint(v1, u1, deform, frame.debt)),
-        project(rotatePoint(v1, u0, deform, frame.debt)),
+        project(rotatePoint(v0, u0, deform, visualDebt)),
+        project(rotatePoint(v0, u1, deform, visualDebt)),
+        project(rotatePoint(v1, u1, deform, visualDebt)),
+        project(rotatePoint(v1, u0, deform, visualDebt)),
       ];
       quads.push({ points: p, depth: p.reduce((sum, point) => sum + point.z, 0) / 4, u, v });
     }
@@ -270,8 +280,9 @@ function drawTorus(
       ctx.beginPath();
       for (let i = 0; i <= 100; i += 1) {
         const phi = (i / 100) * TAU;
-        const point = project(rotatePoint(Math.PI / 2 + band * 0.42, phi, 0.08, frame.debt));
-        i ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y);
+        const point = project(rotatePoint(Math.PI / 2 + band * 0.42, phi, 0.08, visualDebt));
+        if (i) ctx.lineTo(point.x, point.y);
+        else ctx.moveTo(point.x, point.y);
       }
       ctx.stroke();
     }
@@ -283,8 +294,9 @@ function drawTorus(
   ctx.beginPath();
   for (let i = 0; i <= 22; i += 1) {
     const phi = -0.42 + (i / 22) * 0.7;
-    const point = project(rotatePoint(Math.PI * 0.16, phi, severity * 0.5 + 0.14, frame.debt));
-    i ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y);
+    const point = project(rotatePoint(Math.PI * 0.16, phi, severity * 0.5 + 0.14, visualDebt));
+    if (i) ctx.lineTo(point.x, point.y);
+    else ctx.moveTo(point.x, point.y);
   }
   ctx.stroke();
   ctx.restore();
@@ -308,7 +320,7 @@ function drawTrajectory(
   let previous: Point2 | null = null;
   for (let index = start; index <= end; index += stride) {
     const frame = frames[index];
-    const point = project(rotatePoint(frame.theta, frame.phi, frame.rho / params.rhoCrit, frame.debt));
+    const point = project(rotatePoint(frame.theta, frame.phi, displayExcursion(frame.rho, params.rhoCrit).plottedRatio, displayDebt(frame.debt)));
     points.push({ index, x: point.x, y: point.y });
     if (previous) {
       const age = (index - start) / Math.max(1, end - start);
@@ -328,7 +340,8 @@ function drawTrajectory(
 }
 
 function drawCurrentMarker(ctx: CanvasRenderingContext2D, project: (point: Point3) => Point2, frame: SimulationFrame, params: SimulationParameters, compact: boolean) {
-  const point = project(rotatePoint(frame.theta, frame.phi, frame.rho / params.rhoCrit, frame.debt));
+  const excursion = displayExcursion(frame.rho, params.rhoCrit);
+  const point = project(rotatePoint(frame.theta, frame.phi, excursion.plottedRatio, displayDebt(frame.debt)));
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   ctx.fillStyle = frame.status === "Ruptured" ? "#ff443c" : "#fff7b0";
@@ -342,6 +355,12 @@ function drawCurrentMarker(ctx: CanvasRenderingContext2D, project: (point: Point
   ctx.beginPath();
   ctx.arc(point.x, point.y, compact ? 7 : 11, 0, TAU);
   ctx.stroke();
+  if (excursion.offScale) {
+    ctx.font = `${compact ? 9 : 11}px ui-monospace`;
+    ctx.fillStyle = "#ff8268";
+    ctx.shadowBlur = 5;
+    ctx.fillText(`OFF-SCALE ρ ${excursion.ratio.toFixed(1)}×ρcrit`, point.x + 12, point.y - 10);
+  }
   ctx.restore();
 }
 
@@ -378,7 +397,7 @@ function drawUnwrapped(ctx: CanvasRenderingContext2D, width: number, height: num
   }
   ctx.fillStyle = "rgba(196,215,240,.8)";
   ctx.font = "11px ui-monospace";
-  ctx.fillText("φ · external adaptation phase", margin.x, height - 12);
+  ctx.fillText("φ · simulated latent external phase", margin.x, height - 12);
   ctx.save(); ctx.translate(14, margin.y + chartH); ctx.rotate(-Math.PI / 2); ctx.fillText("θ · local correction phase", 0, 0); ctx.restore();
 }
 

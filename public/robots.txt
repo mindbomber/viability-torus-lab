@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://viability-torus-lab.citizen-of-earth.chatgpt.site/sitemap.xml

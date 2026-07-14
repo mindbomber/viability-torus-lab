@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Deployment stress ensemble",
+  "scenarioId": "llm-deployment",
+  "parameters": {
+    "pressure": 2.5,
+    "error": 0.55,
+    "feedback": 0.35,
+    "correction": 0.35,
+    "drift": 0.12,
+    "initialDebt": 0.45
+  },
+  "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "includeFrames": false
+}

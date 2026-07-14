@@ -2,7 +2,7 @@
 
 ## Application architecture
 
-The site is a client-side scientific dashboard delivered through the vinext Sites runtime. The application keeps the MVP intentionally local-first: there are no accounts, uploads, or cloud records. A saved preset uses browser storage, while shared runs serialize a validated subset of scenario, seed, and parameters into the URL.
+The site is a scientific dashboard delivered through the vinext Sites runtime. It remains local-first for user state: there are no accounts, uploads, or cloud records. A saved preset uses browser storage, while shared runs serialize a validated subset of scenario, seed, and parameters into the URL. Stateless HTTP and MCP routes expose bounded, read-only computation without persisting requests or results.
 
 The UI is organized into product views inside `app/page.tsx`. All views consume the same scenario definitions and simulation engine. The live torus, charts, status panel, explanations, comparisons, tables, and exports therefore derive from one authoritative frame sequence.
 
@@ -11,42 +11,58 @@ The UI is organized into product views inside `app/page.tsx`. All views consume 
 For each step:
 
 1. Apply scheduled parameter interventions.
-2. Draw deterministic seeded perturbations.
-3. Compute divergence pressure `D = πε(1-γ) + Λ + Φ`.
-4. Update debt with accumulation and repayment terms.
-5. Compute radial velocity and update `ρ`.
-6. Advance and wrap local phase `θ` and external phase `φ`.
-7. Derive alignment `A = exp(-ρ)`.
-8. Classify status from documented radial, debt, correction-margin, and phase gates.
+2. Compute divergence pressure `D = πε(1-γ) + Λ + Φ` and correction margin.
+3. Split the requested `dt` into deterministic internal substeps no larger than `0.25`.
+4. On each substep, update debt with `α[D-C]₊ - β[C-D]₊q(A)`, using `q(A)=exp(-ρ)`.
+5. Advance both phases from the same prior state, draw deterministic seeded perturbations, and preserve unwrapped phase travel.
+6. Update radial excursion from restoration, divergence, correction, and prior debt.
+7. Derive alignment `A = exp(-ρ)` and classify viability status.
+8. After the run, apply temporal/spectral phase-identifiability gates, estimate external phase from the synthetic mismatch signal, and classify the phase regime separately from viability.
 
-`engine/simulator.ts` caps a run at 10,000 steps and returns both frames and a reproducible summary. The seeded generator is part of the exported engine surface and is covered by a fixed deterministic test.
+Frame zero is the declared initial state; the first integration occurs at frame one. `engine/simulator.ts` caps a run at 10,000 output steps and returns both frames and a reproducible summary. The seeded generator is part of the exported engine surface and is covered by deterministic reference tests. Public work budgets charge internal substeps, not only returned frames.
 
-## Status thresholds
+## Machine contract
+
+`contracts/` is the shared boundary for the CLI, HTTP API, MCP tools, configuration imports, proposal validation, and generated JSON Schemas. These surfaces call `engine/simulator.ts`; none reimplement the dynamics. Public operations apply both per-field limits and aggregate work budgets. Frames are opt-in and sampled to a total response budget.
+
+Contract schemas are generated into `public/schemas/v1/`. Breaking changes require an explicit contract/API version decision; model-equation changes require a model-version decision and deterministic reference updates.
+
+## Viability and phase diagnostics
+
+Viability statuses are intentionally independent from phase diagnostics:
 
 - Ruptured: `ρ >= ρcrit`
 - Rupture approaching: `ρ >= 0.84 ρcrit`
 - Recovering: negative radial velocity after material excursion or debt
 - Expanding: radial velocity above `0.055`
 - Debt accumulating: positive debt velocity with debt above `0.28`
-- Phase not identifiable: the combined phase frequencies are below `0.015`
-- Phase locked: the current 2:1 phase residual is within `0.055` radians
 - Drifting: correction margin below `-0.025`
 - Fragile: excursion above half the critical radius or margin below `0.045`
 - Warning: excursion above `0.34 ρcrit` or debt above `0.55`
 - Stable: none of the above gates apply
 
-The ordering is intentional: safety-critical radial states take precedence over descriptive phase states.
+The ordering is intentional: safety-critical radial states take precedence over lower-severity viability descriptions. Recovery is reported only when a warned, non-ruptured run ends with a sustained stable tail.
+
+The external phase estimate is reported only when all of these conditions hold:
+
+- mismatch amplitude is at least `0.02`;
+- dominant spectral concentration is at least `0.2`;
+- the dominant mismatch signal completes at least two cycles over the observation window; and
+- the output sampling interval does not advance the major phase by `π/2` or more.
+
+When identifiable, the phase regime is either recurrent winding or rational phase locking. Locking scans coprime signed ratios with numerator and denominator magnitudes up to four and requires a phase-locking value of at least `0.985`. The latent phase is available for synthetic ground-truth evaluation; the dashboard labels it as simulated and presents the estimator separately.
 
 ## Scenario schema and administration
 
-`scenarios/catalog.ts` is the version-controlled scenario registry. A scenario separates canonical variables from domain labels and supplies its title, category, cycles, viable region, hidden constraints, debt and loss mechanisms, defaults, and presets. To publish a scenario:
+`scenarios/catalog.ts` is the version-controlled published scenario registry. A scenario separates canonical variables from domain labels and supplies its title, version, category, cycles, viable region, hidden constraints, debt and loss mechanisms, defaults, and presets. Agent-created definitions remain draft proposal files until reviewed. To publish a scenario:
 
 1. Add a typed definition to `scenarios`.
 2. Map all visible canonical parameters.
 3. Define both recurrent phases and test that they are meaningful in the domain.
 4. Provide conservative viable, warning, rupture, and recovery interpretations.
-5. Add a deterministic reference configuration to the test suite.
-6. Increment the scenario version in exported metadata.
+5. Declare calibration status, parameter units, assumptions, references, and falsification criteria.
+6. Add a deterministic reference configuration to the test suite.
+7. Increment the scenario version in exported metadata.
 
 The current MVP uses version-controlled TypeScript rather than a graphical CMS.
 
@@ -73,7 +89,7 @@ The torus uses adaptive mesh detail, a device-pixel-ratio cap, and a single anim
 
 ## Security and privacy
 
-The public MVP has no account, backend, dataset upload, or arbitrary code path. Imported JSON is size-limited, schema-checked, range-checked, and never evaluated or rendered as HTML. Local analytics store only named UI events and structured values in session storage. No raw custom-system text is collected.
+The public application has no account, persistence, dataset upload, or arbitrary code path. Imported and posted JSON is size-limited, schema-checked, range-checked, and never evaluated or rendered as HTML. API and MCP operations are read-only and bounded by runs, steps, candidates, returned frames, and total integration work. Local analytics store only named UI events and structured values in session storage. No raw custom-system text is collected.
 
 ## Troubleshooting
 
@@ -84,4 +100,4 @@ The public MVP has no account, backend, dataset upload, or arbitrary code path. 
 
 ## Known limitations
 
-The model is synthetic and scenario thresholds are illustrative. The custom-system builder generates a template-based definition rather than arbitrary equations. Presets are device-local. There is no user authentication, collaborative experiment history, uploaded data, server-side ensemble execution, or public scenario marketplace in this MVP.
+The model is synthetic and scenario thresholds are illustrative. The custom-system builder generates a template-based definition rather than arbitrary equations. Presets are device-local. There is no user authentication, collaborative experiment history, uploaded data, durable job queue, empirical calibration pipeline, or automatic scenario marketplace. Public ensembles and sweeps are intentionally bounded synchronous computations.
