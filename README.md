@@ -1,5 +1,7 @@
 # Viability Torus Lab
 
+[![Viability Torus Lab — agent-operable toroidal viability experiments](public/og.png)](https://viability-torus-lab.citizen-of-earth.chatgpt.site)
+
 Viability Torus Lab is an interactive ATS/AANA/AIx simulation environment. It maps a fast local correction phase and a slower external adaptation phase onto a torus, then uses radial excursion, correction capacity, divergence pressure, alignment debt, and irreversible loss to explain whether a system stays viable, drifts, recovers, or ruptures.
 
 ## Local development
