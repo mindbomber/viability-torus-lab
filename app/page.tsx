@@ -562,13 +562,6 @@ function SimulatorView(props: SimulatorProps) {
         <div><div className="eyebrow"><span>{scenario.category}</span><span className={`tier-${scenario.watchlistTier}`}>{tierLabels[scenario.watchlistTier]}</span><span>{scenario.modelFamily.replaceAll("-", " ")}</span><span>Scenario v{scenario.version}</span><span>{scenario.evidence.status}</span></div><h1>{scenario.title}</h1><p>{scenario.summary}</p></div>
         <div className="scenario-facts"><span><small>Optimizes</small>{scenario.optimizedOutcome}</span><span><small>Current seed</small>{params.seed}</span><span><small>Educational tier / illustrative live</small>{scenario.watchlistTier.toUpperCase()} / {displayStatus}</span></div>
       </section>
-      <WatchlistReceipt
-        scenario={scenario}
-        baseline={baselineAssessment}
-        current={currentAssessment}
-        parameters={params}
-        liveStatus={displayStatus}
-      />
       <div className="dashboard-grid">
         <Panel className="torus-panel" title="Alignment Maintenance Torus" subtitle={`Eqs. 4–6 synthetic embedding · ${scenario.cycles.minor.label} × ${scenario.cycles.major.label}`} action={<span className="panel-chip">Synthetic 3D embedding</span>}>
           <TorusCanvas frames={frames} frameIndex={frameIndex} params={params} playing={playing} onSelectFrame={(index) => { setFrameIndex(index); props.setPlaying(false); }} />
@@ -641,6 +634,14 @@ function SimulatorView(props: SimulatorProps) {
           <button onClick={props.importConfiguration}>⇧ Import</button>
           <button onClick={props.loadSavedPreset}>♡ Load saved</button>
         </>}
+      />
+
+      <WatchlistReceipt
+        scenario={scenario}
+        baseline={baselineAssessment}
+        current={currentAssessment}
+        parameters={params}
+        liveStatus={displayStatus}
       />
 
       <ParameterTranslation
