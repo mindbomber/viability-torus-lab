@@ -96,6 +96,13 @@ const growthAtRiskByTier: Record<WatchlistTier, Partial<SimulationParameters>> =
   featured: { pressure: 2.35, feedback: 0.42, correction: 0.42, initialDebt: 0.34 },
 };
 
+const rupturePolicyByTier: Record<WatchlistTier, { cumulativeLossThreshold: number; debtThreshold: number; persistenceSteps: number }> = {
+  red: { cumulativeLossThreshold: 0.35, debtThreshold: 0.8, persistenceSteps: 10 },
+  orange: { cumulativeLossThreshold: 0.5, debtThreshold: 1, persistenceSteps: 12 },
+  yellow: { cumulativeLossThreshold: 0.7, debtThreshold: 1.2, persistenceSteps: 16 },
+  featured: { cumulativeLossThreshold: 0.5, debtThreshold: 1, persistenceSteps: 12 },
+};
+
 const scenarioPresets = (tier: WatchlistTier): ScenarioDefinition["presets"] => [
   { name: "Balanced", description: "Correction keeps pace with divergence in this synthetic mapping.", values: { pressure: 1, error: 0.22, feedback: 0.78, correction: 0.82, initialDebt: 0.12, drift: 0.06, irreversibleLoss: 0.02 } },
   { name: "Growth at risk", description: "High pressure, weak feedback, and a narrowing correction margin.", values: growthAtRiskByTier[tier] },
@@ -143,8 +150,8 @@ const makeScenario = (seed: ScenarioSeed): ScenarioDefinition => {
     events: seed.events ?? ["Pressure shock", "Feedback degradation", "Correction investment"],
     interventions: seed.interventions ?? ["Reduce pressure", "Improve feedback fidelity", "Expand correction capacity", "Repay accumulated debt"],
     warningConditions: standardWarnings,
-    ruptureCondition: `${seed.meanings.r} crosses the critical modeled viability boundary after correction remains below divergence.`,
-    recoveryCondition: `Excursion and debt contract after feedback and correction again exceed divergence pressure.`,
+    ruptureCondition: `${seed.meanings.r} first crosses the modeled viability boundary; irreversible rupture is declared only after the scenario's persistent-loss policy also fires.`,
+    recoveryCondition: `A boundary crossing remains recoverable while terminal conditions have not fired and excursion and debt contract after debt-adjusted correction again exceeds divergence pressure.`,
     plainLanguageInterpretation: seed.distinctive ?? `The system can appear productive while hidden debt reduces its ability to absorb the next shock.`,
     evidence: {
       status: "illustrative",
@@ -169,6 +176,12 @@ const makeScenario = (seed: ScenarioSeed): ScenarioDefinition => {
     aixLabels: familyAixLabels[seed.family],
     ranges: normalizedRanges,
     thresholds: { warningRho: defaults.rhoCrit * 0.65, criticalRho: defaults.rhoCrit, irreversibleRho: defaults.rhoCrit * 1.35, phaseConfidenceMinimum: 0.2 },
+    rupturePolicy: {
+      irreversibleRho: defaults.rhoCrit * 1.35,
+      ...rupturePolicyByTier[seed.tier],
+      provenance: "illustrative-scenario-policy",
+      rationale: "Terminal rupture requires persistent excursion plus accumulated irreversible loss and either severe radial expansion or alignment debt; these thresholds are synthetic scenario settings, not measured domain limits.",
+    },
     defaults,
     presets: scenarioPresets(seed.tier),
   };

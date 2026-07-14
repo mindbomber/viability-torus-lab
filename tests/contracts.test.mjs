@@ -8,6 +8,7 @@ import { validateScenarioProposal } from "../contracts/proposals.ts";
 import { scenarioDefinitionSchema } from "../contracts/schemas.ts";
 import { MODEL_VERSION, simulate } from "../engine/simulator.ts";
 import { scenarios } from "../scenarios/catalog.ts";
+import { assessTorusEligibility, buildScenarioProposal, emptyBuilderAnswers } from "../scenarios/builder.ts";
 
 test("every published scenario conforms to the versioned scenario contract", () => {
   for (const scenario of scenarios) assert.equal(scenarioDefinitionSchema.safeParse(scenario).success, true, scenario.id);
@@ -164,10 +165,78 @@ test("reference draft scenario passes evidence checks but is never auto-publisha
   assert.ok(result.evaluations.every((evaluation) => evaluation.passed));
 });
 
+test("builder requires two independently recurrent observable phases", () => {
+  const answers = emptyBuilderAnswers();
+  Object.assign(answers, {
+    systemName: "Emergency Department",
+    category: "Healthcare",
+    objective: "Treat urgent patients safely and promptly",
+    pressure: "Arrival load and wait-time targets",
+    minorCycle: "triage → diagnose → treat → reassess",
+    majorCycle: "review demand → revise staffing → evaluate outcomes",
+    independentCycles: "Uncertain — needs evidence",
+    minorObservation: "Workflow timestamps identify the operational stage",
+    majorObservation: "Quarterly demand telemetry tested for recurrent cycles",
+    feedback: "Outcome audits and follow-up data",
+    misclassification: "Acuity hidden by incomplete intake information",
+    correction: "Senior review and surge staffing",
+    drift: "Seasonal disease and changing care standards",
+    debt: "Unresolved cases, fatigue, and audit backlog",
+    irreversibleLoss: "Preventable death or permanent trust loss",
+    viableRegion: "Safe outcomes, bounded queues, and sustainable workload",
+    shocks: "Demand spike, staffing loss, early surge activation",
+    falsification: "The external signal does not recur or the cycles are not dynamically distinct",
+  });
+  const uncertain = assessTorusEligibility(answers);
+  assert.equal(uncertain.eligible, false);
+  assert.ok(uncertain.issues.some((issue) => issue.field === "independentCycles"));
+  answers.independentCycles = "Yes — independently recurrent";
+  assert.equal(assessTorusEligibility(answers).eligible, true);
+});
+
+test("builder emits a schema-valid executable draft proposal with objective and pressure kept distinct", () => {
+  const answers = emptyBuilderAnswers();
+  Object.assign(answers, {
+    systemName: "Emergency Department",
+    category: "Healthcare",
+    objective: "Treat urgent patients safely and promptly",
+    pressure: "Arrival load and wait-time targets",
+    minorCycle: "triage → diagnose → treat → reassess",
+    majorCycle: "review demand → revise staffing → evaluate outcomes",
+    independentCycles: "Yes — independently recurrent",
+    minorObservation: "Workflow timestamps identify the operational stage",
+    majorObservation: "Quarterly demand telemetry with spectral and cycle-count gates",
+    feedback: "Outcome audits and follow-up data",
+    misclassification: "Acuity hidden by incomplete intake information",
+    correction: "Senior review and surge staffing",
+    drift: "Seasonal disease and changing care standards",
+    debt: "Unresolved cases, fatigue, and audit backlog",
+    irreversibleLoss: "Preventable death or permanent trust loss",
+    viableRegion: "Safe outcomes, bounded queues, and sustainable workload",
+    shocks: "Demand spike, staffing loss, early surge activation",
+    falsification: "The external signal does not recur or the cycles are not dynamically distinct",
+  });
+  const proposal = buildScenarioProposal(answers);
+  assert.equal(scenarioDefinitionSchema.safeParse(proposal.scenario).success, true);
+  assert.equal(proposal.status, "draft");
+  assert.equal(proposal.scenario.optimizedOutcome, answers.objective);
+  assert.equal(proposal.scenario.labels.pressure, answers.pressure);
+  assert.notEqual(proposal.scenario.optimizedOutcome, proposal.scenario.labels.pressure);
+  const validation = validateScenarioProposal(proposal);
+  assert.equal(validation.valid, true);
+  assert.equal(validation.publishable, false);
+  assert.equal(validation.evaluations.length, 3);
+});
+
 test("generated JSON Schema catalog is valid JSON with stable ids", async () => {
   const index = JSON.parse(await readFile(resolve("public/schemas/v1/index.json"), "utf8"));
   assert.equal(index.schemaVersion, "1.0.0");
-  assert.equal(index.schemas.length, 7);
+  assert.equal(index.schemas.length, 13);
+  assert.ok(index.schemas.some((item) => item.name === "empirical-evidence-bundle"));
+  assert.ok(index.schemas.some((item) => item.name === "empirical-research-request"));
+  assert.ok(index.schemas.some((item) => item.name === "empirical-research-receipt"));
+  assert.ok(index.schemas.some((item) => item.name === "empirical-evidence-registry-request"));
+  assert.ok(index.schemas.some((item) => item.name === "empirical-evidence-registry"));
   for (const item of index.schemas) {
     const schema = JSON.parse(await readFile(resolve(`public${item.url}`), "utf8"));
     assert.match(schema.$id, /\/schemas\/v1\/.+\.schema\.json$/);

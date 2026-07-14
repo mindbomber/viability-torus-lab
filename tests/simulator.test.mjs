@@ -1,12 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
+  PAPER_LEGACY_EXPECTED_DIGESTS,
+  analyzeExternalTelemetry,
   analyzePhaseDynamics,
   circularDistance,
   classifyStatus,
   defaultParameters,
+  paperLegacyCases,
   seededRandom,
   simulate,
+  simulateCoupledTori,
+  simulateLegacyPaperCase,
   wrapAngle,
 } from "../engine/simulator.ts";
 
@@ -152,4 +158,90 @@ test("status classifier reports viability only and invalid radial bounds fail cl
   assert.equal(classifyStatus(2.6, 0, 0, 0, 0, 2.5), "Ruptured");
   assert.equal(classifyStatus(0.2, 0, 0.3, 0, 0, 2.5), "Stable");
   assert.throws(() => simulate({ ...defaultParameters, rho0: 2.5, rhoCrit: 2.5 }), /rho0 must remain below rhoCrit/i);
+});
+
+test("boundary crossing can recover without being mislabeled as terminal rupture", () => {
+  const result = simulate({
+    ...defaultParameters,
+    steps: 900,
+    pressure: 3,
+    error: 0.9,
+    feedback: 0.08,
+    correction: 0.08,
+    drift: 0.3,
+    irreversibleLoss: 0.01,
+    initialDebt: 0.7,
+  }, [{
+    id: "recovery",
+    label: "Recovery intervention",
+    step: 140,
+    cost: 1,
+    effects: { pressure: 0.8, error: 0.1, feedback: 0.9, correction: 1.2, drift: 0.01 },
+  }], {
+    rupturePolicy: {
+      irreversibleRho: 8,
+      cumulativeLossThreshold: 99,
+      debtThreshold: 99,
+      persistenceSteps: 10_000,
+      provenance: "illustrative-scenario-policy",
+      rationale: "Test policy keeps the excursion recoverable.",
+    },
+  });
+  assert.ok(result.frames.some((frame) => frame.viabilityState === "Viability-boundary crossing"));
+  assert.ok(result.frames.some((frame) => frame.viabilityState === "Recoverable excursion"));
+  assert.equal(result.summary.irreversibleRuptureStep, undefined);
+  assert.equal(result.summary.recoveredAfterCrossing, true);
+  assert.equal(result.summary.finalViabilityState, "Viable recurrence");
+});
+
+test("irreversible rupture is an absorbing terminal state after the configured policy fires", () => {
+  const result = simulate({
+    ...defaultParameters,
+    steps: 160,
+    pressure: 3,
+    error: 1,
+    feedback: 0,
+    correction: 0,
+    drift: 0.5,
+    irreversibleLoss: 0.35,
+    initialDebt: 2,
+  });
+  const ruptureStep = result.summary.irreversibleRuptureStep;
+  assert.ok(Number.isInteger(ruptureStep));
+  assert.ok(result.frames.slice(ruptureStep).every((frame) => frame.viabilityState === "Irreversible rupture"));
+  assert.ok(result.frames.at(-1).ruptureProgress >= 0.32);
+  assert.equal(result.summary.finalViabilityState, "Irreversible rupture");
+  assert.equal(result.summary.aix.decision, "refuse");
+  assert.ok(result.summary.aix.hardBlockers.includes("irreversible-rupture"));
+});
+
+test("paper reproduction cases match archived metrics and versioned output hashes", () => {
+  for (const fixture of paperLegacyCases) {
+    const result = simulateLegacyPaperCase(fixture.id);
+    const digest = createHash("sha256").update(result.verificationPayload).digest("hex");
+    assert.equal(result.matchesArchive, true, fixture.id);
+    assert.ok(result.maximumAbsoluteError <= 1e-9, fixture.id);
+    assert.equal(digest, PAPER_LEGACY_EXPECTED_DIGESTS[fixture.id], fixture.id);
+  }
+});
+
+test("external telemetry identifiability gates periodic data and rejects flat observations", () => {
+  const periodic = analyzeExternalTelemetry(Array.from({ length: 320 }, (_, index) => ({
+    time: index * 0.25,
+    mismatch: 0.5 + 0.28 * Math.cos(index * Math.PI / 32) + 0.03 * Math.cos(index * Math.PI / 16),
+  })));
+  assert.equal(periodic.diagnostics.identifiable, true);
+  assert.ok(periodic.samples.every((sample) => sample.estimatedPhase !== undefined));
+
+  const flat = analyzeExternalTelemetry(Array.from({ length: 64 }, (_, index) => ({ time: index, mismatch: 0.5 })));
+  assert.equal(flat.diagnostics.identifiable, false);
+  assert.ok(flat.samples.every((sample) => sample.estimatedPhase === undefined));
+});
+
+test("coupled-tori studies remain deterministic and distinguish coordination from viability", () => {
+  const first = simulateCoupledTori(0.18, 17, 12, 500);
+  const second = simulateCoupledTori(0.18, 17, 12, 500);
+  assert.deepEqual(first, second);
+  assert.ok(first.meanOrderLast >= 0 && first.meanOrderLast <= 1);
+  assert.ok(Number.isFinite(first.meanRhoLast));
 });

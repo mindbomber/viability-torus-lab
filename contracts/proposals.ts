@@ -58,7 +58,11 @@ export function validateScenarioProposal(input: unknown, limits: ExecutionLimits
       const parsed = simulationParametersSchema.safeParse(activeParameters);
       if (!parsed.success) throw new ContractError("Proposal intervention creates an invalid parameter state.", parsed.error.issues.map((issue) => ({ path: `evidence.evaluations.${evaluation.name}.interventions.${index}.effects.${issue.path.map(String).join(".")}`, message: issue.message })));
     });
-    const summaries: SimulationSummary[] = evaluation.seeds.map((seed) => simulate({ ...parameters, seed }, evaluation.interventions).summary);
+    const summaries: SimulationSummary[] = evaluation.seeds.map((seed) => simulate(
+      { ...parameters, seed },
+      evaluation.interventions,
+      { rupturePolicy: proposal.scenario.rupturePolicy },
+    ).summary);
     const ensemble = summarizeRuns(summaries);
     const failures = checkAssertion(ensemble, evaluation.assertions);
     failures.forEach((message) => issues.push({ severity: "error", path: `evidence.evaluations.${evaluation.name}`, message }));

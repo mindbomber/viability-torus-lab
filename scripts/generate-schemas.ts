@@ -3,6 +3,12 @@ import { resolve } from "node:path";
 import * as z from "zod/v4";
 import {
   comparisonSpecSchema,
+  empiricalEvidenceBundleSchema,
+  empiricalEvidenceRegistryBundleSchema,
+  empiricalEvidenceRegistryRequestSchema,
+  empiricalResearchReceiptSchema,
+  empiricalResearchRequestSchema,
+  externalTelemetrySchema,
   experimentSpecSchema,
   scenarioDefinitionSchema,
   scenarioProposalSchema,
@@ -23,6 +29,12 @@ const definitions = [
   ["parameter-sweep", "Parameter sweep", sweepSpecSchema],
   ["scenario", "Scenario definition", scenarioDefinitionSchema],
   ["scenario-proposal", "Draft scenario proposal", scenarioProposalSchema],
+  ["external-telemetry", "External mismatch telemetry", externalTelemetrySchema],
+  ["empirical-evidence-bundle", "Browser-local empirical study evidence bundle", empiricalEvidenceBundleSchema],
+  ["empirical-research-request", "Headless empirical research request", empiricalResearchRequestSchema],
+  ["empirical-research-receipt", "Redacted empirical research receipt", empiricalResearchReceiptSchema],
+  ["empirical-evidence-registry-request", "Evidence Registry aggregation request", empiricalEvidenceRegistryRequestSchema],
+  ["empirical-evidence-registry", "Redacted Evidence Registry bundle", empiricalEvidenceRegistryBundleSchema],
 ] as const;
 
 await mkdir(outputDirectory, { recursive: true });

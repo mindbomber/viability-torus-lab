@@ -1,0 +1,695 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "default": "1.0.0",
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "scenarioId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "study": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 1000
+        },
+        "population": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 1000
+        },
+        "horizon": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 1000
+        },
+        "aggregation": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 1000
+        },
+        "viableRegion": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 1000
+        },
+        "internalCycle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        },
+        "externalCycle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        },
+        "falsification": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 2000
+        },
+        "provenance": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "name",
+        "objective",
+        "population",
+        "horizon",
+        "aggregation",
+        "viableRegion",
+        "internalCycle",
+        "externalCycle",
+        "falsification",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "resourceUri": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 2000
+        },
+        "dataClassification": {
+          "default": "internal",
+          "type": "string",
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ]
+        },
+        "preprocessing": {
+          "default": [],
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        }
+      },
+      "required": [
+        "name",
+        "dataClassification",
+        "preprocessing"
+      ],
+      "additionalProperties": false
+    },
+    "privacy": {
+      "type": "object",
+      "properties": {
+        "dataUseAuthorized": {
+          "type": "boolean",
+          "const": true
+        },
+        "remoteProcessingAuthorized": {
+          "default": false,
+          "type": "boolean"
+        },
+        "containsSensitiveData": {
+          "default": false,
+          "type": "boolean"
+        },
+        "deidentified": {
+          "default": false,
+          "type": "boolean"
+        },
+        "retention": {
+          "type": "string",
+          "const": "request-only"
+        }
+      },
+      "required": [
+        "dataUseAuthorized",
+        "remoteProcessingAuthorized",
+        "containsSensitiveData",
+        "deidentified",
+        "retention"
+      ],
+      "additionalProperties": false
+    },
+    "data": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string",
+              "const": "rows"
+            },
+            "columns": {
+              "minItems": 2,
+              "maxItems": 64,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "rows": {
+              "minItems": 8,
+              "maxItems": 5000,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 20000
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "required": [
+            "format",
+            "columns",
+            "rows"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string",
+              "const": "csv"
+            },
+            "csv": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000000
+            }
+          },
+          "required": [
+            "format",
+            "csv"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "mapping": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "thetaSignal": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "phiSignal": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "pressure": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "feedback": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "correction": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "drift": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "irreversibleLoss": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "debt": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "rho": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "outcome": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "intervention": {
+          "type": "object",
+          "properties": {
+            "column": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "evidence": {
+              "type": "string",
+              "enum": [
+                "uploaded-observation",
+                "declared-proxy",
+                "not-mapped"
+              ]
+            }
+          },
+          "required": [
+            "column",
+            "unit",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "time",
+        "thetaSignal",
+        "phiSignal",
+        "pressure",
+        "error",
+        "feedback",
+        "correction",
+        "drift",
+        "irreversibleLoss",
+        "debt",
+        "rho",
+        "outcome",
+        "intervention"
+      ],
+      "additionalProperties": false
+    },
+    "assumptions": {
+      "type": "object",
+      "properties": {
+        "kappa": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Radial restoring coefficient."
+        },
+        "rho0": {
+          "type": "number",
+          "minimum": 0.03,
+          "maximum": 5,
+          "description": "Reference radial excursion."
+        },
+        "chi": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Debt-to-excursion coupling."
+        },
+        "rhoCrit": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10,
+          "description": "Critical radial viability boundary."
+        }
+      },
+      "required": [
+        "kappa",
+        "rho0",
+        "chi",
+        "rhoCrit"
+      ],
+      "additionalProperties": false
+    },
+    "options": {
+      "default": {
+        "includeReplayPoints": true,
+        "replayStride": 1
+      },
+      "type": "object",
+      "properties": {
+        "includeReplayPoints": {
+          "default": true,
+          "type": "boolean"
+        },
+        "replayStride": {
+          "default": 1,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "includeReplayPoints",
+        "replayStride"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "scenarioId",
+    "study",
+    "source",
+    "privacy",
+    "data",
+    "mapping",
+    "assumptions",
+    "options"
+  ],
+  "additionalProperties": false,
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/empirical-research-request.schema.json",
+  "title": "Headless empirical research request"
+}

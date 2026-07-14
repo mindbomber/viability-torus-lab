@@ -39,6 +39,7 @@ export function nearestFrameForUnwrappedPoint(
   targetTheta: number,
   targetPhi: number,
   endIndex = frames.length - 1,
+  phiSelector: (frame: SimulationFrame) => number | undefined = (frame) => frame.phi,
 ) {
   if (frames.length === 0) return 0;
   const end = Math.max(0, Math.min(endIndex, frames.length - 1));
@@ -46,8 +47,10 @@ export function nearestFrameForUnwrappedPoint(
   let bestDistance = Number.POSITIVE_INFINITY;
   for (let index = 0; index <= end; index += 1) {
     const frame = frames[index];
+    const phi = phiSelector(frame);
+    if (phi === undefined) continue;
     const thetaDistance = circularDistance(frame.theta, targetTheta);
-    const phiDistance = circularDistance(frame.phi, targetPhi);
+    const phiDistance = circularDistance(phi, targetPhi);
     const distance = thetaDistance * thetaDistance + phiDistance * phiDistance;
     if (
       distance < bestDistance - Number.EPSILON ||
@@ -95,6 +98,15 @@ export function signedDifferenceScale(frames: SimulationFrame[]) {
     );
   }
   return Math.max(0.001, maxAbsolute);
+}
+
+export function signedDifferenceMetricScales(frames: SimulationFrame[]) {
+  const maximum = (select: (frame: SimulationFrame) => number) => Math.max(0.001, ...frames.map((frame) => Math.abs(select(frame))));
+  return {
+    alignment: maximum((frame) => frame.alignment),
+    debt: maximum((frame) => frame.debt),
+    rho: maximum((frame) => frame.rho),
+  };
 }
 
 export function phaseAnalysisAvailable(frameIndex: number, frameCount: number) {

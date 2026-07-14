@@ -4,6 +4,16 @@ export const CONTRACT_VERSION = "1.0.0";
 export const API_VERSION = "v1";
 export const SCENARIO_SCHEMA_VERSION = "1.0.0";
 
+export const EMPIRICAL_EXECUTION_LIMITS = {
+  maxCsvBytes: 2_000_000,
+  maxRows: 5_000,
+  maxColumns: 64,
+  maxRegistryReceipts: 500,
+  maxRegistryBytes: 10_000_000,
+  maxReturnedReplayPoints: 1_000,
+  maxLocalReturnedReplayPoints: 5_000,
+} as const;
+
 export const PUBLIC_EXECUTION_LIMITS = {
   maxRuns: 50,
   maxStepsPerRun: 5_000,

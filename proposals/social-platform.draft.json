@@ -30,6 +30,14 @@
     ],
     "ruptureCondition": "Cumulative trust and safety debt pushes modeled excursion beyond the critical viability boundary.",
     "recoveryCondition": "Engagement pressure falls while feedback, correction, and governance capacity remain strong enough to contract excursion and repay debt.",
+    "rupturePolicy": {
+      "irreversibleRho": 3.4,
+      "cumulativeLossThreshold": 0.5,
+      "debtThreshold": 1.0,
+      "persistenceSteps": 12,
+      "provenance": "illustrative-scenario-policy",
+      "rationale": "Terminal rupture requires persistent boundary violation, accumulated irreversible loss, and either extreme excursion or debt; these values are illustrative pending domain calibration."
+    },
     "plainLanguageInterpretation": "A platform can improve a short-term engagement metric while making future correction more difficult and narrowing the set of trustworthy operating states.",
     "cycles": {
       "minor": {

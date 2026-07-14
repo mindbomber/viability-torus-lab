@@ -107,9 +107,12 @@ function sampleFrames(frames: SimulationFrame[], requestedStride: number, maxFra
 
 export function summarizeRuns(summaries: SimulationSummary[]): EnsembleSummary {
   const mean = (pick: (summary: SimulationSummary) => number) => summaries.reduce((sum, item) => sum + pick(item), 0) / summaries.length;
+  const boundaryCrossingRate = summaries.filter((item) => item.boundaryCrossingStep !== undefined).length / summaries.length;
   return {
     runCount: summaries.length,
-    ruptureRate: summaries.filter((item) => item.ruptureStep !== undefined).length / summaries.length,
+    boundaryCrossingRate,
+    irreversibleRuptureRate: summaries.filter((item) => item.irreversibleRuptureStep !== undefined).length / summaries.length,
+    ruptureRate: boundaryCrossingRate,
     recoveryRate: summaries.filter((item) => item.recovered).length / summaries.length,
     meanStableFraction: mean((item) => item.stableFraction),
     meanFinalAlignment: mean((item) => item.finalAlignment),
@@ -127,7 +130,11 @@ export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EX
   enforceExecutionLimits(parameters, seeds, spec.interventions, limits);
 
   const runs = seeds.map((seed) => {
-    const result = simulate({ ...parameters, seed }, spec.interventions);
+    const result = simulate(
+      { ...parameters, seed },
+      spec.interventions,
+      { rupturePolicy: scenario.rupturePolicy },
+    );
     if (!spec.includeFrames) return { seed, summary: result.summary };
     const perRunFrameLimit = Math.max(1, Math.min(limits.maxReturnedFramesPerRun, Math.floor(limits.maxTotalReturnedFrames / seeds.length)));
     const sampled = sampleFrames(result.frames, spec.frameStride, perRunFrameLimit);
@@ -173,6 +180,8 @@ export function compareExperiments(input: unknown, limits: ExecutionLimits = LOC
     left,
     right,
     difference: {
+      boundaryCrossingRate: left.ensemble.boundaryCrossingRate - right.ensemble.boundaryCrossingRate,
+      irreversibleRuptureRate: left.ensemble.irreversibleRuptureRate - right.ensemble.irreversibleRuptureRate,
       ruptureRate: left.ensemble.ruptureRate - right.ensemble.ruptureRate,
       meanStableFraction: left.ensemble.meanStableFraction - right.ensemble.meanStableFraction,
       meanFinalAlignment: left.ensemble.meanFinalAlignment - right.ensemble.meanFinalAlignment,
@@ -219,7 +228,8 @@ export function sweepParameters(input: unknown, limits: ExecutionLimits = LOCAL_
     }, limits);
     return { parameterOverrides, ensemble: experiment.ensemble };
   }).sort((a, b) =>
-    a.ensemble.ruptureRate - b.ensemble.ruptureRate ||
+    a.ensemble.irreversibleRuptureRate - b.ensemble.irreversibleRuptureRate ||
+    a.ensemble.boundaryCrossingRate - b.ensemble.boundaryCrossingRate ||
     b.ensemble.meanFinalAlignment - a.ensemble.meanFinalAlignment ||
     a.ensemble.meanFinalDebt - b.ensemble.meanFinalDebt ||
     b.ensemble.meanStableFraction - a.ensemble.meanStableFraction ||

@@ -1,6 +1,6 @@
 # Security policy
 
-Viability Torus Lab is a public, local-first simulator with stateless read-only API and MCP computation. It does not accept executable content, user accounts, durable records, or dataset uploads.
+Viability Torus Lab is a public, local-first simulator with stateless read-only API and MCP computation. It does not accept executable content, user accounts, durable server records, or dataset uploads. The Evidence Registry is session-only by default; its explicit device-persistence option stores only versioned redacted receipts in browser local storage, never raw observations.
 
 - Imported JSON is size-limited and checked for the expected configuration envelope and bounded numeric values.
 - Imported strings are never evaluated or inserted as HTML.

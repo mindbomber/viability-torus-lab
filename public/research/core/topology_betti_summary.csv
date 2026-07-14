@@ -1,0 +1,5 @@
+case,occupancy_fraction,b0,b1,b2,n_vertices,n_edges,n_faces,rank_d1,rank_d2
+quasiperiodic_torus,1.0,1,2,1,1600,3200,1600,1599,1599
+periodic_single_loop,0.225,1,1,0,480,840,360,479,360
+one_cycle_null,0.075,1,1,0,160,280,120,159,120
+random_sparse_null,0.244375,112,1,0,1103,1383,391,991,391
