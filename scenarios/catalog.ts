@@ -1,0 +1,260 @@
+import type { SimulationParameters } from "@/engine/simulator";
+import { defaultParameters } from "@/engine/simulator";
+
+export type ParameterKey = keyof Pick<
+  SimulationParameters,
+  | "pressure"
+  | "error"
+  | "feedback"
+  | "correction"
+  | "drift"
+  | "irreversibleLoss"
+  | "initialDebt"
+>;
+
+export type ScenarioDefinition = {
+  id: string;
+  title: string;
+  shortTitle: string;
+  summary: string;
+  category: "AI" | "Organizations" | "Healthcare" | "Ecology";
+  difficulty: "Introductory" | "Intermediate" | "Advanced";
+  icon: string;
+  accent: string;
+  optimizedOutcome: string;
+  viableRegion: string;
+  hiddenConstraint: string;
+  debtMechanism: string;
+  irreversibleMechanism: string;
+  interventionIds: string[];
+  warningConditions: string[];
+  ruptureCondition: string;
+  recoveryCondition: string;
+  plainLanguageInterpretation: string;
+  cycles: {
+    minor: { label: string; stages: string[]; description: string };
+    major: { label: string; stages: string[]; description: string };
+  };
+  labels: Record<ParameterKey, string>;
+  defaults: SimulationParameters;
+  presets: { name: string; description: string; values: Partial<SimulationParameters> }[];
+};
+
+const labels = (
+  overrides: Partial<Record<ParameterKey, string>> = {},
+): Record<ParameterKey, string> => ({
+  pressure: "Optimization pressure",
+  error: "Misclassification error",
+  feedback: "Feedback fidelity",
+  correction: "Correction capacity",
+  drift: "Environmental drift",
+  irreversibleLoss: "Irreversible loss",
+  initialDebt: "Starting alignment debt",
+  ...overrides,
+});
+
+const basePresets = [
+  {
+    name: "Balanced",
+    description: "Correction keeps pace with divergence.",
+    values: { pressure: 1.4, feedback: 0.72, correction: 0.55, initialDebt: 0.12 },
+  },
+  {
+    name: "Growth at risk",
+    description: "High pressure, weak feedback, narrow margin.",
+    values: { pressure: 2.35, feedback: 0.42, correction: 0.42, initialDebt: 0.34 },
+  },
+  {
+    name: "Recovery",
+    description: "Debt is high but correction has been reinforced.",
+    values: { pressure: 1.25, feedback: 0.8, correction: 0.72, initialDebt: 0.9 },
+  },
+];
+
+const standardInterventions = ["increase-correction", "improve-feedback", "reduce-pressure", "add-audit", "pause-optimization", "repay-debt"];
+const standardWarnings = ["Correction margin is narrowing", "Radial excursion exceeds the early-warning band", "Alignment debt is accumulating"];
+
+export const scenarios: ScenarioDefinition[] = [
+  {
+    id: "llm-deployment",
+    title: "LLM Under Deployment Pressure",
+    shortTitle: "LLM Deployment",
+    summary: "A production model balancing rapid release, verification, and shifting user constraints.",
+    category: "AI",
+    difficulty: "Intermediate",
+    icon: "✦",
+    accent: "#7b6cff",
+    optimizedOutcome: "Useful capability shipped quickly",
+    viableRegion: "Helpful, reliable behavior within policy and product constraints",
+    hiddenConstraint: "Novel failure modes outside the evaluation set",
+    debtMechanism: "Unresolved evaluations and downstream incidents",
+    irreversibleMechanism: "User harm, leaked data, or entrenched unsafe integrations",
+    interventionIds: standardInterventions,
+    warningConditions: standardWarnings,
+    ruptureCondition: "Radial excursion crosses the critical viability boundary after correction falls behind divergence.",
+    recoveryCondition: "Excursion contracts, debt stops rising, and verification capacity again exceeds divergence.",
+    plainLanguageInterpretation: "Fast deployment can look productive while unresolved failures make future correction harder.",
+    cycles: {
+      minor: {
+        label: "Verify → correct",
+        stages: ["Propose", "Verify", "Ground", "Correct", "Gate"],
+        description: "Local AANA correction and alignment cycle",
+      },
+      major: {
+        label: "Deploy → adapt",
+        stages: ["Release", "Observe", "Learn", "Revise"],
+        description: "External ATS adaptation to users and environment",
+      },
+    },
+    labels: labels({
+      pressure: "Deployment pressure",
+      error: "Constraint misunderstanding",
+      feedback: "Feedback quality",
+      correction: "Verification & correction",
+      drift: "Environment change",
+      irreversibleLoss: "Downstream damage",
+      initialDebt: "Unresolved failure debt",
+    }),
+    defaults: { ...defaultParameters },
+    presets: basePresets,
+  },
+  {
+    id: "coding-agent",
+    title: "Autonomous Coding Agent",
+    shortTitle: "Coding Agent",
+    summary: "An agent operating across a repository while tests, specifications, and dependencies change.",
+    category: "AI",
+    difficulty: "Advanced",
+    icon: "⌘",
+    accent: "#36d7ff",
+    optimizedOutcome: "Completed engineering tasks",
+    viableRegion: "Correct, secure, maintainable changes with traceable intent",
+    hiddenConstraint: "Unstated invariants and downstream consumers",
+    debtMechanism: "Skipped validation and compounding architectural shortcuts",
+    irreversibleMechanism: "Data corruption, credential exposure, or destructive deployment",
+    interventionIds: standardInterventions,
+    warningConditions: standardWarnings,
+    ruptureCondition: "Unreviewed autonomous changes cross a destructive or irreversible repository boundary.",
+    recoveryCondition: "Tests, review, and rollback capacity restore a positive correction margin before destructive deployment.",
+    plainLanguageInterpretation: "The agent remains viable when its edit-test loop can repair mistakes faster than tasks and repository drift create them.",
+    cycles: {
+      minor: { label: "Edit → test", stages: ["Plan", "Edit", "Test", "Review"], description: "Local code correction loop" },
+      major: { label: "Task → repository", stages: ["Orient", "Implement", "Integrate", "Learn"], description: "Repository-level adaptation" },
+    },
+    labels: labels({ pressure: "Task throughput pressure", error: "Intent misread", feedback: "Test coverage", correction: "Review capacity", drift: "Repository drift", irreversibleLoss: "Deployment damage", initialDebt: "Technical debt" }),
+    defaults: { ...defaultParameters, pressure: 1.8, error: 0.28, feedback: 0.68, correction: 0.5, omegaTheta: 0.12 },
+    presets: basePresets,
+  },
+  {
+    id: "startup-growth",
+    title: "High-Growth Startup",
+    shortTitle: "Startup Scaling",
+    summary: "A company pursuing growth while operations, culture, and customer needs evolve.",
+    category: "Organizations",
+    difficulty: "Introductory",
+    icon: "↗",
+    accent: "#9ee45e",
+    optimizedOutcome: "Sustainable growth and customer value",
+    viableRegion: "Growth that preserves cash, trust, reliability, and team health",
+    hiddenConstraint: "Second-order operational and cultural costs",
+    debtMechanism: "Deferred process, reliability, and hiring corrections",
+    irreversibleMechanism: "Loss of trust, key staff, or regulatory standing",
+    interventionIds: standardInterventions,
+    warningConditions: standardWarnings,
+    ruptureCondition: "Operating debt and external loss push the company outside a recoverable cash, trust, or reliability band.",
+    recoveryCondition: "Growth pressure slows while customer feedback and operating capacity repay accumulated debt.",
+    plainLanguageInterpretation: "Two companies with the same growth score can have different futures when one has much more hidden operating debt.",
+    cycles: {
+      minor: { label: "Build → measure", stages: ["Build", "Ship", "Measure", "Learn"], description: "Operating correction cycle" },
+      major: { label: "Market → strategy", stages: ["Sense", "Position", "Scale", "Adapt"], description: "Market adaptation cycle" },
+    },
+    labels: labels({ pressure: "Growth pressure", error: "Market misread", feedback: "Customer signal", correction: "Operating capacity", drift: "Market change", irreversibleLoss: "Trust loss", initialDebt: "Operating debt" }),
+    defaults: { ...defaultParameters, pressure: 1.9, feedback: 0.56, correction: 0.48, drift: 0.07 },
+    presets: basePresets,
+  },
+  {
+    id: "hospital-throughput",
+    title: "Hospital Throughput",
+    shortTitle: "Hospital Throughput",
+    summary: "A care system balancing patient flow, safety, staff capacity, and unpredictable demand.",
+    category: "Healthcare",
+    difficulty: "Advanced",
+    icon: "+",
+    accent: "#ff6d9f",
+    optimizedOutcome: "Timely, safe patient care",
+    viableRegion: "Throughput without unsafe waits, overload, or preventable harm",
+    hiddenConstraint: "Clinical complexity not captured by flow metrics",
+    debtMechanism: "Backlog, fatigue, deferred follow-up, and safety debt",
+    irreversibleMechanism: "Preventable clinical harm or workforce attrition",
+    interventionIds: standardInterventions,
+    warningConditions: standardWarnings,
+    ruptureCondition: "Demand and safety debt exceed the modeled critical clinical viability radius.",
+    recoveryCondition: "Demand, staffing, feedback, and correction return the system to a contracting regime without preventable harm.",
+    plainLanguageInterpretation: "Higher throughput is not viable when it depends on invisible backlog, unsafe waits, or exhausted correction capacity.",
+    cycles: {
+      minor: { label: "Assess → treat", stages: ["Triage", "Assess", "Treat", "Review"], description: "Patient-level correction cycle" },
+      major: { label: "Demand → capacity", stages: ["Forecast", "Staff", "Allocate", "Adapt"], description: "System adaptation cycle" },
+    },
+    labels: labels({ pressure: "Throughput pressure", error: "Triage error", feedback: "Outcome visibility", correction: "Clinical capacity", drift: "Demand volatility", irreversibleLoss: "Patient harm", initialDebt: "Care backlog" }),
+    defaults: { ...defaultParameters, pressure: 1.72, error: 0.3, feedback: 0.6, correction: 0.47, drift: 0.09, rhoCrit: 2.15 },
+    presets: basePresets,
+  },
+  {
+    id: "burnout-recovery",
+    title: "Personal Burnout & Recovery",
+    shortTitle: "Burnout & Recovery",
+    summary: "A person balancing output, recovery, feedback, commitments, and changing life demands.",
+    category: "Healthcare",
+    difficulty: "Introductory",
+    icon: "◒",
+    accent: "#ffb44a",
+    optimizedOutcome: "Meaningful work with recoverable effort",
+    viableRegion: "Sustained functioning without chronic depletion",
+    hiddenConstraint: "Unrecognized emotional and physiological limits",
+    debtMechanism: "Sleep loss, deferred recovery, and accumulated stress",
+    irreversibleMechanism: "Long-term health or relationship damage",
+    interventionIds: standardInterventions,
+    warningConditions: standardWarnings,
+    ruptureCondition: "Accumulated recovery debt and ongoing workload cross the modeled health and functioning boundary.",
+    recoveryCondition: "Workload falls and recovery remains strong long enough for debt and excursion to contract.",
+    plainLanguageInterpretation: "Returning to an old workload may not restore an old state after prolonged stress has changed recovery requirements.",
+    cycles: {
+      minor: { label: "Effort → recover", stages: ["Act", "Rest", "Reflect", "Adjust"], description: "Daily correction and recovery cycle" },
+      major: { label: "Season → adapt", stages: ["Commit", "Sustain", "Reassess", "Change"], description: "Life-context adaptation cycle" },
+    },
+    labels: labels({ pressure: "Workload pressure", error: "Capacity misread", feedback: "Body signal quality", correction: "Recovery capacity", drift: "Life change", irreversibleLoss: "Lasting harm", initialDebt: "Recovery debt" }),
+    defaults: { ...defaultParameters, pressure: 1.55, feedback: 0.58, correction: 0.42, initialDebt: 0.38, beta: 0.07 },
+    presets: basePresets,
+  },
+  {
+    id: "fishery-management",
+    title: "Fishery Management",
+    shortTitle: "Fishery Management",
+    summary: "A shared resource balancing yield, population renewal, monitoring, and climate variability.",
+    category: "Ecology",
+    difficulty: "Intermediate",
+    icon: "≈",
+    accent: "#3ee0c1",
+    optimizedOutcome: "Sustainable yield over time",
+    viableRegion: "Harvest that keeps population and habitat above recovery thresholds",
+    hiddenConstraint: "Unobserved stock structure and ecological coupling",
+    debtMechanism: "Population depletion and delayed recruitment",
+    irreversibleMechanism: "Stock collapse or habitat regime shift",
+    interventionIds: standardInterventions,
+    warningConditions: standardWarnings,
+    ruptureCondition: "Harvest, estimation error, and habitat loss drive stock below the modeled recoverable threshold.",
+    recoveryCondition: "Monitoring improves and harvest correction remains strong until population debt is repaid.",
+    plainLanguageInterpretation: "A stable current yield can hide a declining recovery margin when recruitment debt accumulates below the surface.",
+    cycles: {
+      minor: { label: "Observe → set quota", stages: ["Sample", "Estimate", "Allocate", "Enforce"], description: "Management correction cycle" },
+      major: { label: "Season → ecosystem", stages: ["Spawn", "Recruit", "Harvest", "Adapt"], description: "Ecological adaptation cycle" },
+    },
+    labels: labels({ pressure: "Harvest pressure", error: "Stock estimate error", feedback: "Monitoring quality", correction: "Quota response", drift: "Climate variability", irreversibleLoss: "Habitat loss", initialDebt: "Population debt" }),
+    defaults: { ...defaultParameters, pressure: 1.6, error: 0.34, feedback: 0.65, correction: 0.5, drift: 0.08, omegaPhi: 0.035 },
+    presets: basePresets,
+  },
+];
+
+export const scenarioById = Object.fromEntries(
+  scenarios.map((scenario) => [scenario.id, scenario]),
+) as Record<string, ScenarioDefinition>;
