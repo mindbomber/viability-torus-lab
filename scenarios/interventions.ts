@@ -8,14 +8,13 @@ import type { ScheduledIntervention, SimulationParameters } from "../engine/simu
 import { applyParameterTransforms } from "./protocols.ts";
 
 const allTemplateIds: ModelFamily[] = [
-  "regenerative-stock",
-  "threshold-regime-shift",
-  "resistance-contagion",
-  "trust-legitimacy",
-  "capability-correction",
-  "network-cascade",
-  "financial-leverage",
-  "human-capacity",
+  "regeneration-depletion",
+  "flow-backlog",
+  "detection-correction",
+  "maintenance-renewal",
+  "propagation-containment",
+  "trust-redress",
+  "reserves-solvency",
 ];
 
 const translations = (

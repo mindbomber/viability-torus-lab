@@ -54,7 +54,8 @@ export const interventionEffectsSchema = simulationParametersObject
   .partial()
   .strict();
 
-const modelFamilySchema = z.enum(["regenerative-stock", "threshold-regime-shift", "resistance-contagion", "trust-legitimacy", "capability-correction", "network-cascade", "financial-leverage", "human-capacity"]);
+const modelFamilySchema = z.enum(["regeneration-depletion", "flow-backlog", "detection-correction", "maintenance-renewal", "propagation-containment", "trust-redress", "reserves-solvency"]);
+const dynamicTraitSchema = z.enum(["delayed-feedback", "capacity-saturation", "threshold-crossing", "hysteresis", "network-propagation", "irreversible-loss", "phase-coupling", "multi-timescale"]);
 const scenarioCategorySchema = z.enum(["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"]);
 const composableParameterKeySchema = z.enum(["pressure", "error", "feedback", "correction", "drift", "irreversibleLoss", "initialDebt", "kappa", "chi", "omegaTheta", "omegaPhi", "couplingA", "couplingB", "rho0", "rhoCrit", "alpha", "beta"]);
 export const parameterTransformSchema = z.object({
@@ -235,22 +236,26 @@ export const systemTemplateDefinitionSchema = z.object({
   stateArchetype: z.string().min(20).max(1_000),
   structuralAssumptions: z.array(z.string().min(10).max(500)).min(1).max(20),
   learningQuestions: z.array(z.string().min(10).max(500)).min(1).max(20),
+  typicalDynamicTraits: z.array(dynamicTraitSchema).min(1).max(8),
   baseDynamics: parameterOverridesSchema,
   rupturePolicy: z.object({
     cumulativeLossThreshold: z.number().finite().min(0).max(100),
     debtThreshold: z.number().finite().min(0).max(100),
     persistenceSteps: z.number().int().min(1).max(10_000),
   }).strict(),
-  provenance: z.literal("illustrative-system-template"),
+  provenance: z.literal("illustrative-maintenance-pattern"),
 }).strict();
 
 export const boundedSystemDefinitionSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
-  templateId: modelFamilySchema.optional().default("capability-correction"),
+  templateId: modelFamilySchema.optional().default("detection-correction"),
+  maintenancePatternId: modelFamilySchema,
   title: z.string().min(4).max(160),
   shortTitle: z.string().min(2).max(80),
   category: scenarioCategorySchema,
+  domain: scenarioCategorySchema,
+  dynamicTraits: z.array(dynamicTraitSchema).min(1).max(8),
   operator: z.string().min(5).max(300),
   boundary: z.string().min(20).max(1_000),
   objective: z.string().min(10).max(500),
@@ -289,7 +294,7 @@ export const scenarioModuleDefinitionSchema = z.object({
 export const scenarioProtocolDefinitionSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   systemId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  templateId: modelFamilySchema.optional().default("capability-correction"),
+  templateId: modelFamilySchema.optional().default("detection-correction"),
   moduleId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional().default("system-default"),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
   title: z.string().min(4).max(160),
@@ -358,7 +363,8 @@ export const scenarioDefinitionSchema = z.object({
   category: z.enum(["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"]),
   watchlistTier: z.enum(["red", "orange", "yellow", "featured"]).default("featured"),
   featured: z.boolean().default(false),
-  modelFamily: z.enum(["regenerative-stock", "threshold-regime-shift", "resistance-contagion", "trust-legitimacy", "capability-correction", "network-cascade", "financial-leverage", "human-capacity"]).default("capability-correction"),
+  modelFamily: modelFamilySchema.default("detection-correction"),
+  maintenancePatternId: modelFamilySchema,
   calibration: z.enum(["illustrative", "literature-informed", "empirically-calibrated", "externally-validated"]).default("illustrative"),
   difficulty: z.enum(["Introductory", "Intermediate", "Advanced"]),
   icon: z.string().min(1).max(12),

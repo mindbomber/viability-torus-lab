@@ -3,7 +3,7 @@
 The laboratory separates reusable structure, a bounded real-world hypothesis, exogenous conditions, operator actions, and observed model output. This prevents the example catalog from becoming the model itself.
 
 ```text
-System template
+Maintenance pattern
   → bounded-system instance
     → scenario module
       → intervention plan
@@ -14,16 +14,16 @@ System template
 
 | Layer | Question | May change | Must not claim |
 | --- | --- | --- | --- |
-| System template | What structural class is being represented? | Base dynamics and rupture policy | That a real system is calibrated merely because it fits an archetype |
-| Bounded system | Who operates what, for whom, over what horizon? | Boundary, objective, population, phase meanings, independent defaults | That a broad social condition is itself a bounded system |
+| Maintenance pattern | What recurrent work preserves viability? | Base dynamics, debt semantics, and rupture policy | That a shared pattern implies shared calibration or domain |
+| Bounded system | Who operates what, for whom, over what horizon? | Domain, dynamic traits, boundary, objective, population, phase meanings, independent defaults | That a broad social condition is itself a bounded system |
 | Scenario module | What external or operating conditions occur? | Canonical initial-condition transforms | That an operator acted |
 | Intervention plan | What does the operator change, and when? | Timed canonical transforms, duration, restoration, cost | That the translated real-world action has an empirically known effect size |
 | Run assessment | What did this deterministic model run do? | Nothing; this is computed output | A forecast, diagnosis, policy recommendation, or empirical validation |
 
 ## Registries
 
-- Eight `SystemTemplateDefinition` records cover regenerative stocks, threshold regime shifts, resistance contagion, trust and legitimacy, capability correction, network cascades, financial leverage, and human capacity.
-- Thirty-two `BoundedSystemDefinition` instances declare accountable operators, system boundaries, objectives, affected populations, horizons, aggregation rules, viable regions, state variables, constraints, and two independently observable recurrent phases.
+- Seven `MaintenancePatternDefinition` records cover regeneration and depletion, flow and backlog, detection and correction, maintenance and renewal, propagation and containment, trust and redress, and reserves and solvency.
+- Twenty-one `BoundedSystemDefinition` instances—three per pattern—declare a separate domain and dynamic traits plus accountable operators, boundaries, objectives, affected populations, horizons, aggregation rules, viable regions, state variables, constraints, and two independently observable recurrent phases.
 - Five `ScenarioModuleDefinition` records provide common default, pressure-surge, feedback-blind-spot, compound-stress, and reduced-stress contexts.
 - Six `InterventionDefinition` records encode constraint visibility, misclassification reduction, pressure reduction, correction capacity, containment, and debt repayment.
 - Eight `InterventionPlanDefinition` records arrange those mechanisms into comparable no-action, preventive, corrective, restorative, delayed, layered, and temporary strategies.
@@ -34,7 +34,7 @@ Counts are discoverable rather than contractual; clients should enumerate the ve
 
 `composeLaboratoryRun` performs these operations in order:
 
-1. Resolve `systemId` and its referenced template.
+1. Resolve `systemId` and its referenced maintenance pattern.
 2. Resolve `protocolId` as either a concrete system protocol or a reusable scenario-module id.
 3. Resolve the selected intervention plan, defaulting to `no-action`.
 4. Start from the system's independently selected defaults and apply the scenario transforms.
@@ -42,7 +42,7 @@ Counts are discoverable rather than contractual; clients should enumerate the ve
 6. Compile the plan's relative timing and intensity into absolute scheduled events.
 7. Add validated custom events and sort all events deterministically.
 
-The experiment fingerprint includes the selected template, system, protocol, intervention plan, final parameters, compiled events, seeds, and version identifiers.
+The experiment fingerprint includes the selected maintenance pattern, system, protocol, intervention plan, final parameters, compiled events, seeds, and version identifiers.
 
 ## Reuse examples
 
@@ -65,6 +65,6 @@ For a useful classroom or research-design exercise:
 
 ## Machine access
 
-The complete registry is returned by `GET /api/v1/laboratory`. Narrow endpoints expose templates, systems, scenario modules, and interventions separately. CLI and MCP discovery commands mirror those endpoints. Simulation, comparison, and sweep requests all use the shared composition engine; no surface reimplements the transformations.
+The complete registry is returned by `GET /api/v1/laboratory`. Narrow endpoints expose maintenance patterns, systems, scenario modules, and interventions separately. `GET /api/v1/system-templates` remains a compatibility alias. CLI and MCP discovery commands mirror those endpoints. Simulation, comparison, and sweep requests all use the shared composition engine; no surface reimplements the transformations.
 
 See `AGENT_INTERFACES.md` for request schemas and examples.

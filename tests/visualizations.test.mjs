@@ -304,7 +304,7 @@ test("five-source attribution separates structure, scenario, overrides, interven
   const result = simulate(configuredParameters, [intervention]);
   const attribution = {
     system: {
-      templateTitle: "Capability and correction",
+      templateTitle: "Detection and correction",
       systemTitle: "Language model service",
       structureSummary: "An optimizing service bounded by verification, correction, and rollback capacity.",
       baselineParameters: systemBaseline,
@@ -327,7 +327,7 @@ test("five-source attribution separates structure, scenario, overrides, interven
     "Intervention activity",
     "System memory",
   ]);
-  assert.match(before.sources[0].state, /capability and correction/i);
+  assert.match(before.sources[0].state, /detection and correction/i);
   assert.match(before.sources[1].detail, /π 1\.650→1\.930/i);
   assert.match(before.sources[2].detail, /γ 0\.620→0\.700/i);
   assert.match(before.sources[3].state, /next action at step 2/i);

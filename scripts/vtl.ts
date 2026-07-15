@@ -10,7 +10,7 @@ import { aggregateEmpiricalReceipts } from "../empirical/registry.ts";
 import { scenarios } from "../scenarios/catalog.ts";
 import { interventionDefinitions, interventionPlans } from "../scenarios/interventions.ts";
 import { scenarioModules } from "../scenarios/protocols.ts";
-import { systemTemplates } from "../scenarios/templates.ts";
+import { maintenancePatterns } from "../scenarios/templates.ts";
 
 const args = process.argv.slice(2);
 const command = args[0] ?? "help";
@@ -42,14 +42,15 @@ async function emit(value: unknown) {
 }
 
 function help() {
-  process.stdout.write(`Viability Torus Lab CLI\n\nCommands:\n  model\n  templates\n  systems\n  scenario-modules\n  interventions\n  scenarios (compatibility alias)\n  simulate --config experiment.json [--out result.json]\n  compare --config comparison.json [--out result.json]\n  sweep --config sweep.json [--out result.json]\n  empirical-analyze --config empirical-request.json [--out result.json]\n  empirical-explain --config empirical-explanation-request.json [--out result.json]\n  empirical-aggregate --config registry-request.json [--out summary.json]\n  validate-proposal --config proposal.json [--out validation.json]\n\nUse --config - to read JSON from stdin. Compose runs with systemId, protocolId (or a scenario-module id), and interventionPlanId. Empirical results are observed-descriptive model evidence, not causal or empirical validation. Registry aggregation includes only compatible observed receipts and is not a meta-analysis.\n`);
+  process.stdout.write(`Viability Torus Lab CLI\n\nCommands:\n  model\n  patterns\n  templates (compatibility alias)\n  systems\n  scenario-modules\n  interventions\n  scenarios (compatibility alias)\n  simulate --config experiment.json [--out result.json]\n  compare --config comparison.json [--out result.json]\n  sweep --config sweep.json [--out result.json]\n  empirical-analyze --config empirical-request.json [--out result.json]\n  empirical-explain --config empirical-explanation-request.json [--out result.json]\n  empirical-aggregate --config registry-request.json [--out summary.json]\n  validate-proposal --config proposal.json [--out validation.json]\n\nUse --config - to read JSON from stdin. Compose runs with systemId, protocolId (or a scenario-module id), and interventionPlanId. Empirical results are observed-descriptive model evidence, not causal or empirical validation. Registry aggregation includes only compatible observed receipts and is not a meta-analysis.\n`);
 }
 
 try {
   if (command === "help" || command === "--help" || command === "-h") help();
   else if (command === "model") await emit(getModelManifest());
-  else if (command === "templates") await emit({ systemTemplates });
-  else if (command === "systems" || command === "scenarios") await emit({ catalogModel: "system-template → bounded-system → scenario-module → intervention-plan → run-assessment", systems: scenarios, scenarios });
+  else if (command === "patterns") await emit({ maintenancePatterns });
+  else if (command === "templates") await emit({ maintenancePatterns, systemTemplates: maintenancePatterns });
+  else if (command === "systems" || command === "scenarios") await emit({ catalogModel: "maintenance-pattern → bounded-system → scenario-module → intervention-plan → run-assessment", systems: scenarios, scenarios });
   else if (command === "scenario-modules") await emit({ scenarioModules });
   else if (command === "interventions") await emit({ interventionDefinitions, interventionPlans });
   else if (command === "simulate") await emit(runExperiment(await readJson(flag("--config")), LOCAL_EXECUTION_LIMITS));

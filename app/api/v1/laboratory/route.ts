@@ -4,14 +4,15 @@ import { MODEL_VERSION } from "../../../../engine/simulator.ts";
 import { scenarios } from "../../../../scenarios/catalog.ts";
 import { interventionDefinitions, interventionPlans } from "../../../../scenarios/interventions.ts";
 import { scenarioModules } from "../../../../scenarios/protocols.ts";
-import { systemTemplates } from "../../../../scenarios/templates.ts";
+import { maintenancePatterns } from "../../../../scenarios/templates.ts";
 
 export function GET() {
   return apiJson({
     schemaVersion: CONTRACT_VERSION,
     modelVersion: MODEL_VERSION,
-    catalogModel: "system-template → bounded-system → scenario-module → intervention-plan → run-assessment",
-    templates: systemTemplates,
+    catalogModel: "maintenance-pattern → bounded-system → scenario-module → intervention-plan → run-assessment",
+    maintenancePatterns,
+    templates: maintenancePatterns,
     systems: scenarios,
     scenarioModules,
     interventionDefinitions,

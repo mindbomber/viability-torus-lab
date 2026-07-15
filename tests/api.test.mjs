@@ -4,6 +4,7 @@ import { GET as getModel } from "../app/api/v1/model/route.ts";
 import { GET as getScenarios } from "../app/api/v1/scenarios/route.ts";
 import { GET as getSystems } from "../app/api/v1/systems/route.ts";
 import { GET as getTemplates } from "../app/api/v1/system-templates/route.ts";
+import { GET as getMaintenancePatterns } from "../app/api/v1/maintenance-patterns/route.ts";
 import { GET as getScenarioModules } from "../app/api/v1/scenario-modules/route.ts";
 import { GET as getInterventions } from "../app/api/v1/interventions/route.ts";
 import { GET as getLaboratory } from "../app/api/v1/laboratory/route.ts";
@@ -27,7 +28,9 @@ test("model and scenario endpoints expose versioned machine metadata", async () 
   assert.equal(model.endpoints.empiricalAggregate, "https://example.test/api/v1/empirical/aggregate");
   assert.equal(model.endpoints.systems, "https://example.test/api/v1/systems");
   assert.equal(model.endpoints.laboratory, "https://example.test/api/v1/laboratory");
-  assert.equal(model.systemTemplateCount, 8);
+  assert.equal(model.endpoints.maintenancePatterns, "https://example.test/api/v1/maintenance-patterns");
+  assert.equal(model.maintenancePatternCount, 7);
+  assert.equal(model.systemTemplateCount, 7);
   assert.equal(model.scenarioModuleCount, 5);
   assert.equal(model.interventionDefinitionCount, 6);
   assert.equal(model.interventionPlanCount, 8);
@@ -37,32 +40,35 @@ test("model and scenario endpoints expose versioned machine metadata", async () 
   const catalog = await scenarioResponse.json();
   assert.ok(catalog.scenarios.length >= 2);
   assert.ok(catalog.scenarios.every((scenario) => scenario.category === "AI"));
-  assert.equal(catalog.total, 32);
-  assert.deepEqual(catalog.watchlistCounts, { red: 4, orange: 22, yellow: 6 });
-  assert.equal(catalog.featuredSystemCount, 10);
-  assert.equal(catalog.catalogModel, "system-template → bounded-system → scenario-module → intervention-plan → run-assessment");
-  assert.ok(catalog.systems.every((scenario) => scenario.system?.templateId && scenario.protocols.length >= 5 && scenario.watchlistTier && scenario.currentStateEstimate?.asOfDate));
+  assert.equal(catalog.total, 21);
+  assert.deepEqual(catalog.watchlistCounts, { red: 3, orange: 14, yellow: 4 });
+  assert.equal(catalog.featuredSystemCount, 6);
+  assert.equal(catalog.catalogModel, "maintenance-pattern → bounded-system → scenario-module → intervention-plan → run-assessment");
+  assert.ok(catalog.systems.every((scenario) => scenario.system?.maintenancePatternId && scenario.system?.domain && scenario.system?.dynamicTraits.length && scenario.protocols.length >= 5 && scenario.watchlistTier && scenario.currentStateEstimate?.asOfDate));
 
   const redResponse = getScenarios(new Request("https://example.test/api/v1/scenarios?tier=red"));
   const redCatalog = await redResponse.json();
-  assert.equal(redCatalog.count, 4);
+  assert.equal(redCatalog.count, 3);
   assert.ok(redCatalog.scenarios.every((scenario) => scenario.watchlistTier === "red"));
 
   const systemsResponse = getSystems(new Request("https://example.test/api/v1/systems?featured=true"));
   const systemsCatalog = await systemsResponse.json();
-  assert.equal(systemsCatalog.count, 10);
+  assert.equal(systemsCatalog.count, 6);
   assert.ok(systemsCatalog.systems.every((system) => system.featured));
 
-  const [templates, modules, interventions, laboratory] = await Promise.all([
-    getTemplates().json(), getScenarioModules().json(), getInterventions().json(), getLaboratory().json(),
+  const [patterns, templates, modules, interventions, laboratory] = await Promise.all([
+    getMaintenancePatterns().json(), getTemplates().json(), getScenarioModules().json(), getInterventions().json(), getLaboratory().json(),
   ]);
-  assert.equal(templates.count, 8);
+  assert.equal(patterns.count, 7);
+  assert.equal(templates.count, 7);
+  assert.equal(templates.compatibilityAlias, true);
   assert.ok(templates.templates.every((template) => template.systemCount > 0));
   assert.equal(modules.count, 5);
   assert.equal(interventions.definitionCount, 6);
   assert.equal(interventions.planCount, 8);
   assert.equal(laboratory.catalogModel, catalog.catalogModel);
-  assert.equal(laboratory.systems.length, 32);
+  assert.equal(laboratory.maintenancePatterns.length, 7);
+  assert.equal(laboratory.systems.length, 21);
 });
 
 test("simulation endpoint validates and executes a bounded ensemble", async () => {
@@ -99,7 +105,8 @@ test("simulation endpoint composes reusable scenario and intervention modules", 
   }));
   assert.equal(response.status, 200);
   const result = await response.json();
-  assert.equal(result.template.id, "capability-correction");
+  assert.equal(result.maintenancePattern.id, "detection-correction");
+  assert.equal(result.template.id, "detection-correction");
   assert.equal(result.protocol.id, "llm-deployment-compound-stress");
   assert.equal(result.interventionPlan.id, "layered-correction");
   assert.ok(result.configuration.interventions.length >= 5);

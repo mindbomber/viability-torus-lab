@@ -13,8 +13,13 @@
       "url": "/schemas/v1/scheduled-intervention.schema.json"
     },
     {
+      "name": "maintenance-pattern",
+      "title": "Maintenance pattern",
+      "url": "/schemas/v1/maintenance-pattern.schema.json"
+    },
+    {
       "name": "system-template",
-      "title": "Reusable system template",
+      "title": "Maintenance pattern (v1 compatibility name)",
       "url": "/schemas/v1/system-template.schema.json"
     },
     {

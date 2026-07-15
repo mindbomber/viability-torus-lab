@@ -1,103 +1,109 @@
-import type { ModelFamily, SystemTemplateDefinition } from "../contracts/types.ts";
+import type {
+  MaintenancePatternDefinition,
+  MaintenancePatternId,
+  SystemTemplateDefinition,
+} from "../contracts/types.ts";
 
-const template = (
-  definition: Omit<SystemTemplateDefinition, "id" | "modelFamily" | "version" | "provenance"> & { id: ModelFamily },
-): SystemTemplateDefinition => ({
+const pattern = (
+  definition: Omit<MaintenancePatternDefinition, "id" | "modelFamily" | "version" | "provenance"> & { id: MaintenancePatternId },
+): MaintenancePatternDefinition => ({
   ...definition,
   modelFamily: definition.id,
-  version: "1.0.0",
-  provenance: "illustrative-system-template",
+  version: "2.0.0",
+  provenance: "illustrative-maintenance-pattern",
 });
 
 /**
- * Reusable structural templates. Concrete bounded systems provide the domain
- * boundary and real-world meanings; these templates provide only the shared
- * synthetic dynamics and questions to investigate.
+ * Mechanism-level classifications for recurrent maintenance. A pattern says
+ * what must be restored and what kind of debt carries forward. It is not a
+ * domain, a watchlist result, or a claim that two systems share calibration.
  */
-export const systemTemplates: SystemTemplateDefinition[] = [
-  template({
-    id: "regenerative-stock",
-    title: "Regenerative stock",
-    summary: "A renewable stock is drawn down and replenished through recurrent operating and environmental cycles.",
-    stateArchetype: "Finite stock with replenishment, extraction pressure, accumulated deficit, and slow or partial recovery.",
-    structuralAssumptions: ["A recoverable stock can be observed.", "Extraction and replenishment recur.", "Past deficits influence future recovery."],
-    learningQuestions: ["When does use outrun replenishment?", "Does early correction preserve the stock?", "How much debt remains after pressure falls?"],
+export const maintenancePatterns: MaintenancePatternDefinition[] = [
+  pattern({
+    id: "regeneration-depletion",
+    title: "Regeneration and depletion",
+    summary: "A renewable stock is consumed and replenished while deficits can reduce future recovery.",
+    stateArchetype: "Finite renewable stock with recurrent use, replenishment, accumulated deficit, and slow or partial recovery.",
+    structuralAssumptions: ["A recoverable stock can be observed.", "Use and replenishment recur.", "Past deficits can influence future recovery."],
+    learningQuestions: ["When does use outrun regeneration?", "Does early restraint preserve recovery?", "How much depletion debt remains after pressure falls?"],
+    typicalDynamicTraits: ["delayed-feedback", "threshold-crossing", "hysteresis", "irreversible-loss", "multi-timescale"],
     baseDynamics: { kappa: 0.12, chi: 0.3, beta: 0.06, omegaPhi: 0.035 },
     rupturePolicy: { cumulativeLossThreshold: 0.55, debtThreshold: 1.05, persistenceSteps: 14 },
   }),
-  template({
-    id: "threshold-regime-shift",
-    title: "Threshold and regime shift",
-    summary: "A system can absorb disturbance until reinforcing feedbacks move it toward a qualitatively different regime.",
-    stateArchetype: "Metastable regime with nonlinear thresholds, coupled phases, hysteresis, and difficult restoration.",
-    structuralAssumptions: ["A meaningful regime boundary exists.", "Crossing risk increases with accumulated pressure.", "Restoration can be slower than degradation."],
-    learningQuestions: ["Which signals warn before the threshold?", "How does debt narrow recoverability?", "When is restoration too late?"],
-    baseDynamics: { kappa: 0.08, chi: 0.4, beta: 0.04, couplingA: 0.055, couplingB: 0.045 },
-    rupturePolicy: { cumulativeLossThreshold: 0.48, debtThreshold: 1, persistenceSteps: 12 },
+  pattern({
+    id: "flow-backlog",
+    title: "Flow and backlog",
+    summary: "Demand moves through limited service stages while queues and unfinished work carry strain into later cycles.",
+    stateArchetype: "Capacity-limited flow with arrivals, processing, handoffs, backlog, delayed service, and recovery after congestion.",
+    structuralAssumptions: ["Demand and throughput can be distinguished.", "Unserved work carries forward.", "Congestion can degrade later correction capacity."],
+    learningQuestions: ["When does backlog become self-reinforcing?", "Which bottleneck controls recovery?", "Can added throughput repay service debt safely?"],
+    typicalDynamicTraits: ["capacity-saturation", "delayed-feedback", "phase-coupling", "multi-timescale"],
+    baseDynamics: { kappa: 0.2, chi: 0.25, beta: 0.075, omegaPhi: 0.04 },
+    rupturePolicy: { cumulativeLossThreshold: 0.56, debtThreshold: 1.08, persistenceSteps: 14 },
   }),
-  template({
-    id: "resistance-contagion",
-    title: "Resistance and contagion",
-    summary: "Selection, transmission, or diffusion amplifies a resistant state while surveillance and containment attempt correction.",
-    stateArchetype: "Distributed population state with selection pressure, propagation, detection lag, and containment capacity.",
-    structuralAssumptions: ["The resistant or harmful state can propagate.", "Detection and correction operate with delay.", "Local failures can alter network conditions."],
-    learningQuestions: ["Does surveillance keep pace with propagation?", "Which correction timing prevents lock-in?", "What hidden reservoir carries debt forward?"],
-    baseDynamics: { kappa: 0.14, chi: 0.32, couplingA: 0.06, couplingB: 0.055 },
-    rupturePolicy: { cumulativeLossThreshold: 0.5, debtThreshold: 1, persistenceSteps: 12 },
-  }),
-  template({
-    id: "trust-legitimacy",
-    title: "Trust and legitimacy",
-    summary: "Cooperation depends on visible performance, fair correction, and repayment of unresolved grievance or credibility debt.",
-    stateArchetype: "Relational stock shaped by service outcomes, feedback integrity, redress, historical debt, and repeated public cycles.",
-    structuralAssumptions: ["Trust changes through repeated observable interactions.", "Unresolved failures accumulate.", "Correction quality matters separately from output."],
-    learningQuestions: ["Can correction rebuild cooperation?", "What happens when performance rises but redress fails?", "How persistent is grievance debt?"],
-    baseDynamics: { kappa: 0.12, chi: 0.34, beta: 0.055, omegaPhi: 0.04 },
-    rupturePolicy: { cumulativeLossThreshold: 0.58, debtThreshold: 1.1, persistenceSteps: 14 },
-  }),
-  template({
-    id: "capability-correction",
-    title: "Capability and correction",
-    summary: "Fast task capability is bounded by grounding, verification, correction, escalation, and rollback capacity.",
-    stateArchetype: "Optimizing service with rapid local cycles, changing deployment conditions, explicit verifier feedback, and correction gates.",
-    structuralAssumptions: ["Outputs can be checked against constraints.", "Errors can be revised or contained.", "Optimization pressure can scale faster than correction."],
-    learningQuestions: ["Does correction scale with capability?", "How does feedback fidelity change debt?", "Which failures require refusal, rollback, or deferral?"],
+  pattern({
+    id: "detection-correction",
+    title: "Detection and correction",
+    summary: "Outputs or claims are checked against constraints, then revised, contained, escalated, or rolled back.",
+    stateArchetype: "Fast production cycle bounded by observation, verification, correction gates, escalation, and explicit rollback paths.",
+    structuralAssumptions: ["Outputs can be checked against declared constraints.", "Errors can be revised or contained.", "Production pressure can scale faster than correction."],
+    learningQuestions: ["Does verification keep pace with output?", "How does feedback fidelity change debt?", "Which failures require rollback or deferral?"],
+    typicalDynamicTraits: ["delayed-feedback", "capacity-saturation", "phase-coupling", "irreversible-loss"],
     baseDynamics: { kappa: 0.22, chi: 0.18, omegaTheta: 0.12, omegaPhi: 0.055 },
     rupturePolicy: { cumulativeLossThreshold: 0.42, debtThreshold: 0.9, persistenceSteps: 10 },
   }),
-  template({
-    id: "network-cascade",
-    title: "Network cascade",
-    summary: "Interdependent nodes share service, load, and failure risk; local degradation can cascade through the network.",
-    stateArchetype: "Coupled service network with capacity limits, telemetry, redundancy, repair, and cascading failure paths.",
-    structuralAssumptions: ["Nodes are operationally interdependent.", "Load or failure can propagate.", "Isolation, redundancy, or repair can interrupt cascades."],
-    learningQuestions: ["Which feedback prevents a cascade?", "How much redundancy buys recovery time?", "Does deferred maintenance amplify shocks?"],
-    baseDynamics: { kappa: 0.18, chi: 0.3, couplingA: 0.05, couplingB: 0.05 },
-    rupturePolicy: { cumulativeLossThreshold: 0.45, debtThreshold: 0.95, persistenceSteps: 10 },
+  pattern({
+    id: "maintenance-renewal",
+    title: "Maintenance and renewal",
+    summary: "Assets or skilled capacity deliver service while inspection, repair, replacement, and renewal prevent hidden deterioration.",
+    stateArchetype: "Service capacity with wear, inspection lag, deferred-maintenance debt, repair, replacement, and long renewal cycles.",
+    structuralAssumptions: ["Condition changes under repeated use.", "Inspection only partially reveals deterioration.", "Repair and renewal restore capacity at different rates."],
+    learningQuestions: ["When does deferred maintenance narrow recovery?", "Which signals reveal hidden wear?", "How should repair and renewal be balanced?"],
+    typicalDynamicTraits: ["delayed-feedback", "capacity-saturation", "threshold-crossing", "irreversible-loss", "multi-timescale"],
+    baseDynamics: { kappa: 0.18, chi: 0.3, beta: 0.065, couplingA: 0.05, couplingB: 0.05 },
+    rupturePolicy: { cumulativeLossThreshold: 0.48, debtThreshold: 1, persistenceSteps: 12 },
   }),
-  template({
-    id: "financial-leverage",
-    title: "Leverage and refinancing",
-    summary: "Commitments amplify gains and losses while liquidity, transparency, buffers, and restructuring preserve recoverability.",
-    stateArchetype: "Leveraged balance system with maturity cycles, correlated exposure, refinancing pressure, buffers, and path dependence.",
-    structuralAssumptions: ["Claims and resources can become temporally mismatched.", "Leverage amplifies shocks.", "Buffers and restructuring alter recoverability."],
-    learningQuestions: ["When does refinancing pressure dominate correction?", "How do opacity and correlated exposure interact?", "Which buffers reduce terminal risk?"],
+  pattern({
+    id: "propagation-containment",
+    title: "Propagation and containment",
+    summary: "A harmful state spreads through a population or network while surveillance, isolation, and response attempt to contain it.",
+    stateArchetype: "Distributed state with transmission or diffusion, detection lag, local reservoirs, network exposure, and containment capacity.",
+    structuralAssumptions: ["The harmful state can propagate.", "Detection and containment operate with delay.", "Local failures can alter shared exposure."],
+    learningQuestions: ["Does surveillance keep pace with propagation?", "Which intervention timing prevents lock-in?", "What reservoir carries risk forward?"],
+    typicalDynamicTraits: ["network-propagation", "delayed-feedback", "threshold-crossing", "hysteresis", "phase-coupling"],
+    baseDynamics: { kappa: 0.14, chi: 0.32, couplingA: 0.06, couplingB: 0.055 },
+    rupturePolicy: { cumulativeLossThreshold: 0.5, debtThreshold: 1, persistenceSteps: 12 },
+  }),
+  pattern({
+    id: "trust-redress",
+    title: "Trust and redress",
+    summary: "Cooperation depends on visible performance, fair procedure, meaningful appeals, and repair of unresolved grievance.",
+    stateArchetype: "Relational capacity shaped by repeated service outcomes, feedback integrity, redress, historical debt, and public adaptation cycles.",
+    structuralAssumptions: ["Trust changes through repeated observable interactions.", "Unresolved failures accumulate.", "Redress quality matters separately from output."],
+    learningQuestions: ["Can redress rebuild cooperation?", "What happens when performance rises but appeals fail?", "How persistent is grievance debt?"],
+    typicalDynamicTraits: ["delayed-feedback", "hysteresis", "phase-coupling", "multi-timescale"],
+    baseDynamics: { kappa: 0.12, chi: 0.34, beta: 0.055, omegaPhi: 0.04 },
+    rupturePolicy: { cumulativeLossThreshold: 0.58, debtThreshold: 1.1, persistenceSteps: 14 },
+  }),
+  pattern({
+    id: "reserves-solvency",
+    title: "Reserves and solvency",
+    summary: "Commitments come due across cycles while liquidity, transparent risk, buffers, and restructuring preserve the ability to meet them.",
+    stateArchetype: "Balance system with mismatched claims and resources, correlated exposure, maturity pressure, buffers, and path-dependent recovery.",
+    structuralAssumptions: ["Claims and resources can become temporally mismatched.", "Concentrated exposure amplifies shocks.", "Buffers and restructuring alter recoverability."],
+    learningQuestions: ["When do obligations outrun available reserves?", "How do opacity and correlated exposure interact?", "Which buffers preserve recovery time?"],
+    typicalDynamicTraits: ["capacity-saturation", "threshold-crossing", "hysteresis", "irreversible-loss", "multi-timescale"],
     baseDynamics: { kappa: 0.15, chi: 0.34, beta: 0.065, omegaPhi: 0.045 },
     rupturePolicy: { cumulativeLossThreshold: 0.5, debtThreshold: 1, persistenceSteps: 12 },
   }),
-  template({
-    id: "human-capacity",
-    title: "Human capacity and recovery",
-    summary: "Finite human attention, health, skill, or service capacity is consumed under demand and restored through support and recovery.",
-    stateArchetype: "Finite adaptive capacity with workload, delayed human feedback, backlog, recovery, and subgroup viability floors.",
-    structuralAssumptions: ["Human capacity is finite and recoverable only within limits.", "Backlog and stress carry forward.", "Population floors matter before averages."],
-    learningQuestions: ["When does demand become unsustainable?", "Can rest and support repay accumulated debt?", "Which averages hide subgroup failure?"],
-    baseDynamics: { kappa: 0.2, chi: 0.25, beta: 0.075, omegaPhi: 0.04 },
-    rupturePolicy: { cumulativeLossThreshold: 0.6, debtThreshold: 1.15, persistenceSteps: 15 },
-  }),
 ];
 
-export const systemTemplateById = Object.fromEntries(
-  systemTemplates.map((item) => [item.id, item]),
-) as Record<ModelFamily, SystemTemplateDefinition>;
+/** v1 compatibility export; prefer maintenancePatterns in new integrations. */
+export const systemTemplates: SystemTemplateDefinition[] = maintenancePatterns;
 
+export const maintenancePatternById = Object.fromEntries(
+  maintenancePatterns.map((item) => [item.id, item]),
+) as Record<MaintenancePatternId, MaintenancePatternDefinition>;
+
+/** v1 compatibility export; prefer maintenancePatternById. */
+export const systemTemplateById = maintenancePatternById;

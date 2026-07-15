@@ -140,7 +140,7 @@ export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EX
     throw error;
   }
   const scenario = scenarioById[systemId];
-  const { template, protocol, interventionPlan } = composition;
+  const { maintenancePattern, protocol, interventionPlan } = composition;
   const parameters = parseWith<SimulationParameters>(simulationParametersSchema, composition.parameters, "Simulation parameters");
   const interventions = composition.interventions;
   const seeds = spec.seeds ?? [parameters.seed];
@@ -160,7 +160,7 @@ export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EX
 
   const experimentId = deterministicFingerprint({
     modelVersion: MODEL_VERSION,
-    template: { id: template.id, version: template.version },
+    maintenancePattern: { id: maintenancePattern.id, version: maintenancePattern.version },
     system: { id: scenario.system.id, version: scenario.system.version },
     protocol: { id: protocol.id, version: protocol.version },
     interventionPlan: { id: interventionPlan.id, version: interventionPlan.version },
@@ -174,7 +174,8 @@ export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EX
     modelVersion: MODEL_VERSION,
     experimentId,
     scenario: { id: scenario.id, version: scenario.version, title: scenario.title },
-    template: { id: template.id, version: template.version, title: template.title },
+    maintenancePattern: { id: maintenancePattern.id, version: maintenancePattern.version, title: maintenancePattern.title },
+    template: { id: maintenancePattern.id, version: maintenancePattern.version, title: maintenancePattern.title },
     system: { id: scenario.system.id, version: scenario.system.version, title: scenario.system.title },
     protocol: { id: protocol.id, version: protocol.version, title: protocol.title },
     interventionPlan: { id: interventionPlan.id, version: interventionPlan.version, title: interventionPlan.title },

@@ -2,7 +2,7 @@ import { integrationSubstepsPerStep, simulate, type SimulationParameters, type S
 import { scenarioById } from "../scenarios/catalog.ts";
 import { interventionAppliesTo, interventionDefinitionById } from "../scenarios/interventions.ts";
 import { scenarioModuleAppliesTo, scenarioModuleById } from "../scenarios/protocols.ts";
-import { systemTemplateById } from "../scenarios/templates.ts";
+import { maintenancePatternById } from "../scenarios/templates.ts";
 import { CONTRACT_VERSION, LOCAL_EXECUTION_LIMITS, type ExecutionLimits } from "./constants.ts";
 import { ContractError, summarizeRuns } from "./experiments.ts";
 import { scenarioProposalSchema, simulationParametersSchema, type ParsedScenarioProposal } from "./schemas.ts";
@@ -45,26 +45,27 @@ export function validateScenarioProposal(input: unknown, limits: ExecutionLimits
   if (proposal.action === "revise" && !existing) issues.push({ severity: "error", path: "scenario.id", message: "A revise proposal must reference a published scenario id." });
   if (!proposal.scenario.system) issues.push({ severity: "error", path: "scenario.system", message: "A publishable draft must define the bounded system, operator, boundary, objective, population, horizon, aggregation rule, and phase evidence." });
   if (proposal.scenario.system) {
-    if (!systemTemplateById[proposal.scenario.system.templateId]) issues.push({ severity: "error", path: "scenario.system.templateId", message: "A publishable bounded system must reference a registered reusable system template." });
-    if (proposal.scenario.system.templateId !== proposal.scenario.modelFamily) issues.push({ severity: "error", path: "scenario.modelFamily", message: "The compatibility modelFamily must match the bounded system's reusable template id." });
+    if (!maintenancePatternById[proposal.scenario.system.maintenancePatternId]) issues.push({ severity: "error", path: "scenario.system.maintenancePatternId", message: "A publishable bounded system must reference a registered maintenance pattern." });
+    if (proposal.scenario.system.maintenancePatternId !== proposal.scenario.maintenancePatternId) issues.push({ severity: "error", path: "scenario.maintenancePatternId", message: "The scenario and bounded system must reference the same maintenance pattern." });
+    if (proposal.scenario.system.templateId !== proposal.scenario.modelFamily) issues.push({ severity: "error", path: "scenario.modelFamily", message: "The v1 compatibility fields must match the maintenance pattern id." });
   }
   if (!proposal.scenario.defaultProtocolId || !proposal.scenario.protocols?.length) {
     issues.push({ severity: "error", path: "scenario.protocols", message: "A publishable draft must attach at least one complete scenario protocol and name its default protocol." });
   } else {
     if (!proposal.scenario.protocols.some((protocol) => protocol.id === proposal.scenario.defaultProtocolId)) issues.push({ severity: "error", path: "scenario.defaultProtocolId", message: "The default protocol id must reference an attached protocol." });
     if (proposal.scenario.protocols.some((protocol) => protocol.systemId !== proposal.scenario.id)) issues.push({ severity: "error", path: "scenario.protocols", message: "Every protocol must reference the bounded system id." });
-    if (proposal.scenario.protocols.some((protocol) => protocol.templateId !== proposal.scenario.system?.templateId)) issues.push({ severity: "error", path: "scenario.protocols", message: "Every protocol must reference the bounded system's reusable template." });
+    if (proposal.scenario.protocols.some((protocol) => protocol.templateId !== proposal.scenario.system?.maintenancePatternId)) issues.push({ severity: "error", path: "scenario.protocols", message: "Every protocol must reference the bounded system's maintenance pattern." });
     if (proposal.scenario.protocols.some((protocol) => !scenarioModuleById[protocol.moduleId])) issues.push({ severity: "error", path: "scenario.protocols", message: "Every protocol must resolve from a registered scenario module." });
     if (proposal.scenario.protocols.some((protocol) => {
       const scenarioModule = scenarioModuleById[protocol.moduleId];
       return scenarioModule && proposal.scenario.system && !scenarioModuleAppliesTo(scenarioModule.compatibleTemplateIds, proposal.scenario.system.templateId);
-    })) issues.push({ severity: "error", path: "scenario.protocols", message: "Every scenario module must be compatible with the bounded system's reusable template." });
+    })) issues.push({ severity: "error", path: "scenario.protocols", message: "Every scenario module must be compatible with the bounded system's maintenance pattern." });
   }
   if (proposal.scenario.interventionIds.some((id) => !interventionDefinitionById[id])) issues.push({ severity: "error", path: "scenario.interventionIds", message: "Every intervention id must reference a registered reusable intervention definition." });
   if (proposal.scenario.system && proposal.scenario.interventionIds.some((id) => {
     const definition = interventionDefinitionById[id];
     return definition && !interventionAppliesTo(definition.compatibleTemplateIds, proposal.scenario.system!.templateId);
-  })) issues.push({ severity: "error", path: "scenario.interventionIds", message: "Every intervention definition must be compatible with the bounded system's reusable template." });
+  })) issues.push({ severity: "error", path: "scenario.interventionIds", message: "Every intervention definition must be compatible with the bounded system's maintenance pattern." });
   if (proposal.scenario.cycles.minor.label === proposal.scenario.cycles.major.label) issues.push({ severity: "error", path: "scenario.cycles", message: "Minor and major cycles must be meaningfully distinct." });
   if (proposal.evidence.references.length === 0) issues.push({ severity: "warning", path: "evidence.references", message: "No external or project reference supports this mapping." });
   if (!proposal.scenario.evidence) issues.push({ severity: "warning", path: "scenario.evidence", message: "Publication requires an explicit calibration status, units, assumptions, falsification criteria, and references." });

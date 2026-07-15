@@ -10,7 +10,7 @@ import {
 } from "../engine/simulator.ts";
 import { assessWatchlistConfiguration } from "../engine/watchlist.ts";
 import { resolveScenarioProtocol, scenarioModuleAppliesTo, scenarioModules } from "./protocols.ts";
-import { systemTemplateById, systemTemplates } from "./templates.ts";
+import { maintenancePatternById, maintenancePatterns } from "./templates.ts";
 
 export type BuilderAnswerKey =
   | "systemName"
@@ -51,7 +51,7 @@ export type BuilderAnswers = Record<BuilderAnswerKey, string>;
 
 export const builderQuestions: readonly BuilderAnswer[] = [
   { id: "systemName", question: "What bounded system are you modeling?", hint: "Name the entity whose state will be simulated—not the stress condition applied to it.", placeholder: "e.g. Metropolitan emergency-department flow system" },
-  { id: "template", question: "Which type of system best describes its structure?", hint: "The system type supplies shared synthetic dynamics; your answers supply the real boundary and parameter meanings.", placeholder: "Select a system type", kind: "choice", options: systemTemplates.map((item) => item.id) },
+  { id: "template", question: "Which maintenance pattern best describes how this system stays viable?", hint: "The pattern supplies shared synthetic dynamics; your answers separately define the domain, boundary, and parameter meanings.", placeholder: "Select a maintenance pattern", kind: "choice", options: maintenancePatterns.map((item) => item.id) },
   { id: "operator", question: "Who can observe and change this system?", hint: "Name the accountable operator or decision-making body inside the boundary.", placeholder: "e.g. Hospital flow, staffing, bed-management, and quality teams" },
   { id: "boundary", question: "What is inside and outside the system boundary?", hint: "Name the assets, processes, controls, and interfaces included in the model.", placeholder: "e.g. Emergency arrivals, triage, treatment spaces, staffing, discharge paths, and safety feedback" },
   { id: "population", question: "Whose viability must the system preserve?", hint: "Name affected people, communities, organisms, or future populations explicitly.", placeholder: "e.g. Patients by acuity, families, clinical staff, and the region served" },
@@ -112,8 +112,8 @@ export function buildScenarioProposal(
   const majorStages = cycleStages(answers.majorCycle);
   const systemName = bounded(answers.systemName, 80);
   const modelFamily = answers.template as ModelFamily;
-  const template = systemTemplateById[modelFamily];
-  if (!template) throw new Error("Select a valid system type.");
+  const template = maintenancePatternById[modelFamily];
+  if (!template) throw new Error("Select a valid maintenance pattern.");
   const defaults: SimulationParameters = { ...baseDefaults, ...template.baseDynamics };
   const pressure = bounded(answers.pressure, 160);
   const id = slugify(systemName);
@@ -152,9 +152,12 @@ export function buildScenarioProposal(
     id,
     version,
     templateId: template.id,
+    maintenancePatternId: template.id,
     title: systemName,
     shortTitle: systemName,
     category: answers.category as ScenarioCategory,
+    domain: answers.category as ScenarioCategory,
+    dynamicTraits: template.typicalDynamicTraits,
     operator: bounded(answers.operator, 300),
     boundary: bounded(answers.boundary, 1_000),
     objective: bounded(answers.objective, 500),
@@ -214,6 +217,7 @@ export function buildScenarioProposal(
       watchlistTier,
       featured: false,
       modelFamily,
+      maintenancePatternId: modelFamily,
       calibration: "illustrative" as const,
       difficulty: "Advanced" as const,
       icon: "◇",

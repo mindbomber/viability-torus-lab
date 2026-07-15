@@ -14,12 +14,13 @@ import { scenarioById, scenarios } from "../scenarios/catalog.ts";
 import { composeLaboratoryRun } from "../scenarios/composition.ts";
 import { interventionDefinitions, interventionPlans } from "../scenarios/interventions.ts";
 import { scenarioModules } from "../scenarios/protocols.ts";
-import { systemTemplates } from "../scenarios/templates.ts";
+import { maintenancePatterns } from "../scenarios/templates.ts";
 
 const resultSchema = { result: z.unknown() };
 const systemCategorySchema = z.enum(["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"]);
 const systemListInputSchema = {
   category: systemCategorySchema.optional(),
+  maintenancePattern: z.enum(["regeneration-depletion", "flow-backlog", "detection-correction", "maintenance-renewal", "propagation-containment", "trust-redress", "reserves-solvency"]).optional(),
   tier: z.enum(["red", "orange", "yellow"]).optional(),
   featured: z.boolean().optional(),
 };
@@ -45,7 +46,7 @@ export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIM
   };
   const server = new McpServer(
     { name: "viability-torus-lab", version: CONTRACT_VERSION },
-    { instructions: "Use get_model_info before experiments when model scope is unclear. Compose a reusable system template, a concrete bounded system, a scenario module, and an intervention plan; treat the resulting status as a run assessment. Scenario modules change conditions, intervention modules represent operator actions, and neither is the system itself. Simulation results are synthetic model evidence. Empirical tools return observed-descriptive, provisional receipts and model attribution, not causal identification or validation of the theory. Never force a torus interpretation when a phase gate fails. Use validate_scenario_proposal before proposing publication; validation never publishes a scenario and human review is required." },
+    { instructions: "Use get_model_info before experiments when model scope is unclear. Compose a maintenance pattern, a concrete bounded system, a scenario module, and an intervention plan; treat the resulting status as a run assessment. Domains and dynamic traits are separate descriptive metadata; they do not select calibration. Scenario modules change conditions, intervention modules represent operator actions, and neither is the system itself. Simulation results are synthetic model evidence. Empirical tools return observed-descriptive, provisional receipts and model attribution, not causal identification or validation of the theory. Never force a torus interpretation when a phase gate fails. Use validate_scenario_proposal before proposing publication; validation never publishes a scenario and human review is required." },
   );
 
   server.registerTool("get_model_info", {
@@ -55,12 +56,19 @@ export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIM
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async () => asToolResult(getModelManifest()));
 
-  server.registerTool("list_system_templates", {
-    title: "List reusable system templates",
-    description: "List the structural system classes that supply shared synthetic dynamics without defining a concrete real-world boundary.",
+  server.registerTool("list_maintenance_patterns", {
+    title: "List maintenance patterns",
+    description: "List the recurrent maintenance mechanisms that supply shared synthetic dynamics without defining a domain or concrete boundary.",
     outputSchema: resultSchema,
     annotations: { readOnlyHint: true, openWorldHint: false },
-  }, async () => asToolResult({ systemTemplates }));
+  }, async () => asToolResult({ maintenancePatterns }));
+
+  server.registerTool("list_system_templates", {
+    title: "List maintenance patterns (compatibility alias)",
+    description: "Compatibility alias for list_maintenance_patterns. New integrations should use maintenance-pattern terminology.",
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => asToolResult({ maintenancePatterns, systemTemplates: maintenancePatterns }));
 
   server.registerTool("list_scenario_modules", {
     title: "List reusable scenario modules",
@@ -82,8 +90,9 @@ export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIM
     inputSchema: systemListInputSchema,
     outputSchema: resultSchema,
     annotations: { readOnlyHint: true, openWorldHint: false },
-  }, async ({ category, tier, featured }) => asToolResult({ systems: scenarios.filter((scenario) =>
-    (!category || scenario.category === category) &&
+  }, async ({ category, maintenancePattern, tier, featured }) => asToolResult({ systems: scenarios.filter((scenario) =>
+    (!category || scenario.system.domain === category) &&
+    (!maintenancePattern || scenario.system.maintenancePatternId === maintenancePattern) &&
     (!tier || scenario.watchlistTier === tier) &&
     (featured === undefined || scenario.featured === featured)
   ) }));

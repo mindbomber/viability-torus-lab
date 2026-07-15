@@ -96,7 +96,7 @@ export function createSyntheticRegistryDemo(scenario: ScenarioDefinition): Parse
     make({ name: "Study A — service operations", hash: "a", rows: 240, holdoutRmse: 0.103, intervalCoverage: 0.906 }),
     make({ name: "Study B — service operations", hash: "b", rows: 310, holdoutRmse: 0.118, intervalCoverage: 0.922 }),
     make({ name: "Study C — adjacent cohort", hash: "c", rows: 185, horizon: `${example.study.horizon} (extended observation window)`, preprocessing: [], negative: true }),
-    make({ name: "Study D — different boundary", hash: "d", rows: 400, scenarioVersion: "2.0.0", holdoutRmse: 0.097, intervalCoverage: 0.934 }),
+    make({ name: "Study D — different boundary", hash: "d", rows: 400, scenarioVersion: "1.0.0", holdoutRmse: 0.097, intervalCoverage: 0.934 }),
     make({ name: "Synthetic teaching example", hash: "e", rows: 240, sourceKind: "bundled-observed-form-demo", holdoutRmse: 0.103, intervalCoverage: 0.906 }),
   ];
 }

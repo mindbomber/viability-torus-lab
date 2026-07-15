@@ -103,14 +103,13 @@
           "items": {
             "type": "string",
             "enum": [
-              "regenerative-stock",
-              "threshold-regime-shift",
-              "resistance-contagion",
-              "trust-legitimacy",
-              "capability-correction",
-              "network-cascade",
-              "financial-leverage",
-              "human-capacity"
+              "regeneration-depletion",
+              "flow-backlog",
+              "detection-correction",
+              "maintenance-renewal",
+              "propagation-containment",
+              "trust-redress",
+              "reserves-solvency"
             ]
           }
         }

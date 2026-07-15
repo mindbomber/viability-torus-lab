@@ -275,25 +275,60 @@ export function DifferenceChart({ frames, frameIndex, label = "Difference betwee
 }
 
 function useChart(ref: React.RefObject<HTMLCanvasElement | null>, draw: (ctx: CanvasRenderingContext2D, width: number, height: number) => void) {
+  const drawRef = useRef(draw);
+  const renderRef = useRef<(() => void) | null>(null);
+  const sizeRef = useRef({ width: 0, height: 0 });
+  const visibleRef = useRef(true);
+
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const render = () => {
-      const rect = canvas.getBoundingClientRect();
+      if (!visibleRef.current) return;
+      const { width, height } = sizeRef.current;
+      if (width <= 0 || height <= 0) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
+      const pixelWidth = Math.max(1, Math.floor(width * dpr));
+      const pixelHeight = Math.max(1, Math.floor(height * dpr));
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, rect.width, rect.height);
-      draw(ctx, rect.width, rect.height);
+      ctx.clearRect(0, 0, width, height);
+      drawRef.current(ctx, width, height);
     };
-    render();
-    const observer = new ResizeObserver(render);
+    renderRef.current = render;
+    const updateSize = (width: number, height: number) => {
+      if (width <= 0 || height <= 0) return;
+      sizeRef.current = { width, height };
+      render();
+    };
+    const rect = canvas.getBoundingClientRect();
+    updateSize(rect.width, rect.height);
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) updateSize(entry.contentRect.width, entry.contentRect.height);
+    });
     observer.observe(canvas);
-    return () => observer.disconnect();
-  }, [draw, ref]);
+    const visibilityObserver = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver((entries) => {
+      visibleRef.current = entries[0]?.isIntersecting ?? true;
+      if (visibleRef.current) render();
+    }, { rootMargin: "120px" });
+    visibilityObserver?.observe(canvas);
+    return () => {
+      observer.disconnect();
+      visibilityObserver?.disconnect();
+      renderRef.current = null;
+    };
+  }, [ref]);
+
+  useEffect(() => {
+    drawRef.current = draw;
+    renderRef.current?.();
+  }, [draw]);
 }
 
 function drawGrid(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {

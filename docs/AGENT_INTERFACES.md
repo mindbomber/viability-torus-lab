@@ -2,9 +2,9 @@
 
 ## Contract and evidence boundary
 
-All machine interfaces use contract version `1.0.0` and report the engine's `modelVersion`. A result is reproducible when the template, system, resolved protocol, intervention plan, compiled events, parameters, seeds, steps, integration interval, and model versions are identical.
+All machine interfaces use contract version `1.0.0` and report the engine's `modelVersion`. A result is reproducible when the maintenance pattern, system, resolved protocol, intervention plan, compiled events, parameters, seeds, steps, integration interval, and model versions are identical.
 
-The simulator produces synthetic model evidence. Parameter rankings, bounded-system mappings, scenario transforms, intervention magnitudes, and domain translations are hypotheses; they are not empirical findings or operational recommendations. Each experiment result includes a deterministic `experimentId`, an evidence receipt, the calibration statement, and template/system/protocol/intervention-plan versions. Published systems also expose parameter units, assumptions, references, falsification criteria, and a `currentStateEstimate` containing the estimate date, candidate observation/time basis, review cadence, confidence, and proposed proxy for every model parameter.
+The simulator produces synthetic model evidence. Parameter rankings, bounded-system mappings, scenario transforms, intervention magnitudes, and domain translations are hypotheses; they are not empirical findings or operational recommendations. Each experiment result includes a deterministic `experimentId`, an evidence receipt, the calibration statement, and maintenance-pattern/system/protocol/intervention-plan versions. Published systems also expose parameter units, assumptions, references, falsification criteria, and a `currentStateEstimate` containing the estimate date, candidate observation/time basis, review cadence, confidence, and proposed proxy for every model parameter.
 
 ## Discovery
 
@@ -23,13 +23,13 @@ The API accepts and returns JSON. Cross-origin reads are allowed because all ope
 
 Use `GET /api/v1/laboratory` to discover the complete composition registry. Its five layers are:
 
-1. `SystemTemplateDefinition` — reusable structural dynamics and rupture assumptions.
+1. `MaintenancePatternDefinition` — recurrent maintenance dynamics and rupture assumptions; domain and calibration remain separate.
 2. `BoundedSystemDefinition` — the concrete operator, boundary, objective, population, horizon, and recurrent phases.
 3. `ScenarioModuleDefinition` — reusable exogenous conditions transformed onto the system's default parameters.
 4. `InterventionPlanDefinition` — reusable corrective mechanisms compiled into timed operator actions.
 5. `RunAssessment` — the output status and explanation; never a selected input.
 
-The narrower discovery endpoints are `GET /api/v1/system-templates`, `GET /api/v1/systems`, `GET /api/v1/scenario-modules`, and `GET /api/v1/interventions`. `GET /api/v1/scenarios` is the v1 compatibility alias for bounded systems and their resolved protocols.
+The narrower discovery endpoints are `GET /api/v1/maintenance-patterns`, `GET /api/v1/systems`, `GET /api/v1/scenario-modules`, and `GET /api/v1/interventions`. `GET /api/v1/system-templates` remains a v1 terminology alias; `GET /api/v1/scenarios` remains the compatibility alias for bounded systems and their resolved protocols.
 
 ### Run an ensemble
 
@@ -53,7 +53,7 @@ Content-Type: application/json
 }
 ```
 
-`systemId` selects the bounded system; `scenarioId` is retained as its v1 compatibility name. `protocolId` may be a concrete attached protocol id or a reusable scenario-module id such as `compound-stress`. If omitted, the system's declared default protocol supplies the base parameter set. `interventionPlanId` defaults to `no-action`; a selected plan compiles its definitions, relative timing, intensity, duration, and restoration events against the run length. Explicit `parameters` are applied after the scenario module, and custom `interventions` are appended after the plan. Results echo the template, system, resolved protocol, intervention plan, and exact compiled configuration. Frames are omitted by default. Set `includeFrames: true` to receive sampled frames; the server increases the effective stride as needed to remain within the response budget.
+`systemId` selects the bounded system; `scenarioId` is retained as its v1 compatibility name. `protocolId` may be a concrete attached protocol id or a reusable scenario-module id such as `compound-stress`. If omitted, the system's declared default protocol supplies the base parameter set. `interventionPlanId` defaults to `no-action`; a selected plan compiles its definitions, relative timing, intensity, duration, and restoration events against the run length. Explicit `parameters` are applied after the scenario module, and custom `interventions` are appended after the plan. Results echo the maintenance pattern, its `template` compatibility alias, the system, resolved protocol, intervention plan, and exact compiled configuration. Frames are omitted by default. Set `includeFrames: true` to receive sampled frames; the server increases the effective stride as needed to remain within the response budget.
 
 This ordering is semantic, not merely syntactic: a scenario says what conditions the system encounters; an intervention says what an operator does and when. The same module or plan can therefore be compared across structurally different bounded systems while retaining the same canonical ATS meaning.
 
@@ -170,7 +170,7 @@ Unknown object fields are rejected. General API bodies are capped at 1 MB; empir
 
 ```bash
 npm run vtl -- model
-npm run vtl -- templates
+npm run vtl -- patterns
 npm run vtl -- systems
 npm run vtl -- scenario-modules
 npm run vtl -- interventions
@@ -191,7 +191,7 @@ Pass `--config -` for stdin. CLI execution has larger but still finite local lim
 The local server uses stdio and the public `/mcp` route uses stateless Streamable HTTP with JSON responses. Core tools are:
 
 - `get_model_info`
-- `list_system_templates`
+- `list_maintenance_patterns` (`list_system_templates` remains a compatibility alias)
 - `list_systems`
 - `get_system`
 - `list_scenario_modules`
@@ -216,7 +216,7 @@ The local stdio server additionally exposes:
 
 Authenticated remote MCP requests expose the table, explanation, and receipt tools, but never the local-file resource tool. They use the same `VTL_ENABLE_EMPIRICAL_API`, bearer token, consent, and sensitive-data policy as the HTTP endpoint. For database, Sheets, or repository connectors, the MCP client should read the authorized resource and pass the bounded rows to `empirical_analyze_table`; the optional `source.resourceUri` preserves provenance without granting this server open connector access.
 
-`list_system_templates`, `list_systems`, `list_scenario_modules`, and `list_interventions` expose the reusable registries. `compose_laboratory_run` resolves a proposed `systemId`, scenario-module or concrete protocol id, plan id, overrides, and custom events into the exact configuration without executing it. `run_simulation` executes that same composition path. `list_scenarios` and `get_scenario` remain compatibility aliases. The MCP server instructions require agents to compose inputs in layer order, keep scenarios separate from interventions, treat run status as an assessment output, preserve the synthetic/observed-descriptive evidence boundary, treat failed topology gates as valid negative results, and use proposal validation before recommending publication.
+`list_maintenance_patterns`, `list_systems`, `list_scenario_modules`, and `list_interventions` expose the reusable registries. `compose_laboratory_run` resolves a proposed `systemId`, scenario-module or concrete protocol id, plan id, overrides, and custom events into the exact configuration without executing it. `run_simulation` executes that same composition path. `list_system_templates`, `list_scenarios`, and `get_scenario` remain compatibility aliases. The MCP server instructions require agents to compose inputs in layer order, keep domain and dynamic traits separate from maintenance pattern, keep scenarios separate from interventions, treat run status as an assessment output, preserve the synthetic/observed-descriptive evidence boundary, treat failed topology gates as valid negative results, and use proposal validation before recommending publication.
 
 ## Scenario proposals
 

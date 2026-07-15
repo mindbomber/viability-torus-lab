@@ -163,7 +163,7 @@ export function resolveScenarioProtocol(input: {
     conditions: [...input.domainConditions, ...module.conditions],
     stressors: isDefault ? input.domainStressors : module.stressors,
     interventions: input.interventionMeanings,
-    parameterRationale: `This scenario adjusts the starting values declared for the ${input.template.title.toLowerCase()} system type to represent ${module.title.toLowerCase()}. The educational watchlist rating is calculated afterward; it does not determine these values.`,
+    parameterRationale: `This scenario adjusts the bounded system's starting values using the ${input.template.title.toLowerCase()} maintenance pattern to represent ${module.title.toLowerCase()}. The educational watchlist rating is calculated afterward; it does not determine these values.`,
     learningObjective: module.learningObjective,
     parameters: module.transforms.length ? applyParameterTransforms(input.baseParameters, module.transforms) : input.baseParameters,
     provenance: "illustrative-system-protocol",

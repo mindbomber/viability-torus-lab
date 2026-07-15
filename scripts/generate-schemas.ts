@@ -28,7 +28,8 @@ const canonicalBase = "https://viability-torus-lab.citizen-of-earth.chatgpt.site
 const definitions = [
   ["simulation-parameters", "Simulation parameters", simulationParametersSchema],
   ["scheduled-intervention", "Scheduled intervention", scheduledInterventionSchema],
-  ["system-template", "Reusable system template", systemTemplateDefinitionSchema],
+  ["maintenance-pattern", "Maintenance pattern", systemTemplateDefinitionSchema],
+  ["system-template", "Maintenance pattern (v1 compatibility name)", systemTemplateDefinitionSchema],
   ["scenario-module", "Reusable scenario module", scenarioModuleDefinitionSchema],
   ["intervention-definition", "Reusable intervention definition", interventionDefinitionSchema],
   ["intervention-plan", "Composable intervention plan", interventionPlanDefinitionSchema],

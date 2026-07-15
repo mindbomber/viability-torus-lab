@@ -67,7 +67,7 @@ test("builder gates torus eligibility, validates a real proposal contract, and t
   await expect(page.locator(".builder-shell > aside button")).toHaveCount(24);
   const values = [
     "Emergency Department QA",
-    "Human capacity and recovery",
+    "Flow and backlog",
     "Hospital flow, staffing, bed-management, and quality teams",
     "Emergency arrivals, triage, treatment spaces, staffing, discharge paths, and safety feedback",
     "Patients by acuity, families, clinical staff, and the region served",
