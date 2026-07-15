@@ -112,6 +112,200 @@ test("canvases render and linked playback remains causal and synchronized", asyn
   expect(consoleErrors).toEqual([]);
 });
 
+test("every live simulation module follows the playback frame through crossing, recovery window, rupture, and rewind", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const consoleErrors = await openDashboard(page);
+  await page.getByLabel("Select a scenario").selectOption({ label: "Compound stress" });
+  const timeline = page.getByLabel("Simulation time");
+  const progression = page.locator(".viability-progression");
+  const status = page.locator(".status-panel");
+  const torus = page.locator('canvas[data-chart-kind="torus"]');
+  const timeSeries = page.locator('canvas[data-chart-kind="timeseries"]');
+  const unwrapped = page.locator('canvas[data-chart-kind="unwrapped"]');
+  const radial = page.locator('canvas[data-chart-kind="radial-stability"]');
+  const insight = page.locator(".run-insight");
+  const aix = page.locator(".aix-drawer");
+  const liveOutlookStatus = page.locator(".classification-step").filter({ hasText: "Live frame status" });
+  const dataRows = page.locator(".data-table-fallback tbody tr");
+  const scenarioFacts = page.locator(".scenario-facts");
+
+  await expect(progression).toHaveAttribute("data-phase", "before-crossing");
+  await expect(progression.locator("span.active")).toHaveCount(0);
+  await expect(progression.locator("span.complete")).toHaveCount(0);
+  await expect(status).toContainText("No viability-boundary crossing has occurred by this playback frame");
+  await expect(timeSeries).toHaveAttribute("data-visible-frame-count", "1");
+  await expect(page.getByLabel("Selected-point state inspector")).toContainText("step 0");
+  await expect(insight).toContainText("step 0");
+  await expect(aix).toHaveAttribute("data-frame-step", "0");
+  await expect(liveOutlookStatus).toContainText("Drifting");
+  await expect(scenarioFacts).toContainText("Drifting");
+  await expect(dataRows).toHaveCount(1);
+  const initialAix = await aix.getAttribute("data-aix-score");
+
+  await timeline.fill("675");
+  await expect(progression).toHaveAttribute("data-phase", "crossing");
+  await expect(progression.locator("span").nth(0)).toHaveClass(/active/);
+  await expect(status).toContainText("BOUNDARY CROSSED");
+  await expect(timeSeries).toHaveAttribute("data-visible-frame-count", "676");
+  await expect(page.getByLabel("Selected-point state inspector")).toContainText("step 675");
+  await expect(unwrapped).toHaveAttribute("data-current-theta", /.+/);
+  await expect(radial).toHaveAttribute("aria-label", /Current excursion 2\.50/i);
+  await expect(insight).toContainText("step 675");
+  await expect(aix).toHaveAttribute("data-frame-step", "675");
+  await expect(liveOutlookStatus).toContainText("Boundary crossed");
+  await expect(scenarioFacts).toContainText("Boundary crossed");
+  await expect(dataRows).toHaveCount(13);
+  await expect(dataRows.last()).toContainText("675");
+  await expect(aix).not.toHaveAttribute("data-aix-score", initialAix ?? "");
+  await status.screenshot({ path: testInfo.outputPath("system-status-boundary-causal.png") });
+
+  await timeline.fill("676");
+  await expect(progression).toHaveAttribute("data-phase", "recovery-window");
+  await expect(progression.locator("span").nth(0)).toHaveClass(/complete/);
+  await expect(progression.locator("span").nth(1)).toHaveClass(/active/);
+  await expect(status).toContainText("RECOVERABLE EXCURSION");
+  await expect(status).toContainText("still nonterminal");
+
+  await timeline.fill("684");
+  await expect(progression).toHaveAttribute("data-phase", "irreversible-rupture");
+  await expect(progression.locator("span").nth(0)).toHaveClass(/complete/);
+  await expect(progression.locator("span").nth(1)).toHaveClass(/failed/);
+  await expect(progression.locator("span").nth(2)).toHaveClass(/active/);
+  await expect(status).toContainText("IRREVERSIBLE RUPTURE");
+  await expect(torus).toHaveAttribute("data-geometry-regime", "collapse");
+  await expect(insight).toContainText("Terminal policy");
+  await expect(liveOutlookStatus).toContainText("Irreversible rupture");
+  await expect(scenarioFacts).toContainText("Irreversible rupture");
+  await status.screenshot({ path: testInfo.outputPath("system-status-terminal-causal.png") });
+
+  await timeline.fill("0");
+  await expect(progression).toHaveAttribute("data-phase", "before-crossing");
+  await expect(progression.locator("span.active")).toHaveCount(0);
+  await expect(progression.locator("span.complete")).toHaveCount(0);
+  await expect(status).toContainText("DRIFTING");
+  await expect(status).not.toContainText("IRREVERSIBLE RUPTURE");
+  await expect(torus).not.toHaveAttribute("data-geometry-regime", "collapse");
+  await expect(timeSeries).toHaveAttribute("data-visible-frame-count", "1");
+  await expect(aix).toHaveAttribute("data-aix-score", initialAix ?? "");
+  await expect(insight).toContainText("The final outcome is not yet shown");
+  await expect(liveOutlookStatus).toContainText("Drifting");
+  await expect(scenarioFacts).toContainText("Drifting");
+  await expect(dataRows).toHaveCount(1);
+
+  await timeline.fill("674");
+  const playback = page.locator(".simulation-bar");
+  await expect(playback.getByRole("button", { name: /Resume/ })).toHaveCount(1);
+  await expect(playback.getByRole("button", { name: /Pause/ })).toBeDisabled();
+  await playback.getByRole("button", { name: /Resume/ }).click();
+  await expect.poll(async () => Number(await timeline.inputValue()), { timeout: 4_000 }).toBe(675);
+  await expect(progression).toHaveAttribute("data-phase", "crossing");
+  await expect(playback.getByRole("button", { name: /Pause/ })).toBeEnabled();
+  await playback.getByRole("button", { name: /Pause/ }).click();
+  expect(consoleErrors).toEqual([]);
+});
+
+test("a real post-crossing correction renders recovery as the alternative branch to rupture", async ({ page }, testInfo) => {
+  const consoleErrors = await openDashboard(page);
+  const config = {
+    modelVersion: "torus-1.2.0",
+    interventionPlanId: "no-action",
+    experiment: {
+      schemaVersion: "1.0.0",
+      systemId: "llm-deployment",
+      scenarioId: "llm-deployment",
+      interventionPlanId: "no-action",
+      parameters: {
+        steps: 960,
+        pressure: 2.35,
+        feedback: 0.42,
+        correction: 0.42,
+        initialDebt: 0.34,
+        kappa: 0.22,
+        chi: 0.18,
+        omegaTheta: 0.12,
+      },
+      interventions: [{
+        id: "post-crossing-recovery",
+        label: "Post-crossing recovery",
+        step: 410,
+        cost: 1,
+        effects: { pressure: 0.3, error: 0.1, feedback: 0.95, correction: 1.8, irreversibleLoss: 0, beta: 1 },
+      }],
+      seeds: [4217],
+      includeFrames: false,
+    },
+  };
+  await page.goto(`/?config=${encodeURIComponent(JSON.stringify(config))}`);
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-hydrated", "true");
+  const timeline = page.getByLabel("Simulation time");
+  const progression = page.locator(".viability-progression");
+  const status = page.locator(".status-panel");
+
+  await timeline.fill("409");
+  await expect(progression).toHaveAttribute("data-phase", "crossing");
+  await expect(progression.locator("span").nth(0)).toHaveClass(/active/);
+  await timeline.fill("410");
+  await expect(progression).toHaveAttribute("data-phase", "recovered");
+  await expect(progression.locator("span").nth(0)).toHaveClass(/complete/);
+  await expect(progression.locator("span").nth(1)).toHaveClass(/complete.*recovered/);
+  await expect(progression.locator("span").nth(2)).not.toHaveClass(/active/);
+  await expect(status).toContainText("returned inside the viable tube");
+  await expect(page.locator(".intervention-log .occurred")).toContainText("Post-crossing recovery");
+  await status.screenshot({ path: testInfo.outputPath("system-status-recovered-branch.png") });
+  expect(consoleErrors).toEqual([]);
+});
+
+test("planned changes distinguish future schedule from actions active at the selected frame", async ({ page }, testInfo) => {
+  const consoleErrors = await openDashboard(page);
+  await page.getByLabel("Select changes to test").selectOption({ label: "Visibility first" });
+  const timeline = page.getByLabel("Simulation time");
+  const log = page.locator(".intervention-log");
+  const insight = page.locator(".run-insight");
+  const aix = page.locator(".aix-drawer");
+  const initialAix = await aix.getAttribute("data-aix-score");
+
+  await expect(log.locator(".occurred")).toHaveCount(0);
+  await expect(log.locator(".upcoming")).toContainText("Scheduled for");
+  await expect(log.locator(".upcoming")).toContainText("not active yet");
+  const firstEventStep = Number(await log.locator(".upcoming").getAttribute("data-event-step"));
+  expect(firstEventStep).toBeGreaterThan(0);
+  await expect(insight).toContainText(`Next action at step ${firstEventStep}`);
+
+  await timeline.fill(String(firstEventStep));
+  await expect(log.locator(".occurred")).toContainText("Applied at");
+  await expect(log.locator(".occurred")).toContainText("Improve feedback");
+  await expect(log.locator(".upcoming")).toContainText("Add audit");
+  await expect(insight).toContainText("1 modeled action active");
+  await expect(aix).not.toHaveAttribute("data-aix-score", initialAix ?? "");
+  await log.screenshot({ path: testInfo.outputPath("causal-change-timeline.png") });
+
+  await timeline.fill("0");
+  await expect(log.locator(".occurred")).toHaveCount(0);
+  await expect(log.locator(".upcoming")).toContainText("not active yet");
+  await expect(aix).toHaveAttribute("data-aix-score", initialAix ?? "");
+  expect(consoleErrors).toEqual([]);
+});
+
+test("the global run control never advances a hidden simulation behind another module", async ({ page }) => {
+  const consoleErrors = await openDashboard(page);
+  const timeline = page.getByLabel("Simulation time");
+  await page.locator(".top-actions").getByRole("button", { name: "Run system" }).click();
+  await expect.poll(async () => Number(await timeline.inputValue())).toBeGreaterThan(0);
+  const beforeNavigation = Number(await timeline.inputValue());
+  await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
+  await expect(page.getByRole("heading", { name: /Choose a type of system/i })).toBeVisible();
+  await page.waitForTimeout(500);
+  await page.locator(".sidebar nav button").filter({ hasText: "Home" }).click();
+  await expect(page.getByRole("heading", { name: "Production LLM Answering Service" })).toBeVisible();
+  expect(Number(await timeline.inputValue())).toBeLessThanOrEqual(beforeNavigation + 2);
+
+  await page.locator(".top-actions button").filter({ hasText: "Compare" }).click();
+  await expect(page.getByRole("heading", { name: "Compare two futures" })).toBeVisible();
+  await page.locator(".top-actions").getByRole("button", { name: /Resume system|Run system/ }).click();
+  await expect(page.getByRole("heading", { name: "Production LLM Answering Service" })).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
 test("comparison canvas preserves a signed zero baseline and responds to B", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
   await page.locator(".top-actions button").filter({ hasText: "Compare" }).click();
@@ -128,6 +322,21 @@ test("comparison canvas preserves a signed zero baseline and responds to B", asy
   await expect.poll(async () => difference.getAttribute("aria-label")).not.toBe(beforeLabel);
   await expect.poll(async () => (await canvasFingerprint(page, 'canvas[data-chart-kind="difference"]')).data).not.toBe(before.data);
   await page.locator(".compare-grid").screenshot({ path: testInfo.outputPath("controlled-one-factor-comparison.png") });
+  expect(consoleErrors).toEqual([]);
+});
+
+test("comparison outcomes do not call a nonterminal boundary excursion ruptured", async ({ page }) => {
+  const consoleErrors = await openDashboard(page);
+  await page.getByLabel("Select a type of system").selectOption("regenerative-stock");
+  await page.locator(".laboratory-selectors select").nth(1).selectOption("groundwater-depletion");
+  await page.getByLabel("Select a scenario").selectOption({ label: "Pressure surge" });
+  await page.locator(".top-actions button").filter({ hasText: "Compare" }).click();
+  const outcomes = page.locator(".compare-summary .summary-stat").filter({ hasText: "Outcome" });
+  await expect(outcomes).toHaveCount(2);
+  await expect(outcomes.nth(0)).toContainText("Outside boundary · recovery still possible");
+  await expect(outcomes.nth(1)).toContainText("Outside boundary · recovery still possible");
+  await expect(outcomes.nth(0)).not.toContainText("Ruptured");
+  await expect(outcomes.nth(1)).not.toContainText("Ruptured");
   expect(consoleErrors).toEqual([]);
 });
 
@@ -203,7 +412,7 @@ test("causal explanation updates from parameters through current status and term
   for (const source of ["System structure", "Scenario pressure", "User overrides", "Intervention activity", "System memory"]) {
     await expect(insight).toContainText(source);
   }
-  await expect(insight).toContainText("Sliders match the protocol");
+  await expect(insight).toContainText("Sliders match the selected scenario");
   await expect(insight).toContainText("not empirical causal identification");
   await expect(insight.getByRole("heading", { name: "Why the torus has this shape" })).toBeVisible();
   await expect(insight).toContainText("Excursion ρ");
@@ -217,16 +426,16 @@ test("causal explanation updates from parameters through current status and term
   await expect(insight).toContainText("Gap C*−C");
   await expect(insight).toContainText("synthetic radial equation");
 
-  await page.getByLabel("Select scenario protocol").selectOption({ label: "Compound stress" });
+  await page.getByLabel("Select a scenario").selectOption({ label: "Compound stress" });
   await expect(insight).toContainText("Drifting");
   await expect(insight).toContainText("Divergence exceeds correction");
   await expect(insight).toContainText("Narrows the declared margin");
   await expect(insight).toContainText("π·ε·(1−γ)");
 
   await page.getByLabel("Response speed & automation pressure numeric value").fill("3");
-  await expect(insight).toContainText("1 configured change");
-  await page.getByRole("button", { name: "Reset protocol" }).click();
-  await expect(insight).toContainText("Sliders match the protocol");
+  await expect(insight).toContainText("1 slider change");
+  await page.getByRole("button", { name: "Reset scenario" }).click();
+  await expect(insight).toContainText("Sliders match the selected scenario");
 
   await page.getByRole("button", { name: "Step +1" }).click();
   await expect(insight).toContainText("Worsening");
@@ -248,15 +457,17 @@ test("causal explanation updates from parameters through current status and term
   expect(consoleErrors).toEqual([]);
 });
 
-test("experiments workspace verifies the paper and exposes all research modules", async ({ page }, testInfo) => {
+test("experiments workspace verifies the paper and exposes all research studies", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
-  await page.getByRole("button", { name: /^Experiments Protocol-driven studies$/i }).click();
+  await page.getByRole("button", { name: /^Experiments Reproducible studies$/i }).click();
   await expect(page.getByRole("heading", { name: "Experiments", exact: true })).toBeVisible();
   await expect(page.locator(".module-rail > button")).toHaveCount(6);
   await expect(page.getByText("Archived result reproduced")).toBeVisible();
   await expect(page.locator(".verification-strip")).toHaveClass(/verified/);
   await expect(page.getByText("ATS 4.0 AIx product extension", { exact: true })).toBeVisible();
   await expect(page.getByText(/AANA gate:/i)).toBeVisible();
+  await expect(page.locator(".experiment-context-aix")).toContainText("Separate from this study");
+  await expect(page.locator(".experiment-context-aix")).toContainText("It is not an output of the selected");
 
   await page.locator(".module-rail > button").filter({ hasText: "Topology" }).click();
   await expect(page.getByRole("heading", { name: "Topology & phase" })).toBeVisible();
@@ -274,11 +485,11 @@ test("experiments workspace verifies the paper and exposes all research modules"
   expect(consoleErrors).toEqual([]);
 });
 
-test("bounded-system catalog explains its default protocol tier and recalculates after protocol changes", async ({ page }, testInfo) => {
+test("systems catalog explains its default outlook and recalculates after scenario changes", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
   await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
-  await expect(page.getByRole("heading", { name: /Learn the system class/i })).toBeVisible();
-  await expect(page.getByText("32 bounded instances", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Choose a type of system/i })).toBeVisible();
+  await expect(page.getByText("32 real-world examples", { exact: true })).toBeVisible();
   await expect(page.locator(".library-grid .scenario-card")).toHaveCount(32);
   await page.screenshot({ path: testInfo.outputPath("composable-systems-library.png") });
 
@@ -288,16 +499,25 @@ test("bounded-system catalog explains its default protocol tier and recalculates
 
   await page.getByRole("button", { name: /Climate Adaptation Authority/i }).click();
   await expect(page.getByRole("heading", { name: "Regional Climate Adaptation & Land-System Authority" })).toBeVisible();
-  await expect(page.locator(".system-definition-panel")).toContainText("A reusable system class, instantiated and tested");
-  await expect(page.locator(".system-definition-panel")).toContainText("System template");
-  await expect(page.locator(".system-definition-panel")).toContainText("System instance");
-  await expect(page.locator(".system-definition-panel")).toContainText("Scenario");
-  await expect(page.locator(".system-definition-panel")).toContainText("Intervention");
-  await expect(page.locator(".system-definition-panel")).toContainText("Assessment");
+  const systemDefinition = page.locator(".system-definition-panel");
+  await expect(systemDefinition).not.toHaveAttribute("open", "");
+  await expect(systemDefinition.locator(":scope > summary")).toContainText("See exactly what this simulation represents");
+  await expect(systemDefinition.locator(".system-definition-body")).not.toBeVisible();
+  await systemDefinition.screenshot({ path: testInfo.outputPath("system-composition-collapsed.png") });
+  await systemDefinition.locator(":scope > summary").click();
+  await expect(systemDefinition).toHaveAttribute("open", "");
+  await expect(systemDefinition.locator(".system-definition-body")).toBeVisible();
+  await expect(systemDefinition).toContainText("System type");
+  await expect(systemDefinition).toContainText("Selected system");
+  await expect(systemDefinition).toContainText("Scenario conditions");
+  await expect(systemDefinition).toContainText("Changes to test");
+  await expect(systemDefinition).toContainText("Run result");
+  await expect(systemDefinition.locator(".system-definition-body > details")).not.toHaveAttribute("open", "");
+  await systemDefinition.screenshot({ path: testInfo.outputPath("system-composition-expanded.png") });
   await expect(page.getByText("RED /", { exact: false })).toBeVisible();
   const receipt = page.locator(".watchlist-receipt");
   await expect(receipt.getByRole("heading", { name: "Why this system has this watchlist outlook" })).toBeVisible();
-  await expect(receipt).toContainText("Protocol reproduced");
+  await expect(receipt).toContainText("Default result reproduced");
   await expect(receipt).toContainText("red, orange, or yellow label shown beside the system name");
   await expect(receipt).toContainText("Illustrative current-state hypothesis");
   await expect(receipt).toContainText("2026-07-14");
@@ -318,7 +538,7 @@ test("bounded-system catalog explains its default protocol tier and recalculates
   await expect(translations).toContainText("The scenario-defined recoverability limit for climate and biosphere overshoot");
   await translations.screenshot({ path: testInfo.outputPath("parameter-real-world-translation.png") });
 
-  await page.getByLabel("Select scenario protocol").selectOption({ label: "Reduced-stress context" });
+  await page.getByLabel("Select a scenario").selectOption({ label: "Reduced-stress context" });
   await expect(receipt.locator(".classification-step").filter({ hasText: "Derived default ensemble" })).toContainText("red tier");
   await expect(receipt.locator(".classification-step").filter({ hasText: "Current slider outlook" })).toContainText("orange tier");
   await expect(receipt).toContainText("What the sliders changed");
@@ -326,9 +546,9 @@ test("bounded-system catalog explains its default protocol tier and recalculates
   await receipt.screenshot({ path: testInfo.outputPath("watchlist-red-to-orange.png") });
   const evidence = page.locator(".scenario-evidence");
   await evidence.locator("summary").click();
-  await expect(evidence.getByRole("heading", { name: "Canonical parameter map" })).toBeVisible();
+  await expect(evidence.getByRole("heading", { name: "What each equation variable means here" })).toBeVisible();
   await expect(evidence.getByText("Climate and biosphere overshoot", { exact: true })).toBeVisible();
-  await expect(evidence.getByRole("heading", { name: "Scenario-specific AIx layers" })).toBeVisible();
+  await expect(evidence.getByRole("heading", { name: "AIx meanings in this scenario" })).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
 
@@ -344,7 +564,7 @@ test("mobile dashboard renders the visualization fallback without clipping the c
   await mobileMenu.click();
   await expect(page.locator(".sidebar")).toHaveClass(/open/);
   await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
-  await expect(page.getByRole("heading", { name: /Learn the system class/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Choose a type of system/i })).toBeVisible();
   await page.getByRole("button", { name: /Featured · 10/i }).click();
   await expect(page.getByText("Showing 10 systems")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);

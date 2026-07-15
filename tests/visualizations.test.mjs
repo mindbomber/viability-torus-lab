@@ -22,6 +22,11 @@ import {
   signedDifferenceScale,
   timeSeriesScales,
 } from "../components/charts/visualizationMath.ts";
+import {
+  finalViabilityOutcomeLabel,
+  nextPlaybackFrameIndex,
+  viabilityJourneyAt,
+} from "../engine/assessment.ts";
 
 test("system-specific phase stages and radial direction map deterministically", () => {
   const stages = ["Sense", "Review", "Correct", "Verify"];
@@ -190,6 +195,56 @@ test("full-run phase diagnostics remain hidden during progressive playback", () 
   assert.equal(phaseAnalysisAvailable(0, 900), false);
   assert.equal(phaseAnalysisAvailable(898, 900), false);
   assert.equal(phaseAnalysisAvailable(899, 900), true);
+});
+
+test("causal viability journey does not leak future crossings and models recovery as an alternative to rupture", () => {
+  const frames = [
+    { step: 0, viabilityState: "Viable recurrence", status: "Stable" },
+    { step: 1, viabilityState: "Viability-boundary crossing", status: "Warning" },
+    { step: 2, viabilityState: "Recoverable excursion", status: "Recovering" },
+    { step: 3, viabilityState: "Viable recurrence", status: "Stable" },
+  ];
+  assert.equal(viabilityJourneyAt(frames, 0).phase, "before-crossing");
+  assert.equal(viabilityJourneyAt(frames, 1).phase, "crossing");
+  assert.equal(viabilityJourneyAt(frames, 2).phase, "recovery-window");
+  assert.equal(viabilityJourneyAt(frames, 3).phase, "recovered");
+
+  const ruptured = [...frames.slice(0, 3), { step: 3, viabilityState: "Irreversible rupture", status: "Ruptured" }];
+  const terminalJourney = viabilityJourneyAt(ruptured, 3);
+  assert.equal(terminalJourney.phase, "irreversible-rupture");
+  assert.equal(terminalJourney.recovered, false);
+  assert.equal(terminalJourney.ruptureStep, 3);
+});
+
+test("playback stride lands on dynamic status, viability, and intervention transitions", () => {
+  const frames = [
+    { step: 0, viabilityState: "Viable recurrence", status: "Stable" },
+    { step: 1, viabilityState: "Viable recurrence", status: "Stable" },
+    { step: 2, viabilityState: "Viable recurrence", status: "Drifting" },
+    { step: 3, viabilityState: "Viability-boundary crossing", status: "Warning" },
+    { step: 4, viabilityState: "Recoverable excursion", status: "Warning" },
+    { step: 5, viabilityState: "Recoverable excursion", status: "Warning" },
+  ];
+  assert.equal(nextPlaybackFrameIndex(frames, 0, 8), 2);
+  assert.equal(nextPlaybackFrameIndex(frames, 2, 8), 3);
+  assert.equal(nextPlaybackFrameIndex(frames, 3, 8), 4);
+  assert.equal(nextPlaybackFrameIndex(frames, 4, 8, new Set([5])), 5);
+});
+
+test("final outcome labels distinguish recovered boundary crossings from irreversible rupture", () => {
+  assert.equal(finalViabilityOutcomeLabel({
+    ruptureStep: 12,
+    boundaryCrossingStep: 12,
+    recoveredAfterCrossing: true,
+    finalViabilityState: "Viable recurrence",
+  }), "Recovered after boundary crossing");
+  assert.equal(finalViabilityOutcomeLabel({
+    ruptureStep: 12,
+    boundaryCrossingStep: 12,
+    irreversibleRuptureStep: 18,
+    recoveredAfterCrossing: false,
+    finalViabilityState: "Irreversible rupture",
+  }), "Irreversible rupture");
 });
 
 test("progressive explanation does not reveal a future rupture", () => {

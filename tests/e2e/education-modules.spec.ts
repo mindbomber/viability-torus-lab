@@ -14,13 +14,16 @@ async function openDashboard(page: Page) {
   return consoleErrors;
 }
 
-test("simulation laboratory preserves a reusable plan plus a custom event and reports observed seed fractions", async ({ page }, testInfo) => {
+test("simulation laboratory preserves planned changes plus a custom event and reports observed seed fractions", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
-  await page.getByLabel("Select intervention plan").selectOption({ label: "Visibility first" });
+  await page.getByLabel("Select changes to test").selectOption({ label: "Visibility first" });
   await page.getByRole("button", { name: /Increase Correction/i }).click();
   await page.locator(".sidebar nav button").filter({ hasText: "Simulation Lab" }).click();
   await expect(page.getByRole("heading", { name: "Simulation Laboratory" })).toBeVisible();
-  await expect(page.getByText(/Visibility first.*3 resolved events preserved in every run/i)).toBeVisible();
+  await expect(page.getByText(/Visibility first.*3 planned changes retained in every run/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Projected full-run result" })).toBeVisible();
+  await expect(page.locator('[data-result-scope="full-run-projection"]')).toContainText("Final viability state");
+  await expect(page.getByText(/independent of the playback cursor/i)).toBeVisible();
   await page.getByLabel("Ensemble seeds").fill("2");
   await page.getByRole("button", { name: "Run batch" }).click();
   await expect(page.getByText(/observed fractions, not calibrated probabilities/i)).toBeVisible();
@@ -33,7 +36,7 @@ test("simulation laboratory preserves a reusable plan plus a custom event and re
 
 test("telemetry with a failed phase gate withholds phase and coupling charts honor nonuniform x values", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
-  await page.getByRole("button", { name: /^Experiments Protocol-driven studies$/i }).click();
+  await page.getByRole("button", { name: /^Experiments Reproducible studies$/i }).click();
   await page.locator(".module-rail > button").filter({ hasText: "Telemetry" }).click();
   const csv = ["time,mismatch", ...Array.from({ length: 64 }, (_, index) => `${index * .25},0.5`)].join("\n");
   await page.locator('.telemetry-upload input[type="file"]').setInputFiles({ name: "flat.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
@@ -95,10 +98,10 @@ test("builder gates torus eligibility, validates a real proposal contract, and t
     else await page.locator(".builder-question textarea").fill(values[index]);
   }
   await expect(page.getByText("Two-phase eligibility established for a draft test")).toBeVisible();
-  await page.getByRole("button", { name: "Validate draft proposal" }).click();
+  await page.getByRole("button", { name: "Check draft system" }).click();
   await expect(page.getByText("VALID DRAFT · HUMAN REVIEW REQUIRED")).toBeVisible();
-  await expect(page.getByText(/Schema, execution limits, and all draft protocol assertions passed/i)).toBeVisible();
-  const testButton = page.getByRole("button", { name: "Test validated draft" });
+  await expect(page.getByText(/All required fields, safety limits, and test scenarios passed/i)).toBeVisible();
+  const testButton = page.getByRole("button", { name: "Test checked draft" });
   await expect(testButton).toBeEnabled();
   await testButton.click();
   await expect(page.locator(".builder-test-result")).toBeVisible();
@@ -109,7 +112,7 @@ test("builder gates torus eligibility, validates a real proposal contract, and t
   expect(consoleErrors).toEqual([]);
 });
 
-test("learn uses correct equations and launches configured protocols; theory separates framework layers", async ({ page }, testInfo) => {
+test("learn uses correct equations and launches guided examples; theory separates evidence layers", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
   await page.locator(".sidebar nav button").filter({ hasText: "Learn" }).click();
   await page.getByRole("button", { name: /Radial excursion Distance from viable recurrence/i }).click();
@@ -118,7 +121,7 @@ test("learn uses correct equations and launches configured protocols; theory sep
   await page.getByRole("button", { name: /Phase identifiability Estimated φ may be undefined/i }).click();
   await expect(page.getByText(/Failure means undefined—not φ=0/i)).toBeVisible();
   await page.locator(".learn-layout").screenshot({ path: testInfo.outputPath("learn-phase-identifiability.png") });
-  await page.getByRole("button", { name: "Load guided protocol" }).click();
+  await page.getByRole("button", { name: "Load guided example" }).click();
   await expect(page.getByRole("heading", { name: "Production LLM Answering Service" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Research", exact: true })).toHaveClass(/active/);
   await expect(page.getByLabel("ωφ external frequency")).toHaveValue("0.004");
@@ -129,7 +132,7 @@ test("learn uses correct equations and launches configured protocols; theory sep
   await expect(page.getByText("Section 14 minimal toy proxy")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Six paper design principles" })).toBeVisible();
   await expect(page.locator(".principle-grid article")).toHaveCount(6);
-  await expect(page.getByText("Site extensions")).toBeVisible();
+  await expect(page.getByText("Educational additions on this site")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("theory-layer-crosswalk.png"), fullPage: true });
   expect(consoleErrors).toEqual([]);
 });

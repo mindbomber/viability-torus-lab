@@ -76,7 +76,7 @@ export function ExperimentsWorkspace({ scenario, parameters, frames, summary, an
   const runPaper = () => startTransition(() => {
     const result = simulateLegacyPaperCase(paperCase);
     setPaperResult(result);
-    announce(`${result.title} reproduced against the archived fixture`);
+    announce(`${result.title} reproduced against the archived reference run`);
   });
 
   const runActiveModule = () => {
@@ -105,13 +105,13 @@ export function ExperimentsWorkspace({ scenario, parameters, frames, summary, an
   return (
     <div className="experiments-workspace">
       <header className="experiments-heading">
-        <div><span>Protocol-driven synthetic studies</span><h1>Experiments</h1><p>Reproduce archived fixtures, run live diagnostics, and keep provenance visible at every step.</p></div>
+        <div><span>Reproducible synthetic studies</span><h1>Experiments</h1><p>Reproduce archived results, run live diagnostics, and keep each result&apos;s source visible at every step.</p></div>
         <div className="experiment-actions"><button className="primary" disabled={isPending || moduleId === "topology" || moduleId === "telemetry"} onClick={runActiveModule}>▶ {isPending ? "Running…" : "Run experiment"}</button><a className="button" href="/research/core/TOROIDAL_LAB_REPORT.md">Core report</a><a className="button" href="/research/navigation/TOROIDAL_NAVIGATION_LAB_REPORT.md">Navigation report</a></div>
       </header>
 
       <div className="experiments-grid">
-        <aside className="module-rail" aria-label="Research modules">
-          <header><strong>Study modules</strong><small>All results are synthetic</small></header>
+        <aside className="module-rail" aria-label="Research studies">
+          <header><strong>Available studies</strong><small>All results are synthetic</small></header>
           {researchModules.map((item) => <button key={item.id} className={moduleId === item.id ? "active" : ""} onClick={() => setModuleId(item.id)}><span>{item.icon}</span><div><strong>{item.title}</strong><small>{item.subtitle}</small></div></button>)}
           <div className="module-version"><span>Current engine</span><strong>torus-1.2.0</strong><span>Legacy engine</span><strong>paper-2026-legacy</strong></div>
         </aside>
@@ -126,8 +126,8 @@ export function ExperimentsWorkspace({ scenario, parameters, frames, summary, an
         </section>
 
         <aside className="evidence-rail">
-          <section><header><strong>Evidence rail</strong><span>{moduleId === "paper" && digestMatches ? "Verified match" : "Synthetic"}</span></header><img src={activeModule.asset} width="600" height="400" alt={`${activeModule.title} archived experiment evidence`} /><dl><div><dt>Selected module</dt><dd>{activeModule.title}</dd></div><div><dt>Live source</dt><dd>Canonical engine</dd></div><div><dt>Archived source</dt><dd>Research_Assets ZIP fixtures</dd></div><div><dt>Domain calibration</dt><dd>None</dd></div></dl><p>Archived figures are displayed as historical synthetic evidence. Live reruns and imported observations are labeled separately.</p></section>
-          <AixPanel assessment={summary.aix} scenario={scenario} />
+          <section><header><strong>Evidence</strong><span>{moduleId === "paper" && digestMatches ? "Verified match" : "Synthetic"}</span></header><img src={activeModule.asset} width="600" height="400" alt={`${activeModule.title} archived experiment evidence`} /><dl><div><dt>Selected study</dt><dd>{activeModule.title}</dd></div><div><dt>Live source</dt><dd>Current simulator</dd></div><div><dt>Archived source</dt><dd>Archived reference runs</dd></div><div><dt>Domain calibration</dt><dd>None</dd></div></dl><p>Archived figures are displayed as historical synthetic evidence. Live reruns and imported observations are labeled separately.</p></section>
+          <div className="experiment-context-aix"><header><strong>Selected system context</strong><span>Separate from this study</span></header><p>This full-run synthetic AIx belongs to {scenario.system.shortTitle}. It is not an output of the selected {activeModule.title} study.</p><AixPanel assessment={summary.aix} scenario={scenario} /></div>
         </aside>
       </div>
     </div>
@@ -137,7 +137,7 @@ export function ExperimentsWorkspace({ scenario, parameters, frames, summary, an
 function PaperStudy({ caseId, setCaseId, result, digest, verified, run, pending }: { caseId: PaperLegacyCaseId; setCaseId: (value: PaperLegacyCaseId) => void; result: PaperLegacyResult; digest: string; verified: boolean; run: () => void; pending: boolean }) {
   return <>
     <section className="protocol-row">
-      <div><span>Protocol summary</span><strong>Archived companion-model regime suite</strong><p>{result.protocol}</p></div>
+      <div><span>Study setup</span><strong>Archived companion-model regime suite</strong><p>{result.protocol}</p></div>
       <label><span>Reference case</span><select value={caseId} onChange={(event) => setCaseId(event.target.value as PaperLegacyCaseId)}>{paperLegacyCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
       <div className="engine-lock"><span>Engine</span><strong>Paper 2026 legacy</strong><small>Unit-step · zero noise · archived initial phase</small><button className="primary" disabled={pending} onClick={run}>Run selected case</button></div>
     </section>
@@ -163,7 +163,7 @@ function CoupledStudy({ result }: { result: CoupledToriResult[] | null }) {
 }
 
 function NavigationStudy({ result }: { result: NavigationStudyResult | null }) {
-  return <><section className="study-intro"><div><span>Archived benchmark + compact live rerun</span><h2>Navigation & early warning</h2><p>Dynamic toroidal telemetry is compared with scalar alignment warnings before boundary crossing.</p></div><div className="study-stats"><Stat label="Archived full AUC" value={archivedResearchFindings.navigation.fullTelemetryRocAuc.toFixed(3)} /><Stat label="Archived dynamic AUC" value={archivedResearchFindings.navigation.dynamicRocAuc.toFixed(3)} /><Stat label="Archived scalar AUC" value={archivedResearchFindings.navigation.scalarRocAuc.toFixed(3)} /><Stat label="Archived Brier" value={archivedResearchFindings.navigation.fullTelemetryBrier.toFixed(3)} /></div></section>{result ? <section className="archive-compare"><div><strong>Live radial warning lead</strong><span>{result.radialWarningMeanLead.toFixed(1)} steps</span><small>{result.detectedBoundaryCrossings} boundary-crossing episodes detected</small></div><div><strong>Live alignment-only lead</strong><span>{result.alignmentWarningMeanLead.toFixed(1)} steps</span><small>Radial advantage {result.radialWarningAdvantage.toFixed(1)} steps</small></div></section> : <section className="research-note"><strong>Ready to run</strong><p>Run the module to generate a compact seeded early-warning ensemble. The archived 260-episode benchmark remains available in the evidence image and report.</p></section>}<section className="research-note"><strong>Archive coverage</strong><p>Forecast calibration, matched-score divergent futures, observer mismatch, sensor ablation, OOD families, missing telemetry, intervention timing, policy utility, hidden regimes, change points, and recurrence restructuring are documented in the navigation report.</p></section></>;
+  return <><section className="study-intro"><div><span>Archived benchmark + compact live rerun</span><h2>Navigation & early warning</h2><p>Dynamic toroidal telemetry is compared with scalar alignment warnings before boundary crossing.</p></div><div className="study-stats"><Stat label="Archived full AUC" value={archivedResearchFindings.navigation.fullTelemetryRocAuc.toFixed(3)} /><Stat label="Archived dynamic AUC" value={archivedResearchFindings.navigation.dynamicRocAuc.toFixed(3)} /><Stat label="Archived scalar AUC" value={archivedResearchFindings.navigation.scalarRocAuc.toFixed(3)} /><Stat label="Archived Brier" value={archivedResearchFindings.navigation.fullTelemetryBrier.toFixed(3)} /></div></section>{result ? <section className="archive-compare"><div><strong>Live radial warning lead</strong><span>{result.radialWarningMeanLead.toFixed(1)} steps</span><small>{result.detectedBoundaryCrossings} boundary-crossing episodes detected</small></div><div><strong>Live alignment-only lead</strong><span>{result.alignmentWarningMeanLead.toFixed(1)} steps</span><small>Radial advantage {result.radialWarningAdvantage.toFixed(1)} steps</small></div></section> : <section className="research-note"><strong>Ready to run</strong><p>Run the study to generate a compact seeded early-warning ensemble. The archived 260-episode benchmark remains available in the evidence image and report.</p></section>}<section className="research-note"><strong>Archive coverage</strong><p>Forecast calibration, matched-score divergent futures, observer mismatch, sensor ablation, OOD families, missing telemetry, intervention timing, policy utility, hidden regimes, change points, and recurrence restructuring are documented in the navigation report.</p></section></>;
 }
 
 function TelemetryStudy({ analysis, source, importFile }: { analysis: ExternalTelemetryAnalysis; source: string; importFile: (file: File) => Promise<void> }) {
@@ -173,7 +173,7 @@ function TelemetryStudy({ analysis, source, importFile }: { analysis: ExternalTe
 }
 
 function EmptyStudy({ title, copy, asset }: { title: string; copy: string; asset: string }) {
-  return <section className="empty-study"><img src={asset} width="900" height="620" alt={`${title} archived experiment`} /><div><span>Versioned research module</span><h2>{title}</h2><p>{copy}</p><small>Use “Run experiment” above to execute the live synthetic protocol.</small></div></section>;
+  return <section className="empty-study"><img src={asset} width="900" height="620" alt={`${title} archived experiment`} /><div><span>Versioned research study</span><h2>{title}</h2><p>{copy}</p><small>Use “Run experiment” above to execute the live synthetic study.</small></div></section>;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

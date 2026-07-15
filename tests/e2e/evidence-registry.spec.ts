@@ -19,10 +19,10 @@ async function openRegistry(page: Page) {
   await expect(page.getByRole("heading", { name: "Evidence Registry" })).toBeVisible();
 }
 
-test("Evidence Registry explains compatibility and excludes synthetic and mismatched receipts from descriptive aggregation", async ({ page }, testInfo) => {
+test("Evidence Registry explains compatibility and excludes synthetic and mismatched studies from descriptive aggregation", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
   await openRegistry(page);
-  await expect(page.getByRole("heading", { name: "Start with a redacted evidence receipt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Start with a redacted study record" })).toBeVisible();
   await page.getByRole("button", { name: /Load synthetic demonstration/i }).first().click();
   await expect(page.locator(".registry-table-wrap tbody tr")).toHaveCount(5);
   await expect(page.locator(".registry-summary-strip")).toContainText("Observed studies");
@@ -30,7 +30,7 @@ test("Evidence Registry explains compatibility and excludes synthetic and mismat
   await expect(page.locator(".registry-summary-strip")).toContainText("Negative studies");
   await expect(page.locator(".registry-inspector")).toContainText("Study C — adjacent cohort");
   await expect(page.locator(".registry-inspector")).toContainText("Horizon τ");
-  await expect(page.locator(".registry-inspector")).toContainText("Preprocessing is not declared in both receipts");
+  await expect(page.locator(".registry-inspector")).toContainText("Data preparation is not declared in both study records");
   await expect(page.locator(".registry-verdict")).toContainText("Partially comparable — do not aggregate");
   await expect(page.locator(".registry-verdict")).toContainText("Preprocessing: unknown");
   await expect(page.locator(".registry-verdict")).toContainText("Non-combinability is a valid result");

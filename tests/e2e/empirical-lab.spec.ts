@@ -20,7 +20,7 @@ async function openEmpiricalLab(page: Page) {
   await expect(page.getByRole("heading", { name: "Empirical Lab" })).toBeVisible();
 }
 
-test("browser-local empirical replay validates two phases, updates attribution, and exports a redacted receipt", async ({ page }, testInfo) => {
+test("browser-local empirical replay validates two phases, updates attribution, and exports a redacted study record", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
   await openEmpiricalLab(page);
   await expect(page.getByText("Browser-local", { exact: true })).toBeVisible();

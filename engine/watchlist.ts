@@ -216,7 +216,7 @@ function explainTier(
   return [
     `Ordinary baseline remains inside the viability boundary in ${percent(1 - baseline.boundaryCrossingRate)} of seeded runs.`,
     `Ordinary baseline spends ${percent(baseline.meanWarningOrFragileFraction)} of the horizon in Warning or Fragile status; temporary stress retains Stable status for ${percent(mild.meanStableFraction)}.`,
-    `Even compound stress reaches terminal rupture in only ${percent(compound.terminalRate)} of runs under this illustrative protocol.`,
+    `Even compound stress reaches terminal rupture in only ${percent(compound.terminalRate)} of runs under this illustrative test.`,
   ];
 }
 
