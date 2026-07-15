@@ -57,7 +57,12 @@ Public discovery and data contracts:
 - `/.well-known/viability-torus-lab.json` - service description
 - `/llms.txt` - concise agent instructions
 - `/api/v1/model` - versions, capabilities, bounds, and endpoints
-- `/api/v1/scenarios` - published scenario registry
+- `/api/v1/laboratory` - the complete composable registry and five-layer workflow
+- `/api/v1/system-templates` - reusable structural system classes
+- `/api/v1/systems` - bounded-system instances, resolved protocols, derived default tiers, and separate featured flags
+- `/api/v1/scenario-modules` - reusable baseline, stress, and recovery-context transformations
+- `/api/v1/interventions` - reusable corrective mechanisms and timed intervention plans
+- `/api/v1/scenarios` - v1 compatibility alias for the system registry
 - `POST /api/v1/simulate` - single-seed or ensemble execution
 - `POST /api/v1/compare` - paired experiment comparison
 - `POST /api/v1/sweep` - bounded parameter search
@@ -68,16 +73,21 @@ Public discovery and data contracts:
 - `POST /api/v1/empirical/aggregate` - opt-in, token-protected compatibility and descriptive aggregation for redacted receipts
 - `/schemas/v1/index.json` - JSON Schema catalog
 
-See `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP tools.
+See `docs/LABORATORY_COMPOSITION.md` for the five-layer model and `docs/AGENT_INTERFACES.md` for request examples, limits, errors, and MCP tools.
 
 The empirical HTTP endpoint is disabled by default. A self-hosted operator must set `VTL_ENABLE_EMPIRICAL_API=true` and `VTL_EMPIRICAL_API_TOKEN`, and should set `VTL_EMPIRICAL_API_ORIGIN` to the one browser origin allowed to read responses. Remote requests must still declare `privacy.remoteProcessingAuthorized: true`. Sensitive or restricted data are rejected unless deidentified; changing that default additionally requires `VTL_ALLOW_SENSITIVE_EMPIRICAL_DATA=true`.
 
 ## Product areas
 
-- Live scenario simulator with 3D and accessible 2D torus views
-- A 32-scenario pack: 22 red/orange/yellow watchlist systems and 10 featured simulations, each with model-family metadata, recurrent phases, domain labels, AIx layers, presets, assumptions, units, references, and falsification criteria
+- Live bounded-system simulator with 3D and accessible 2D torus views
+- A composable educational laboratory: `SystemTemplate → BoundedSystem → ScenarioModule → InterventionPlan → RunAssessment`
+- Eight reusable structural templates and 32 bounded-system instances; every instance declares an operator, boundary, objective, population, horizon, aggregation rule, viable region, and two observable recurrent phases
+- Five reusable scenario modules that apply the same baseline, stress, feedback-loss, compound-stress, or recovery-context question to compatible systems
+- Six reusable intervention mechanisms and eight intervention plans with explicit timing, duration, prerequisites, tradeoffs, illustrative cost, and domain-specific real-world translations
+- Default red/orange/yellow watchlist outlooks are cached classifier outputs from independently chosen per-system protocol parameters; 10 editorially featured systems are flagged separately and still retain their derived watchlist result
 - Deterministic seeded simulation, playback controls, interventions, and explanations
-- Explainable educational watchlist receipts that separate the published default tier, the recalculated current-parameter tier, and the illustrative frame-by-frame status; every engine parameter is mapped to its equation role and scenario-specific real-world proxy
+- Dated, low-confidence present-state hypotheses for all 32 published systems, with candidate observation windows, cadences, time anchors, review schedules, and proposed observable proxies for all 17 model parameters
+- Explainable educational watchlist-v2 receipts that separate the default present-state outlook, the recalculated current-slider outlook, and the illustrative frame-by-frame status; prolonged Warning/Fragile operation is visible even without boundary rupture
 - Paper-traceable chart interactions: Section 12 θ/φ axis order, gated latent-versus-estimated external phase, causal-versus-projected time disclosure, an explicitly toy `A=e⁻ρ` proxy, and Equation 11 expansion/contraction semantics
 - Separate viability-boundary crossing, recoverable excursion, and policy-triggered irreversible rupture states with a reduced-motion-aware fragment visualization
 - Versioned Experiments workspace for paper reproduction, topology, hysteresis, coupled tori, navigation, and imported telemetry
@@ -86,11 +96,11 @@ The empirical HTTP endpoint is disabled by default. A self-hosted operator must 
 - Full eight-component ATS 4.0 AIx display and verifier-grounded AANA decision gate, clearly labeled as an uncalibrated synthetic diagnostic
 - Unwrapped phase, time-series, and radial-stability charts with table alternatives
 - Side-by-side compare mode and difference summaries
-- Template-based custom-system builder
+- Template-based custom-system builder that requires a structural template, bounded operator, population, horizon, aggregation rule, two independently observable phases, and explicit protocols
 - Guided learning modules and full theory/paper section
 - JSON, CSV, share-link, chart, and torus export tools
-- Version-controlled scenario registry for administrative maintenance
-- Versioned JSON Schemas, CLI, HTTP API, and MCP tools for agent experiments
+- Version-controlled template, bounded-system, scenario-module, intervention, and protocol registries for administrative maintenance
+- Versioned JSON Schemas, CLI (`templates`, `systems`, `scenario-modules`, and `interventions`), HTTP API, and MCP tools for composable agent experiments
 - Draft-only scenario proposal validation with human publication gates
 
 ## Repository map

@@ -14,12 +14,13 @@ async function openDashboard(page: Page) {
   return consoleErrors;
 }
 
-test("simulation laboratory preserves the active intervention protocol and reports observed seed fractions", async ({ page }, testInfo) => {
+test("simulation laboratory preserves a reusable plan plus a custom event and reports observed seed fractions", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
+  await page.getByLabel("Select intervention plan").selectOption({ label: "Visibility first" });
   await page.getByRole("button", { name: /Increase Correction/i }).click();
   await page.locator(".sidebar nav button").filter({ hasText: "Simulation Lab" }).click();
   await expect(page.getByRole("heading", { name: "Simulation Laboratory" })).toBeVisible();
-  await expect(page.getByText(/1 scheduled intervention preserved in every run/i)).toBeVisible();
+  await expect(page.getByText(/Visibility first.*3 resolved events preserved in every run/i)).toBeVisible();
   await page.getByLabel("Ensemble seeds").fill("2");
   await page.getByRole("button", { name: "Run batch" }).click();
   await expect(page.getByText(/observed fractions, not calibrated probabilities/i)).toBeVisible();
@@ -60,9 +61,15 @@ test("builder gates torus eligibility, validates a real proposal contract, and t
   const consoleErrors = await openDashboard(page);
   await page.locator(".sidebar nav button").filter({ hasText: "Build Your Own System" }).click();
   await expect(page.getByRole("heading", { name: /Test whether a real system/i })).toBeVisible();
-  await expect(page.locator(".builder-shell > aside button")).toHaveCount(18);
+  await expect(page.locator(".builder-shell > aside button")).toHaveCount(24);
   const values = [
     "Emergency Department QA",
+    "Human capacity and recovery",
+    "Hospital flow, staffing, bed-management, and quality teams",
+    "Emergency arrivals, triage, treatment spaces, staffing, discharge paths, and safety feedback",
+    "Patients by acuity, families, clinical staff, and the region served",
+    "Three years with daily flow and seasonal demand cycles",
+    "Safety and access floors by acuity and subgroup before throughput averages",
     "Healthcare",
     "Treat urgent patients safely and promptly",
     "Arrival load and wait-time targets",
@@ -112,7 +119,7 @@ test("learn uses correct equations and launches configured protocols; theory sep
   await expect(page.getByText(/Failure means undefined—not φ=0/i)).toBeVisible();
   await page.locator(".learn-layout").screenshot({ path: testInfo.outputPath("learn-phase-identifiability.png") });
   await page.getByRole("button", { name: "Load guided protocol" }).click();
-  await expect(page.getByRole("heading", { name: "LLM Under Deployment Pressure" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Production LLM Answering Service" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Research", exact: true })).toHaveClass(/active/);
   await expect(page.getByLabel("ωφ external frequency")).toHaveValue("0.004");
 

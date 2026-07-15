@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 160
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "baseline",
+        "stress",
+        "recovery-context"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "conditions": {
+      "minItems": 1,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 500
+      }
+    },
+    "stressors": {
+      "minItems": 1,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 500
+      }
+    },
+    "learningObjective": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "transforms": {
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "parameter": {
+            "type": "string",
+            "enum": [
+              "pressure",
+              "error",
+              "feedback",
+              "correction",
+              "drift",
+              "irreversibleLoss",
+              "initialDebt",
+              "kappa",
+              "chi",
+              "omegaTheta",
+              "omegaPhi",
+              "couplingA",
+              "couplingB",
+              "rho0",
+              "rhoCrit",
+              "alpha",
+              "beta"
+            ]
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "add",
+              "multiply",
+              "set"
+            ]
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "parameter",
+          "operation",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "compatibleTemplateIds": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "all"
+        },
+        {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "regenerative-stock",
+              "threshold-regime-shift",
+              "resistance-contagion",
+              "trust-legitimacy",
+              "capability-correction",
+              "network-cascade",
+              "financial-leverage",
+              "human-capacity"
+            ]
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "type": "string",
+      "const": "illustrative-scenario-module"
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "title",
+    "kind",
+    "summary",
+    "conditions",
+    "stressors",
+    "learningObjective",
+    "transforms",
+    "compatibleTemplateIds",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/scenario-module.schema.json",
+  "title": "Reusable scenario module"
+}

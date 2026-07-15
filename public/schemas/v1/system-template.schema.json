@@ -4,20 +4,70 @@
   "properties": {
     "id": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 80
+      "enum": [
+        "regenerative-stock",
+        "threshold-regime-shift",
+        "resistance-contagion",
+        "trust-legitimacy",
+        "capability-correction",
+        "network-cascade",
+        "financial-leverage",
+        "human-capacity"
+      ]
     },
-    "label": {
+    "version": {
       "type": "string",
-      "minLength": 1,
-      "maxLength": 120
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
     },
-    "step": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 9999
+    "title": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 160
     },
-    "effects": {
+    "summary": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "modelFamily": {
+      "type": "string",
+      "enum": [
+        "regenerative-stock",
+        "threshold-regime-shift",
+        "resistance-contagion",
+        "trust-legitimacy",
+        "capability-correction",
+        "network-cascade",
+        "financial-leverage",
+        "human-capacity"
+      ]
+    },
+    "stateArchetype": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "structuralAssumptions": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 10,
+        "maxLength": 500
+      }
+    },
+    "learningQuestions": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 10,
+        "maxLength": 500
+      }
+    },
+    "baseDynamics": {
       "type": "object",
       "properties": {
         "pressure": {
@@ -121,54 +171,73 @@
           "minimum": 0,
           "maximum": 2,
           "description": "Debt repayment coefficient."
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Unsigned deterministic seed."
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "description": "Integration steps."
+        },
+        "dt": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 10,
+          "description": "Integration time step."
         }
       },
       "additionalProperties": false
     },
-    "cost": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1000000
+    "rupturePolicy": {
+      "type": "object",
+      "properties": {
+        "cumulativeLossThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "debtThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "persistenceSteps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      },
+      "required": [
+        "cumulativeLossThreshold",
+        "debtThreshold",
+        "persistenceSteps"
+      ],
+      "additionalProperties": false
     },
-    "definitionId": {
+    "provenance": {
       "type": "string",
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-    },
-    "planId": {
-      "type": "string",
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-    },
-    "intensity": {
-      "type": "number",
-      "minimum": 0.1,
-      "maximum": 5
-    },
-    "durationSteps": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 9999
-    },
-    "phase": {
-      "type": "string",
-      "enum": [
-        "start",
-        "end"
-      ]
-    },
-    "mechanism": {
-      "type": "string",
-      "minLength": 3,
-      "maxLength": 120
+      "const": "illustrative-system-template"
     }
   },
   "required": [
     "id",
-    "label",
-    "step",
-    "effects",
-    "cost"
+    "version",
+    "title",
+    "summary",
+    "modelFamily",
+    "stateArchetype",
+    "structuralAssumptions",
+    "learningQuestions",
+    "baseDynamics",
+    "rupturePolicy",
+    "provenance"
   ],
   "additionalProperties": false,
-  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/scheduled-intervention.schema.json",
-  "title": "Scheduled intervention"
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/system-template.schema.json",
+  "title": "Reusable system template"
 }

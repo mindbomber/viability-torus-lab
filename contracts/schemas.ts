@@ -54,6 +54,15 @@ export const interventionEffectsSchema = simulationParametersObject
   .partial()
   .strict();
 
+const modelFamilySchema = z.enum(["regenerative-stock", "threshold-regime-shift", "resistance-contagion", "trust-legitimacy", "capability-correction", "network-cascade", "financial-leverage", "human-capacity"]);
+const scenarioCategorySchema = z.enum(["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"]);
+const composableParameterKeySchema = z.enum(["pressure", "error", "feedback", "correction", "drift", "irreversibleLoss", "initialDebt", "kappa", "chi", "omegaTheta", "omegaPhi", "couplingA", "couplingB", "rho0", "rhoCrit", "alpha", "beta"]);
+export const parameterTransformSchema = z.object({
+  parameter: composableParameterKeySchema,
+  operation: z.enum(["add", "multiply", "set"]),
+  value: z.number().finite(),
+}).strict();
+
 export const scheduledInterventionSchema = z.object({
   id: z.string().min(1).max(80),
   label: z.string().min(1).max(120),
@@ -62,18 +71,30 @@ export const scheduledInterventionSchema = z.object({
     message: "An intervention must change at least one parameter.",
   }),
   cost: z.number().finite().min(0).max(1_000_000),
+  definitionId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  planId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  intensity: z.number().finite().min(0.1).max(5).optional(),
+  durationSteps: z.number().int().min(1).max(9_999).optional(),
+  phase: z.enum(["start", "end"]).optional(),
+  mechanism: z.string().min(3).max(120).optional(),
 }).strict();
 
 export const experimentSpecSchema = z.object({
   schemaVersion: z.literal(CONTRACT_VERSION).optional().default(CONTRACT_VERSION),
   name: z.string().min(1).max(160).optional(),
-  scenarioId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  scenarioId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  systemId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  protocolId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  interventionPlanId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional().default("no-action"),
   parameters: parameterOverridesSchema.optional().default({}),
   interventions: z.array(scheduledInterventionSchema).max(PUBLIC_EXECUTION_LIMITS.maxInterventions).optional().default([]),
   seeds: z.array(boundedNumber("seed")).min(1).max(500).optional(),
   includeFrames: z.boolean().optional().default(false),
   frameStride: z.number().int().min(1).max(10_000).optional().default(1),
-}).strict();
+}).strict().refine((value) => Boolean(value.systemId || value.scenarioId), {
+  path: ["systemId"],
+  message: "An experiment must identify a bounded system through systemId or the legacy scenarioId alias.",
+});
 
 export const comparisonSpecSchema = z.object({
   schemaVersion: z.literal(CONTRACT_VERSION).optional().default(CONTRACT_VERSION),
@@ -167,6 +188,167 @@ const scenarioEvidenceSchema = z.object({
   }).strict()).min(1).max(30),
 }).strict();
 
+const parameterObservationProxySchema = z.object({
+  observable: z.string().min(10).max(1_000),
+  normalization: z.string().min(10).max(1_000),
+  updateCadence: z.string().min(3).max(200),
+  sourceStatus: z.enum(["proposed-observable-proxy", "documented-observable-proxy"]),
+}).strict();
+
+const currentStateEstimateSchema = z.object({
+  asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  observationWindow: z.string().min(5).max(300),
+  observationCadence: z.string().min(5).max(300),
+  candidateTimeAnchor: z.string().min(5).max(200),
+  reviewCadence: z.string().min(3).max(200),
+  confidence: z.enum(["low", "medium", "high"]),
+  basis: z.enum(["illustrative-current-state-hypothesis", "literature-informed-current-state-estimate", "empirically-fitted-current-state-estimate"]),
+  allModelParametersRevisable: z.literal(true),
+  parameterProxies: z.object({
+    pressure: parameterObservationProxySchema,
+    error: parameterObservationProxySchema,
+    feedback: parameterObservationProxySchema,
+    correction: parameterObservationProxySchema,
+    drift: parameterObservationProxySchema,
+    irreversibleLoss: parameterObservationProxySchema,
+    initialDebt: parameterObservationProxySchema,
+    kappa: parameterObservationProxySchema,
+    chi: parameterObservationProxySchema,
+    omegaTheta: parameterObservationProxySchema,
+    omegaPhi: parameterObservationProxySchema,
+    couplingA: parameterObservationProxySchema,
+    couplingB: parameterObservationProxySchema,
+    rho0: parameterObservationProxySchema,
+    rhoCrit: parameterObservationProxySchema,
+    alpha: parameterObservationProxySchema,
+    beta: parameterObservationProxySchema,
+  }).strict(),
+  limitations: z.array(z.string().min(10).max(1_000)).min(1).max(20),
+}).strict();
+
+export const systemTemplateDefinitionSchema = z.object({
+  id: modelFamilySchema,
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  title: z.string().min(4).max(160),
+  summary: z.string().min(20).max(1_000),
+  modelFamily: modelFamilySchema,
+  stateArchetype: z.string().min(20).max(1_000),
+  structuralAssumptions: z.array(z.string().min(10).max(500)).min(1).max(20),
+  learningQuestions: z.array(z.string().min(10).max(500)).min(1).max(20),
+  baseDynamics: parameterOverridesSchema,
+  rupturePolicy: z.object({
+    cumulativeLossThreshold: z.number().finite().min(0).max(100),
+    debtThreshold: z.number().finite().min(0).max(100),
+    persistenceSteps: z.number().int().min(1).max(10_000),
+  }).strict(),
+  provenance: z.literal("illustrative-system-template"),
+}).strict();
+
+export const boundedSystemDefinitionSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  templateId: modelFamilySchema.optional().default("capability-correction"),
+  title: z.string().min(4).max(160),
+  shortTitle: z.string().min(2).max(80),
+  category: scenarioCategorySchema,
+  operator: z.string().min(5).max(300),
+  boundary: z.string().min(20).max(1_000),
+  objective: z.string().min(10).max(500),
+  population: z.string().min(8).max(1_000),
+  horizon: z.string().min(8).max(500),
+  aggregation: z.string().min(8).max(1_000),
+  viableRegion: z.string().min(10).max(1_000),
+  stateVariables: z.array(z.string().min(3).max(200)).min(3).max(30),
+  constraints: z.object({
+    physical: z.array(z.string().min(3).max(300)).min(1).max(20),
+    biological: z.array(z.string().min(3).max(300)).min(1).max(20),
+    constructed: z.array(z.string().min(3).max(300)).min(1).max(20),
+  }).strict(),
+  cycles: z.object({ minor: cycleSchema, major: cycleSchema }).strict(),
+  phaseEvidence: z.object({
+    thetaSource: z.string().min(10).max(500),
+    phiSource: z.string().min(10).max(500),
+    independenceClaim: z.string().min(10).max(500),
+  }).strict(),
+}).strict();
+
+export const scenarioModuleDefinitionSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  title: z.string().min(4).max(160),
+  kind: z.enum(["baseline", "stress", "recovery-context"]),
+  summary: z.string().min(20).max(1_000),
+  conditions: z.array(z.string().min(3).max(500)).min(1).max(30),
+  stressors: z.array(z.string().min(3).max(500)).min(1).max(30),
+  learningObjective: z.string().min(20).max(1_000),
+  transforms: z.array(parameterTransformSchema).max(30),
+  compatibleTemplateIds: z.union([z.literal("all"), z.array(modelFamilySchema).min(1).max(20)]),
+  provenance: z.literal("illustrative-scenario-module"),
+}).strict();
+
+export const scenarioProtocolDefinitionSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  systemId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  templateId: modelFamilySchema.optional().default("capability-correction"),
+  moduleId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional().default("system-default"),
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  title: z.string().min(4).max(160),
+  kind: z.enum(["baseline", "stress", "recovery-context"]).optional().default("baseline"),
+  summary: z.string().min(20).max(1_000),
+  conditions: z.array(z.string().min(3).max(300)).min(1).max(30),
+  stressors: z.array(z.string().min(3).max(300)).min(1).max(30),
+  interventions: z.array(z.string().min(3).max(300)).min(1).max(30),
+  parameterRationale: z.string().min(20).max(1_000),
+  learningObjective: z.string().min(20).max(1_000).optional().default("Explore how the bounded system responds under the declared synthetic conditions."),
+  parameters: simulationParametersSchema,
+  provenance: z.literal("illustrative-system-protocol"),
+}).strict();
+
+export const interventionDefinitionSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  title: z.string().min(4).max(160),
+  shortTitle: z.string().min(2).max(80),
+  icon: z.string().min(1).max(12),
+  mechanism: z.enum(["increase-constraint-visibility", "reduce-misclassification", "reduce-optimization-pressure", "expand-correction-capacity", "contain-and-observe", "repay-alignment-debt"]),
+  summary: z.string().min(20).max(1_000),
+  transforms: z.array(parameterTransformSchema).min(1).max(30),
+  compatibleTemplateIds: z.union([z.literal("all"), z.array(modelFamilySchema).min(1).max(20)]),
+  timing: z.object({
+    onsetDelaySteps: z.number().int().min(0).max(9_999),
+    defaultDurationSteps: z.number().int().min(1).max(9_999).optional(),
+    decay: z.enum(["persistent", "restore-at-end"]),
+  }).strict(),
+  cost: z.object({
+    base: z.number().finite().min(0).max(1_000_000),
+    perIntensity: z.number().finite().min(0).max(1_000_000),
+    unit: z.literal("illustrative-cost-points"),
+  }).strict(),
+  prerequisites: z.array(z.string().min(5).max(500)).min(1).max(20),
+  tradeoffs: z.array(z.string().min(5).max(500)).min(1).max(20),
+  domainTranslations: z.partialRecord(scenarioCategorySchema, z.string().min(10).max(1_000)),
+  evidence: z.object({ status: z.literal("illustrative"), calibrationStatus: z.string().min(20).max(1_000) }).strict(),
+  provenance: z.literal("illustrative-intervention-module"),
+}).strict();
+
+export const interventionPlanDefinitionSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  title: z.string().min(4).max(160),
+  strategy: z.enum(["none", "preventive", "corrective", "restorative", "containment"]),
+  summary: z.string().min(20).max(1_000),
+  learningObjective: z.string().min(20).max(1_000),
+  items: z.array(z.object({
+    interventionId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    intensity: z.number().finite().min(0.1).max(5),
+    startFraction: z.number().finite().min(0).max(1),
+    onsetDelaySteps: z.number().int().min(0).max(9_999).optional(),
+    durationSteps: z.number().int().min(1).max(9_999).optional(),
+  }).strict()).max(30),
+  compatibleTemplateIds: z.union([z.literal("all"), z.array(modelFamilySchema).min(1).max(20)]),
+  provenance: z.literal("illustrative-intervention-plan"),
+}).strict();
+
 export const scenarioDefinitionSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
@@ -175,6 +357,7 @@ export const scenarioDefinitionSchema = z.object({
   summary: z.string().min(20).max(500),
   category: z.enum(["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"]),
   watchlistTier: z.enum(["red", "orange", "yellow", "featured"]).default("featured"),
+  featured: z.boolean().default(false),
   modelFamily: z.enum(["regenerative-stock", "threshold-regime-shift", "resistance-contagion", "trust-legitimacy", "capability-correction", "network-cascade", "financial-leverage", "human-capacity"]).default("capability-correction"),
   calibration: z.enum(["illustrative", "literature-informed", "empirically-calibrated", "externally-validated"]).default("illustrative"),
   difficulty: z.enum(["Introductory", "Intermediate", "Advanced"]),
@@ -193,6 +376,10 @@ export const scenarioDefinitionSchema = z.object({
   recoveryCondition: z.string().min(10).max(500),
   plainLanguageInterpretation: z.string().min(20).max(1_000),
   evidence: scenarioEvidenceSchema.optional(),
+  currentStateEstimate: currentStateEstimateSchema.optional(),
+  system: boundedSystemDefinitionSchema.optional(),
+  defaultProtocolId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  protocols: z.array(scenarioProtocolDefinitionSchema).min(1).max(20).optional(),
   cycles: z.object({ minor: cycleSchema, major: cycleSchema }).strict(),
   labels: parameterLabelsSchema,
   aixLabels: z.object({

@@ -4,7 +4,9 @@
 
 The site is a scientific dashboard delivered through the vinext Sites runtime. It remains local-first for user state: there are no accounts, uploads, or cloud records. A saved preset uses browser storage, while shared runs serialize a validated subset of scenario, seed, and parameters into the URL. Stateless HTTP and MCP routes expose bounded, read-only computation without persisting requests or results.
 
-The UI is organized into product views inside `app/page.tsx`. All views consume the same scenario definitions and simulation engine. The live torus, charts, status panel, explanations, comparisons, tables, and exports therefore derive from one authoritative frame sequence.
+The UI is organized into product views inside `app/page.tsx`. The laboratory has five explicit layers: `SystemTemplateDefinition` supplies reusable structural dynamics; `BoundedSystemDefinition` names the concrete boundary and accountable operator; `ScenarioModuleDefinition` supplies reusable exogenous conditions; `InterventionPlanDefinition` compiles reusable corrective mechanisms into timed actions; and `RunAssessment` records the resulting dynamic explanation, watchlist assessment, frame, and summary. The live torus, charts, status panel, explanations, comparisons, tables, and exports derive from one authoritative frame sequence.
+
+`scenarios/composition.ts` is the single composition boundary. It resolves a template and bounded system, applies one scenario module to that system's independently selected defaults, applies explicit parameter overrides, compiles one intervention plan, appends any validated custom intervention events, and returns the exact engine inputs. Scenarios never imply an operator action, interventions never redefine the system, and assessment is always an output.
 
 ## Simulation update order
 
@@ -26,6 +28,8 @@ Frame zero is the declared initial state; the first integration occurs at frame 
 `contracts/` is the shared boundary for the CLI, HTTP API, MCP tools, configuration imports, proposal validation, and generated JSON Schemas. These surfaces call `engine/simulator.ts`; none reimplement the dynamics. Public operations apply both per-field limits and aggregate work budgets. Frames are opt-in and sampled to a total response budget.
 
 Contract schemas are generated into `public/schemas/v1/`. Breaking changes require an explicit contract/API version decision; model-equation changes require a model-version decision and deterministic reference updates.
+
+The composable-laboratory release is additive at contract v1. Published records retain `system`, `defaultProtocolId`, `protocols`, and `featured`; experiment requests accept preferred `systemId`, a concrete protocol id or reusable scenario-module id in `protocolId`, and `interventionPlanId`; results echo the selected template, system, resolved protocol, plan, and compiled events. The legacy `scenarioId`, `/api/v1/scenarios`, CLI `scenarios`, and MCP scenario tools remain compatibility aliases. The v1 proposal schema still parses legacy drafts, but proposal validation reports missing template, bounded-system, protocol, module, or intervention references as publication-blocking errors.
 
 ## Viability and phase diagnostics
 
@@ -52,23 +56,34 @@ The external phase estimate is reported only when all of these conditions hold:
 
 When identifiable, the phase regime is either recurrent winding or rational phase locking. Locking scans coprime signed ratios with numerator and denominator magnitudes up to four and requires a phase-locking value of at least `0.985`. The latent phase is available for synthetic ground-truth evaluation; the dashboard labels it as simulated and presents the estimator separately.
 
-## Scenario schema and administration
+## Composable laboratory schema
 
-`scenarios/catalog.ts` is the version-controlled published scenario registry. A scenario separates canonical variables from domain labels and supplies its title, version, category, cycles, viable region, hidden constraints, debt and loss mechanisms, defaults, and presets. Agent-created definitions remain draft proposal files until reviewed. To publish a scenario:
+The five registries have separate responsibilities:
 
-1. Add a typed definition to `scenarios`.
-2. Map all visible canonical parameters.
-3. Define both recurrent phases and test that they are meaningful in the domain.
-4. Provide conservative viable, warning, rupture, and recovery interpretations.
-5. Declare calibration status, parameter units, assumptions, references, and falsification criteria.
-6. Add a deterministic reference configuration to the test suite.
-7. Increment the scenario version in exported metadata.
+- `scenarios/templates.ts` defines eight reusable structural archetypes, their base dynamics, structural assumptions, learning questions, and rupture policy.
+- `scenarios/systems.ts` supplies the concrete operator, boundary, objective, population, horizon, aggregation rule, and independently selected default parameters for each bounded system.
+- `scenarios/protocols.ts` defines common exogenous condition modules and resolves their canonical transforms into system-specific protocols.
+- `scenarios/interventions.ts` defines corrective mechanisms, real-world translations, compatibility, timing semantics, and reusable plans.
+- `engine/assessment.ts` constructs the output layer after a run; it does not select inputs.
+
+`scenarios/catalog.ts` publishes the resolved combinations. Broad conditions such as drought, engagement pressure, delayed restoration, or demand shocks belong to scenario modules rather than standing in for the system itself. Agent-created definitions remain draft proposal files until reviewed. To publish a system and its resolved protocols:
+
+1. Choose or define the structural system template independently of a desired watchlist outcome.
+2. Define the bounded system, accountable operator, objective, population, horizon, aggregation rule, and viable region.
+3. Define both recurrent phases, their observation sources, and the independence claim.
+4. Resolve at least one compatible scenario module with conditions, stressors, learning objective, parameter rationale, and complete parameters.
+5. Map all visible canonical parameters and reusable interventions to system-specific meanings.
+6. Run the common watchlist classifier on the default scenario with no intervention and store its derived result; never select parameters from a desired color tier.
+7. Provide conservative viable, warning, rupture, and recovery interpretations and disclose calibration status, units, assumptions, references, and falsification criteria.
+8. Add deterministic composition and protocol references to the test suite and increment the version in exported metadata.
 
 The current MVP uses version-controlled TypeScript rather than a graphical CMS.
 
 ## Intervention schema
 
-An intervention records an id, label, step, absolute parameter effects, and cost. During simulation it changes only modeled parameters and is included in configuration exports and run summaries. Delays, durations, and cooldowns can be added without changing frame consumers by expanding `ScheduledIntervention` and the event application step.
+An `InterventionDefinition` names a reusable ATS mechanism, canonical parameter transforms, compatible templates, onset and decay semantics, prerequisites, tradeoffs, illustrative cost, and category-specific real-world equivalents. An `InterventionPlanDefinition` combines those mechanisms by relative run timing and intensity. Compilation produces one or more `ScheduledIntervention` events with provenance back to both definition and plan.
+
+Persistent actions change the active modeled parameters from their scheduled step onward. Temporary containment compiles a start event and a deterministic end event that restores the affected parameters after its declared duration. Custom one-off events remain supported and are appended after the selected plan. All compiled states are contract-validated; interventions cannot alter seed, steps, or integration interval. These modules are educational hypotheses, not evidence that the translated real-world action will have the modeled magnitude or effect.
 
 ## 3D rendering
 
@@ -85,9 +100,13 @@ The torus is rendered with a lightweight high-DPI Canvas 2D projection of a para
 
 ## Educational watchlist classification
 
-`engine/watchlist.ts` derives Red, Orange, or Yellow from four common deterministic protocols and four fixed seeds. The ordinary baseline, temporary stress, compound stress, and timely-action protocols all use the engine's canonical rupture policy so a tier is an outcome of parameter behavior rather than a tier-specific threshold. Red means failure is already present under the ordinary baseline; Orange means ordinary viability with material stress sensitivity; Yellow means viability across this illustrative stress suite.
+`engine/watchlist.ts` derives Red, Orange, or Yellow from four common deterministic protocols and four fixed seeds. The ordinary baseline, temporary stress, compound stress, and timely-action protocols all use the engine's canonical rupture policy so a tier is an outcome of parameter behavior rather than a tier-specific threshold. Red means failure is already present under the ordinary baseline; Orange includes sustained Warning/Fragile operation or material stress sensitivity without baseline rupture; Yellow means recoverable operation across this illustrative stress suite.
 
-The interface keeps three concepts separate: the published default watchlist tier, the recomputed tier for the current slider configuration, and the live frame status during playback. `scenarios/education.ts` maps every simulation parameter to its equation role, scenario-specific proxy, scale interpretation, and conditional predicted direction. These outputs are educational model claims, not fitted forecasts or operational recommendations.
+The interface keeps the full causal sequence separate: the bounded system, dated default present-state hypothesis, selected future scenario protocol, derived default watchlist outlook, recomputed outlook for the current slider configuration, and live frame status during playback. Editorial featured status is independent of the risk classifier. `scenarios/calibration.ts` supplies a candidate observation window, cadence, time anchor, review cadence, and observable proxy for all 17 model parameters. `scenarios/education.ts` maps every simulation parameter to its equation role, system-specific proxy, scale interpretation, and conditional predicted direction. These outputs are educational model claims, not fitted forecasts or operational recommendations.
+
+### Watchlist v2 migration note
+
+`educational-watchlist-v2` adds the mean share of Warning/Fragile frames to every common protocol receipt and uses prolonged baseline strain as an Orange criterion. Boundary crossing and terminal rupture remain the Red criteria. The public `watchlistTier` field and API contract version remain unchanged because the field still carries the same Red/Orange/Yellow outcome and all 32 cached tiers are unchanged; consumers that display protocol receipts should add the new status-persistence metric and protocol-version label.
 
 ## Browser-local Empirical Lab
 

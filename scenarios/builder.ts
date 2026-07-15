@@ -3,14 +3,23 @@ import {
   scenarioProposalSchema,
   type ParsedScenarioProposal,
 } from "../contracts/schemas.ts";
-import type { ScenarioCategory } from "../contracts/types.ts";
+import type { ModelFamily, ScenarioCategory } from "../contracts/types.ts";
 import {
   defaultParameters,
   type SimulationParameters,
 } from "../engine/simulator.ts";
+import { assessWatchlistConfiguration } from "../engine/watchlist.ts";
+import { resolveScenarioProtocol, scenarioModuleAppliesTo, scenarioModules } from "./protocols.ts";
+import { systemTemplateById, systemTemplates } from "./templates.ts";
 
 export type BuilderAnswerKey =
   | "systemName"
+  | "template"
+  | "operator"
+  | "boundary"
+  | "population"
+  | "horizon"
+  | "aggregation"
   | "category"
   | "objective"
   | "pressure"
@@ -41,7 +50,13 @@ export type BuilderAnswer = {
 export type BuilderAnswers = Record<BuilderAnswerKey, string>;
 
 export const builderQuestions: readonly BuilderAnswer[] = [
-  { id: "systemName", question: "What system are you modeling?", hint: "Use a short, recognizable name.", placeholder: "e.g. Regional emergency department" },
+  { id: "systemName", question: "What bounded system are you modeling?", hint: "Name the entity whose state will be simulated—not the stress condition applied to it.", placeholder: "e.g. Metropolitan emergency-department flow system" },
+  { id: "template", question: "Which reusable system class best describes its structure?", hint: "The template supplies shared synthetic dynamics; your answers supply the real system boundary and parameter meanings.", placeholder: "Select a structural template", kind: "choice", options: systemTemplates.map((item) => item.id) },
+  { id: "operator", question: "Who can observe and change this system?", hint: "Name the accountable operator or decision-making body inside the boundary.", placeholder: "e.g. Hospital flow, staffing, bed-management, and quality teams" },
+  { id: "boundary", question: "What is inside and outside the system boundary?", hint: "Name the assets, processes, controls, and interfaces included in the model.", placeholder: "e.g. Emergency arrivals, triage, treatment spaces, staffing, discharge paths, and safety feedback" },
+  { id: "population", question: "Whose viability must the system preserve?", hint: "Name affected people, communities, organisms, or future populations explicitly.", placeholder: "e.g. Patients by acuity, families, clinical staff, and the region served" },
+  { id: "horizon", question: "Over what time horizon is viability assessed?", hint: "State the planning horizon and the temporal resolution of meaningful correction.", placeholder: "e.g. Three years, with daily flow and seasonal demand cycles" },
+  { id: "aggregation", question: "How are outcomes combined without hiding vulnerable cases?", hint: "Prefer floors or worst-case constraints before averages when appropriate.", placeholder: "e.g. Safety and access floors by acuity and subgroup before throughput averages" },
   { id: "category", question: "Which domain best fits the system?", hint: "This organizes the draft; it does not calibrate it.", placeholder: "Select a domain", kind: "choice", options: ["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"] },
   { id: "objective", question: "What outcome is the system optimizing?", hint: "This is the objective, not optimization pressure π.", placeholder: "e.g. Treat urgent patients safely and promptly" },
   { id: "pressure", question: "What creates optimization pressure π?", hint: "Name the force that intensifies pursuit of the objective.", placeholder: "e.g. Rising arrivals, wait-time targets, and staffing scarcity" },
@@ -89,13 +104,17 @@ export function assessTorusEligibility(answers: BuilderAnswers): TorusEligibilit
 
 export function buildScenarioProposal(
   answers: BuilderAnswers,
-  defaults: SimulationParameters = defaultParameters,
+  baseDefaults: SimulationParameters = defaultParameters,
 ): ParsedScenarioProposal {
   const eligibility = assessTorusEligibility(answers);
   if (!eligibility.eligible) throw new Error(eligibility.issues[0]?.message ?? "Complete every builder field before creating a torus proposal.");
   const minorStages = cycleStages(answers.minorCycle);
   const majorStages = cycleStages(answers.majorCycle);
   const systemName = bounded(answers.systemName, 80);
+  const modelFamily = answers.template as ModelFamily;
+  const template = systemTemplateById[modelFamily];
+  if (!template) throw new Error("Select a valid reusable system template.");
+  const defaults: SimulationParameters = { ...baseDefaults, ...template.baseDynamics };
   const pressure = bounded(answers.pressure, 160);
   const id = slugify(systemName);
   const stress = {
@@ -112,6 +131,73 @@ export function buildScenarioProposal(
     correction: Math.min(2, defaults.correction + 0.28),
   };
   const criticalRho = defaults.rhoCrit;
+  const version = "0.1.0";
+  const cycles = {
+    minor: {
+      label: bounded(minorStages.join(" → "), 120),
+      stages: minorStages,
+      description: bounded(`Fast internal correction cycle observed through ${answers.minorObservation.trim()}.`, 500),
+      defaultFrequency: defaults.omegaTheta,
+      phaseSource: "operational-stage" as const,
+    },
+    major: {
+      label: bounded(majorStages.join(" → "), 120),
+      stages: majorStages,
+      description: bounded(`Slower external adaptation cycle estimated through ${answers.majorObservation.trim()}.`, 500),
+      defaultFrequency: defaults.omegaPhi,
+      phaseSource: "estimated" as const,
+    },
+  };
+  const system = {
+    id,
+    version,
+    templateId: template.id,
+    title: systemName,
+    shortTitle: systemName,
+    category: answers.category as ScenarioCategory,
+    operator: bounded(answers.operator, 300),
+    boundary: bounded(answers.boundary, 1_000),
+    objective: bounded(answers.objective, 500),
+    population: bounded(answers.population, 1_000),
+    horizon: bounded(answers.horizon, 500),
+    aggregation: bounded(answers.aggregation, 1_000),
+    viableRegion: bounded(answers.viableRegion, 1_000),
+    stateVariables: [bounded(answers.viableRegion, 200), bounded(answers.debt, 200), bounded(answers.feedback, 200), bounded(answers.correction, 200)],
+    constraints: {
+      physical: ["Physical and factual feasibility for the proposed system"],
+      biological: [bounded(`Viability of ${answers.population.trim()}`, 300)],
+      constructed: [bounded(`Coherence with ${answers.objective.trim()}`, 300)],
+    },
+    cycles,
+    phaseEvidence: {
+      thetaSource: bounded(answers.minorObservation, 500),
+      phiSource: bounded(answers.majorObservation, 500),
+      independenceClaim: bounded(answers.independentCycles, 500),
+    },
+  };
+  const protocolInterventions = [
+    bounded(`Increase ${answers.correction.trim()}`, 200),
+    bounded(`Improve ${answers.feedback.trim()}`, 200),
+    bounded(`Reduce ${answers.pressure.trim()}`, 200),
+  ];
+  const protocolRationale = bounded(`The dimensionless values map ${answers.pressure.trim()}, ${answers.misclassification.trim()}, ${answers.feedback.trim()}, ${answers.correction.trim()}, ${answers.drift.trim()}, ${answers.debt.trim()}, and ${answers.irreversibleLoss.trim()} into the canonical equations before watchlist classification.`, 1_000);
+  const defaultProtocolId = `${id}-default`;
+  const protocols = scenarioModules
+    .filter((module) => scenarioModuleAppliesTo(module.compatibleTemplateIds, template.id))
+    .map((module) => resolveScenarioProtocol({
+    systemId: id,
+    template,
+    baseParameters: defaults,
+    module,
+    domainDefaultTitle: bounded(`${pressure} baseline`, 160),
+    domainDefaultSummary: bounded(`Tests how ${systemName} responds when ${answers.pressure.trim()} acts on the stated boundary and affected population.`, 1_000),
+    domainConditions: [bounded(answers.boundary, 300), bounded(answers.horizon, 300)],
+    domainStressors: splitItems(answers.shocks, 30, 200),
+    interventionMeanings: protocolInterventions,
+    version,
+    }))
+    .map((protocol) => ({ ...protocol, parameterRationale: `${protocolRationale} ${protocol.parameterRationale}`.slice(0, 1_000) }));
+  const watchlistTier = assessWatchlistConfiguration(defaults).tier;
   const proposal = {
     schemaVersion: CONTRACT_VERSION,
     status: "draft" as const,
@@ -120,13 +206,14 @@ export function buildScenarioProposal(
     rationale: bounded(`This draft tests whether ${systemName} can be represented by two independently recurrent, observable phases while keeping the domain mapping explicitly illustrative and falsifiable.`, 5_000),
     scenario: {
       id,
-      version: "0.1.0",
-      title: bounded(`${systemName} Under ${pressure}`, 160),
+      version,
+      title: systemName,
       shortTitle: systemName,
       summary: bounded(`${systemName} is modeled as a synthetic two-cycle system pursuing ${answers.objective.trim()} while ${answers.pressure.trim()} creates optimization pressure.`, 500),
       category: answers.category as ScenarioCategory,
-      watchlistTier: "featured" as const,
-      modelFamily: "capability-correction" as const,
+      watchlistTier,
+      featured: false,
+      modelFamily,
       calibration: "illustrative" as const,
       difficulty: "Advanced" as const,
       icon: "◇",
@@ -164,22 +251,10 @@ export function buildScenarioProposal(
         falsificationCriteria: [bounded(answers.falsification, 500)],
         references: [{ title: "Sori (2026), Toroidal Geometry in ATS/AANA/AIx, revised phase-coordinate edition" }],
       },
-      cycles: {
-        minor: {
-          label: bounded(minorStages.join(" → "), 120),
-          stages: minorStages,
-          description: bounded(`Fast internal correction cycle observed through ${answers.minorObservation.trim()}.`, 500),
-          defaultFrequency: defaults.omegaTheta,
-          phaseSource: "operational-stage" as const,
-        },
-        major: {
-          label: bounded(majorStages.join(" → "), 120),
-          stages: majorStages,
-          description: bounded(`Slower external adaptation cycle estimated through ${answers.majorObservation.trim()}.`, 500),
-          defaultFrequency: defaults.omegaPhi,
-          phaseSource: "estimated" as const,
-        },
-      },
+      system,
+      defaultProtocolId,
+      protocols,
+      cycles,
       labels: {
         pressure: bounded(answers.pressure, 80),
         error: bounded(answers.misclassification, 80),
@@ -222,11 +297,7 @@ export function buildScenarioProposal(
         rationale: "This terminal rule is an illustrative product policy requiring persistent excursion and accumulated loss; it is not a threshold supplied by the paper or domain evidence.",
       },
       defaults: { ...defaults },
-      presets: [
-        { name: "Draft baseline", description: "Use the builder's current illustrative default values.", values: { pressure: defaults.pressure, feedback: defaults.feedback, correction: defaults.correction } },
-        { name: "Compound stress", description: "Raise pressure and error while reducing feedback and correction.", values: stress },
-        { name: "Early recovery", description: "Reduce pressure while improving feedback and correction capacity.", values: recovery },
-      ],
+      presets: protocols.map((protocol) => ({ name: protocol.title, description: protocol.summary, values: protocol.parameters })),
     },
     evidence: {
       hypothesis: bounded(`${systemName} remains viable when its independently recurrent correction and adaptation cycles remain observable and correction capacity offsets modeled divergence and debt pressure.`, 2_000),

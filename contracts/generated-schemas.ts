@@ -14,6 +14,26 @@ export const GENERATED_SCHEMA_INDEX = {
       "url": "/schemas/v1/scheduled-intervention.schema.json"
     },
     {
+      "name": "system-template",
+      "title": "Reusable system template",
+      "url": "/schemas/v1/system-template.schema.json"
+    },
+    {
+      "name": "scenario-module",
+      "title": "Reusable scenario module",
+      "url": "/schemas/v1/scenario-module.schema.json"
+    },
+    {
+      "name": "intervention-definition",
+      "title": "Reusable intervention definition",
+      "url": "/schemas/v1/intervention-definition.schema.json"
+    },
+    {
+      "name": "intervention-plan",
+      "title": "Composable intervention plan",
+      "url": "/schemas/v1/intervention-plan.schema.json"
+    },
+    {
       "name": "experiment",
       "title": "Experiment specification",
       "url": "/schemas/v1/experiment.schema.json"
@@ -353,6 +373,36 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         "type": "number",
         "minimum": 0,
         "maximum": 1000000
+      },
+      "definitionId": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "planId": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "intensity": {
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 5
+      },
+      "durationSteps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9999
+      },
+      "phase": {
+        "type": "string",
+        "enum": [
+          "start",
+          "end"
+        ]
+      },
+      "mechanism": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 120
       }
     },
     "required": [
@@ -365,6 +415,778 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
     "additionalProperties": false,
     "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/scheduled-intervention.schema.json",
     "title": "Scheduled intervention"
+  },
+  "system-template.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "enum": [
+          "regenerative-stock",
+          "threshold-regime-shift",
+          "resistance-contagion",
+          "trust-legitimacy",
+          "capability-correction",
+          "network-cascade",
+          "financial-leverage",
+          "human-capacity"
+        ]
+      },
+      "version": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 160
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "modelFamily": {
+        "type": "string",
+        "enum": [
+          "regenerative-stock",
+          "threshold-regime-shift",
+          "resistance-contagion",
+          "trust-legitimacy",
+          "capability-correction",
+          "network-cascade",
+          "financial-leverage",
+          "human-capacity"
+        ]
+      },
+      "stateArchetype": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "structuralAssumptions": {
+        "minItems": 1,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        }
+      },
+      "learningQuestions": {
+        "minItems": 1,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        }
+      },
+      "baseDynamics": {
+        "type": "object",
+        "properties": {
+          "pressure": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "Optimization or deployment pressure."
+          },
+          "error": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Constraint misunderstanding or error rate."
+          },
+          "feedback": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Feedback fidelity."
+          },
+          "correction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Correction capacity."
+          },
+          "drift": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.5,
+            "description": "Environmental drift."
+          },
+          "irreversibleLoss": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.5,
+            "description": "Irreversible loss rate."
+          },
+          "initialDebt": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Initial alignment debt."
+          },
+          "kappa": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Radial restoring coefficient."
+          },
+          "chi": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt-to-excursion coupling."
+          },
+          "omegaTheta": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "description": "Minor-cycle angular frequency."
+          },
+          "omegaPhi": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "description": "Major-cycle angular frequency."
+          },
+          "couplingA": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Major-to-minor phase coupling."
+          },
+          "couplingB": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Minor-to-major phase coupling."
+          },
+          "rho0": {
+            "type": "number",
+            "minimum": 0.03,
+            "maximum": 5,
+            "description": "Reference radial excursion."
+          },
+          "rhoCrit": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10,
+            "description": "Critical radial viability boundary."
+          },
+          "alpha": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt accumulation coefficient."
+          },
+          "beta": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt repayment coefficient."
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Unsigned deterministic seed."
+          },
+          "steps": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Integration steps."
+          },
+          "dt": {
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 10,
+            "description": "Integration time step."
+          }
+        },
+        "additionalProperties": false
+      },
+      "rupturePolicy": {
+        "type": "object",
+        "properties": {
+          "cumulativeLossThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "debtThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "persistenceSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "cumulativeLossThreshold",
+          "debtThreshold",
+          "persistenceSteps"
+        ],
+        "additionalProperties": false
+      },
+      "provenance": {
+        "type": "string",
+        "const": "illustrative-system-template"
+      }
+    },
+    "required": [
+      "id",
+      "version",
+      "title",
+      "summary",
+      "modelFamily",
+      "stateArchetype",
+      "structuralAssumptions",
+      "learningQuestions",
+      "baseDynamics",
+      "rupturePolicy",
+      "provenance"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/system-template.schema.json",
+    "title": "Reusable system template"
+  },
+  "scenario-module.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "version": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 160
+      },
+      "kind": {
+        "type": "string",
+        "enum": [
+          "baseline",
+          "stress",
+          "recovery-context"
+        ]
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "conditions": {
+        "minItems": 1,
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        }
+      },
+      "stressors": {
+        "minItems": 1,
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 500
+        }
+      },
+      "learningObjective": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "transforms": {
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "parameter": {
+              "type": "string",
+              "enum": [
+                "pressure",
+                "error",
+                "feedback",
+                "correction",
+                "drift",
+                "irreversibleLoss",
+                "initialDebt",
+                "kappa",
+                "chi",
+                "omegaTheta",
+                "omegaPhi",
+                "couplingA",
+                "couplingB",
+                "rho0",
+                "rhoCrit",
+                "alpha",
+                "beta"
+              ]
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "add",
+                "multiply",
+                "set"
+              ]
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "parameter",
+            "operation",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "compatibleTemplateIds": {
+        "anyOf": [
+          {
+            "type": "string",
+            "const": "all"
+          },
+          {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "regenerative-stock",
+                "threshold-regime-shift",
+                "resistance-contagion",
+                "trust-legitimacy",
+                "capability-correction",
+                "network-cascade",
+                "financial-leverage",
+                "human-capacity"
+              ]
+            }
+          }
+        ]
+      },
+      "provenance": {
+        "type": "string",
+        "const": "illustrative-scenario-module"
+      }
+    },
+    "required": [
+      "id",
+      "version",
+      "title",
+      "kind",
+      "summary",
+      "conditions",
+      "stressors",
+      "learningObjective",
+      "transforms",
+      "compatibleTemplateIds",
+      "provenance"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/scenario-module.schema.json",
+    "title": "Reusable scenario module"
+  },
+  "intervention-definition.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "version": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 160
+      },
+      "shortTitle": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 80
+      },
+      "icon": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 12
+      },
+      "mechanism": {
+        "type": "string",
+        "enum": [
+          "increase-constraint-visibility",
+          "reduce-misclassification",
+          "reduce-optimization-pressure",
+          "expand-correction-capacity",
+          "contain-and-observe",
+          "repay-alignment-debt"
+        ]
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "transforms": {
+        "minItems": 1,
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "parameter": {
+              "type": "string",
+              "enum": [
+                "pressure",
+                "error",
+                "feedback",
+                "correction",
+                "drift",
+                "irreversibleLoss",
+                "initialDebt",
+                "kappa",
+                "chi",
+                "omegaTheta",
+                "omegaPhi",
+                "couplingA",
+                "couplingB",
+                "rho0",
+                "rhoCrit",
+                "alpha",
+                "beta"
+              ]
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "add",
+                "multiply",
+                "set"
+              ]
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "parameter",
+            "operation",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "compatibleTemplateIds": {
+        "anyOf": [
+          {
+            "type": "string",
+            "const": "all"
+          },
+          {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "regenerative-stock",
+                "threshold-regime-shift",
+                "resistance-contagion",
+                "trust-legitimacy",
+                "capability-correction",
+                "network-cascade",
+                "financial-leverage",
+                "human-capacity"
+              ]
+            }
+          }
+        ]
+      },
+      "timing": {
+        "type": "object",
+        "properties": {
+          "onsetDelaySteps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999
+          },
+          "defaultDurationSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9999
+          },
+          "decay": {
+            "type": "string",
+            "enum": [
+              "persistent",
+              "restore-at-end"
+            ]
+          }
+        },
+        "required": [
+          "onsetDelaySteps",
+          "decay"
+        ],
+        "additionalProperties": false
+      },
+      "cost": {
+        "type": "object",
+        "properties": {
+          "base": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "perIntensity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "unit": {
+            "type": "string",
+            "const": "illustrative-cost-points"
+          }
+        },
+        "required": [
+          "base",
+          "perIntensity",
+          "unit"
+        ],
+        "additionalProperties": false
+      },
+      "prerequisites": {
+        "minItems": 1,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        }
+      },
+      "tradeoffs": {
+        "minItems": 1,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        }
+      },
+      "domainTranslations": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "enum": [
+            "AI",
+            "Ecology",
+            "Healthcare",
+            "Organizations",
+            "Infrastructure",
+            "Economy",
+            "Society"
+          ]
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 1000
+        }
+      },
+      "evidence": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "illustrative"
+          },
+          "calibrationStatus": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "status",
+          "calibrationStatus"
+        ],
+        "additionalProperties": false
+      },
+      "provenance": {
+        "type": "string",
+        "const": "illustrative-intervention-module"
+      }
+    },
+    "required": [
+      "id",
+      "version",
+      "title",
+      "shortTitle",
+      "icon",
+      "mechanism",
+      "summary",
+      "transforms",
+      "compatibleTemplateIds",
+      "timing",
+      "cost",
+      "prerequisites",
+      "tradeoffs",
+      "domainTranslations",
+      "evidence",
+      "provenance"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/intervention-definition.schema.json",
+    "title": "Reusable intervention definition"
+  },
+  "intervention-plan.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "version": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 160
+      },
+      "strategy": {
+        "type": "string",
+        "enum": [
+          "none",
+          "preventive",
+          "corrective",
+          "restorative",
+          "containment"
+        ]
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "learningObjective": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "items": {
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "interventionId": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "intensity": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 5
+            },
+            "startFraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "onsetDelaySteps": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9999
+            },
+            "durationSteps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9999
+            }
+          },
+          "required": [
+            "interventionId",
+            "intensity",
+            "startFraction"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "compatibleTemplateIds": {
+        "anyOf": [
+          {
+            "type": "string",
+            "const": "all"
+          },
+          {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "regenerative-stock",
+                "threshold-regime-shift",
+                "resistance-contagion",
+                "trust-legitimacy",
+                "capability-correction",
+                "network-cascade",
+                "financial-leverage",
+                "human-capacity"
+              ]
+            }
+          }
+        ]
+      },
+      "provenance": {
+        "type": "string",
+        "const": "illustrative-intervention-plan"
+      }
+    },
+    "required": [
+      "id",
+      "version",
+      "title",
+      "strategy",
+      "summary",
+      "learningObjective",
+      "items",
+      "compatibleTemplateIds",
+      "provenance"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/intervention-plan.schema.json",
+    "title": "Composable intervention plan"
   },
   "experiment.schema.json": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -381,6 +1203,19 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         "maxLength": 160
       },
       "scenarioId": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "systemId": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "protocolId": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "interventionPlanId": {
+        "default": "no-action",
         "type": "string",
         "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
       },
@@ -645,6 +1480,36 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "type": "number",
               "minimum": 0,
               "maximum": 1000000
+            },
+            "definitionId": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "planId": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "intensity": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 5
+            },
+            "durationSteps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9999
+            },
+            "phase": {
+              "type": "string",
+              "enum": [
+                "start",
+                "end"
+              ]
+            },
+            "mechanism": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 120
             }
           },
           "required": [
@@ -681,7 +1546,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
     },
     "required": [
       "schemaVersion",
-      "scenarioId",
+      "interventionPlanId",
       "parameters",
       "interventions",
       "includeFrames",
@@ -717,325 +1582,16 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
-          "parameters": {
-            "default": {},
-            "type": "object",
-            "properties": {
-              "pressure": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 3,
-                "description": "Optimization or deployment pressure."
-              },
-              "error": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "description": "Constraint misunderstanding or error rate."
-              },
-              "feedback": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "description": "Feedback fidelity."
-              },
-              "correction": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2,
-                "description": "Correction capacity."
-              },
-              "drift": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 0.5,
-                "description": "Environmental drift."
-              },
-              "irreversibleLoss": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 0.5,
-                "description": "Irreversible loss rate."
-              },
-              "initialDebt": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2,
-                "description": "Initial alignment debt."
-              },
-              "kappa": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2,
-                "description": "Radial restoring coefficient."
-              },
-              "chi": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2,
-                "description": "Debt-to-excursion coupling."
-              },
-              "omegaTheta": {
-                "type": "number",
-                "minimum": -2,
-                "maximum": 2,
-                "description": "Minor-cycle angular frequency."
-              },
-              "omegaPhi": {
-                "type": "number",
-                "minimum": -2,
-                "maximum": 2,
-                "description": "Major-cycle angular frequency."
-              },
-              "couplingA": {
-                "type": "number",
-                "minimum": -1,
-                "maximum": 1,
-                "description": "Major-to-minor phase coupling."
-              },
-              "couplingB": {
-                "type": "number",
-                "minimum": -1,
-                "maximum": 1,
-                "description": "Minor-to-major phase coupling."
-              },
-              "rho0": {
-                "type": "number",
-                "minimum": 0.03,
-                "maximum": 5,
-                "description": "Reference radial excursion."
-              },
-              "rhoCrit": {
-                "type": "number",
-                "minimum": 0.1,
-                "maximum": 10,
-                "description": "Critical radial viability boundary."
-              },
-              "alpha": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2,
-                "description": "Debt accumulation coefficient."
-              },
-              "beta": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2,
-                "description": "Debt repayment coefficient."
-              },
-              "seed": {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991,
-                "description": "Unsigned deterministic seed."
-              },
-              "steps": {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991,
-                "description": "Integration steps."
-              },
-              "dt": {
-                "type": "number",
-                "minimum": 0.001,
-                "maximum": 10,
-                "description": "Integration time step."
-              }
-            },
-            "additionalProperties": false
-          },
-          "interventions": {
-            "default": [],
-            "maxItems": 32,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 80
-                },
-                "label": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 120
-                },
-                "step": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 9999
-                },
-                "effects": {
-                  "type": "object",
-                  "properties": {
-                    "pressure": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 3,
-                      "description": "Optimization or deployment pressure."
-                    },
-                    "error": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1,
-                      "description": "Constraint misunderstanding or error rate."
-                    },
-                    "feedback": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1,
-                      "description": "Feedback fidelity."
-                    },
-                    "correction": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 2,
-                      "description": "Correction capacity."
-                    },
-                    "drift": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 0.5,
-                      "description": "Environmental drift."
-                    },
-                    "irreversibleLoss": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 0.5,
-                      "description": "Irreversible loss rate."
-                    },
-                    "initialDebt": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 2,
-                      "description": "Initial alignment debt."
-                    },
-                    "kappa": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 2,
-                      "description": "Radial restoring coefficient."
-                    },
-                    "chi": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 2,
-                      "description": "Debt-to-excursion coupling."
-                    },
-                    "omegaTheta": {
-                      "type": "number",
-                      "minimum": -2,
-                      "maximum": 2,
-                      "description": "Minor-cycle angular frequency."
-                    },
-                    "omegaPhi": {
-                      "type": "number",
-                      "minimum": -2,
-                      "maximum": 2,
-                      "description": "Major-cycle angular frequency."
-                    },
-                    "couplingA": {
-                      "type": "number",
-                      "minimum": -1,
-                      "maximum": 1,
-                      "description": "Major-to-minor phase coupling."
-                    },
-                    "couplingB": {
-                      "type": "number",
-                      "minimum": -1,
-                      "maximum": 1,
-                      "description": "Minor-to-major phase coupling."
-                    },
-                    "rho0": {
-                      "type": "number",
-                      "minimum": 0.03,
-                      "maximum": 5,
-                      "description": "Reference radial excursion."
-                    },
-                    "rhoCrit": {
-                      "type": "number",
-                      "minimum": 0.1,
-                      "maximum": 10,
-                      "description": "Critical radial viability boundary."
-                    },
-                    "alpha": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 2,
-                      "description": "Debt accumulation coefficient."
-                    },
-                    "beta": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 2,
-                      "description": "Debt repayment coefficient."
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                "cost": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1000000
-                }
-              },
-              "required": [
-                "id",
-                "label",
-                "step",
-                "effects",
-                "cost"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "seeds": {
-            "minItems": 1,
-            "maxItems": 500,
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": -9007199254740991,
-              "maximum": 9007199254740991,
-              "description": "Unsigned deterministic seed."
-            }
-          },
-          "includeFrames": {
-            "default": false,
-            "type": "boolean"
-          },
-          "frameStride": {
-            "default": 1,
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10000
-          }
-        },
-        "required": [
-          "schemaVersion",
-          "scenarioId",
-          "parameters",
-          "interventions",
-          "includeFrames",
-          "frameStride"
-        ],
-        "additionalProperties": false
-      },
-      "right": {
-        "type": "object",
-        "properties": {
-          "schemaVersion": {
-            "default": "1.0.0",
+          "systemId": {
             "type": "string",
-            "const": "1.0.0"
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
-          "name": {
+          "protocolId": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 160
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
-          "scenarioId": {
+          "interventionPlanId": {
+            "default": "no-action",
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
@@ -1300,6 +1856,36 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 1000000
+                },
+                "definitionId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "planId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "intensity": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 5
+                },
+                "durationSteps": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9999
+                },
+                "phase": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "end"
+                  ]
+                },
+                "mechanism": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 120
                 }
               },
               "required": [
@@ -1336,7 +1922,372 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         },
         "required": [
           "schemaVersion",
-          "scenarioId",
+          "interventionPlanId",
+          "parameters",
+          "interventions",
+          "includeFrames",
+          "frameStride"
+        ],
+        "additionalProperties": false
+      },
+      "right": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "default": "1.0.0",
+            "type": "string",
+            "const": "1.0.0"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "scenarioId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "systemId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "protocolId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "interventionPlanId": {
+            "default": "no-action",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "parameters": {
+            "default": {},
+            "type": "object",
+            "properties": {
+              "pressure": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3,
+                "description": "Optimization or deployment pressure."
+              },
+              "error": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Constraint misunderstanding or error rate."
+              },
+              "feedback": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Feedback fidelity."
+              },
+              "correction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Correction capacity."
+              },
+              "drift": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.5,
+                "description": "Environmental drift."
+              },
+              "irreversibleLoss": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.5,
+                "description": "Irreversible loss rate."
+              },
+              "initialDebt": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Initial alignment debt."
+              },
+              "kappa": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Radial restoring coefficient."
+              },
+              "chi": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Debt-to-excursion coupling."
+              },
+              "omegaTheta": {
+                "type": "number",
+                "minimum": -2,
+                "maximum": 2,
+                "description": "Minor-cycle angular frequency."
+              },
+              "omegaPhi": {
+                "type": "number",
+                "minimum": -2,
+                "maximum": 2,
+                "description": "Major-cycle angular frequency."
+              },
+              "couplingA": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1,
+                "description": "Major-to-minor phase coupling."
+              },
+              "couplingB": {
+                "type": "number",
+                "minimum": -1,
+                "maximum": 1,
+                "description": "Minor-to-major phase coupling."
+              },
+              "rho0": {
+                "type": "number",
+                "minimum": 0.03,
+                "maximum": 5,
+                "description": "Reference radial excursion."
+              },
+              "rhoCrit": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 10,
+                "description": "Critical radial viability boundary."
+              },
+              "alpha": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Debt accumulation coefficient."
+              },
+              "beta": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2,
+                "description": "Debt repayment coefficient."
+              },
+              "seed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Unsigned deterministic seed."
+              },
+              "steps": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Integration steps."
+              },
+              "dt": {
+                "type": "number",
+                "minimum": 0.001,
+                "maximum": 10,
+                "description": "Integration time step."
+              }
+            },
+            "additionalProperties": false
+          },
+          "interventions": {
+            "default": [],
+            "maxItems": 32,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "step": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9999
+                },
+                "effects": {
+                  "type": "object",
+                  "properties": {
+                    "pressure": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 3,
+                      "description": "Optimization or deployment pressure."
+                    },
+                    "error": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Constraint misunderstanding or error rate."
+                    },
+                    "feedback": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Feedback fidelity."
+                    },
+                    "correction": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Correction capacity."
+                    },
+                    "drift": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 0.5,
+                      "description": "Environmental drift."
+                    },
+                    "irreversibleLoss": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 0.5,
+                      "description": "Irreversible loss rate."
+                    },
+                    "initialDebt": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Initial alignment debt."
+                    },
+                    "kappa": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Radial restoring coefficient."
+                    },
+                    "chi": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt-to-excursion coupling."
+                    },
+                    "omegaTheta": {
+                      "type": "number",
+                      "minimum": -2,
+                      "maximum": 2,
+                      "description": "Minor-cycle angular frequency."
+                    },
+                    "omegaPhi": {
+                      "type": "number",
+                      "minimum": -2,
+                      "maximum": 2,
+                      "description": "Major-cycle angular frequency."
+                    },
+                    "couplingA": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1,
+                      "description": "Major-to-minor phase coupling."
+                    },
+                    "couplingB": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1,
+                      "description": "Minor-to-major phase coupling."
+                    },
+                    "rho0": {
+                      "type": "number",
+                      "minimum": 0.03,
+                      "maximum": 5,
+                      "description": "Reference radial excursion."
+                    },
+                    "rhoCrit": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 10,
+                      "description": "Critical radial viability boundary."
+                    },
+                    "alpha": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt accumulation coefficient."
+                    },
+                    "beta": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt repayment coefficient."
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "cost": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "definitionId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "planId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "intensity": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 5
+                },
+                "durationSteps": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9999
+                },
+                "phase": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "end"
+                  ]
+                },
+                "mechanism": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 120
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "step",
+                "effects",
+                "cost"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "seeds": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Unsigned deterministic seed."
+            }
+          },
+          "includeFrames": {
+            "default": false,
+            "type": "boolean"
+          },
+          "frameStride": {
+            "default": 1,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "interventionPlanId",
           "parameters",
           "interventions",
           "includeFrames",
@@ -1380,6 +2331,19 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           },
+          "systemId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "protocolId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "interventionPlanId": {
+            "default": "no-action",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
           "parameters": {
             "default": {},
             "type": "object",
@@ -1641,6 +2605,36 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 1000000
+                },
+                "definitionId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "planId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "intensity": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 5
+                },
+                "durationSteps": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9999
+                },
+                "phase": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "end"
+                  ]
+                },
+                "mechanism": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 120
                 }
               },
               "required": [
@@ -1677,7 +2671,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         },
         "required": [
           "schemaVersion",
-          "scenarioId",
+          "interventionPlanId",
           "parameters",
           "interventions",
           "includeFrames",
@@ -1950,6 +2944,10 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "featured"
         ]
       },
+      "featured": {
+        "default": false,
+        "type": "boolean"
+      },
       "modelFamily": {
         "default": "capability-correction",
         "type": "string",
@@ -2147,6 +3145,1249 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "references"
         ],
         "additionalProperties": false
+      },
+      "currentStateEstimate": {
+        "type": "object",
+        "properties": {
+          "asOfDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "observationWindow": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 300
+          },
+          "observationCadence": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 300
+          },
+          "candidateTimeAnchor": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 200
+          },
+          "reviewCadence": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "illustrative-current-state-hypothesis",
+              "literature-informed-current-state-estimate",
+              "empirically-fitted-current-state-estimate"
+            ]
+          },
+          "allModelParametersRevisable": {
+            "type": "boolean",
+            "const": true
+          },
+          "parameterProxies": {
+            "type": "object",
+            "properties": {
+              "pressure": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "feedback": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "correction": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "drift": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "irreversibleLoss": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "initialDebt": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "kappa": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "chi": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "omegaTheta": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "omegaPhi": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "couplingA": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "couplingB": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "rho0": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "rhoCrit": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "alpha": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              },
+              "beta": {
+                "type": "object",
+                "properties": {
+                  "observable": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "normalization": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "updateCadence": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "sourceStatus": {
+                    "type": "string",
+                    "enum": [
+                      "proposed-observable-proxy",
+                      "documented-observable-proxy"
+                    ]
+                  }
+                },
+                "required": [
+                  "observable",
+                  "normalization",
+                  "updateCadence",
+                  "sourceStatus"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "pressure",
+              "error",
+              "feedback",
+              "correction",
+              "drift",
+              "irreversibleLoss",
+              "initialDebt",
+              "kappa",
+              "chi",
+              "omegaTheta",
+              "omegaPhi",
+              "couplingA",
+              "couplingB",
+              "rho0",
+              "rhoCrit",
+              "alpha",
+              "beta"
+            ],
+            "additionalProperties": false
+          },
+          "limitations": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 1000
+            }
+          }
+        },
+        "required": [
+          "asOfDate",
+          "observationWindow",
+          "observationCadence",
+          "candidateTimeAnchor",
+          "reviewCadence",
+          "confidence",
+          "basis",
+          "allModelParametersRevisable",
+          "parameterProxies",
+          "limitations"
+        ],
+        "additionalProperties": false
+      },
+      "system": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          },
+          "templateId": {
+            "default": "capability-correction",
+            "type": "string",
+            "enum": [
+              "regenerative-stock",
+              "threshold-regime-shift",
+              "resistance-contagion",
+              "trust-legitimacy",
+              "capability-correction",
+              "network-cascade",
+              "financial-leverage",
+              "human-capacity"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 160
+          },
+          "shortTitle": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "AI",
+              "Ecology",
+              "Healthcare",
+              "Organizations",
+              "Infrastructure",
+              "Economy",
+              "Society"
+            ]
+          },
+          "operator": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 300
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 1000
+          },
+          "objective": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500
+          },
+          "population": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "horizon": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 500
+          },
+          "aggregation": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1000
+          },
+          "viableRegion": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          },
+          "stateVariables": {
+            "minItems": 3,
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "physical": {
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 300
+                }
+              },
+              "biological": {
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 300
+                }
+              },
+              "constructed": {
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 300
+                }
+              }
+            },
+            "required": [
+              "physical",
+              "biological",
+              "constructed"
+            ],
+            "additionalProperties": false
+          },
+          "cycles": {
+            "type": "object",
+            "properties": {
+              "minor": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 120
+                  },
+                  "stages": {
+                    "minItems": 2,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  },
+                  "defaultFrequency": {
+                    "default": 0.05,
+                    "type": "number",
+                    "minimum": -2,
+                    "maximum": 2
+                  },
+                  "phaseSource": {
+                    "default": "synthetic",
+                    "type": "string",
+                    "enum": [
+                      "operational-stage",
+                      "seasonal",
+                      "market-cycle",
+                      "policy-cycle",
+                      "estimated",
+                      "synthetic"
+                    ]
+                  }
+                },
+                "required": [
+                  "label",
+                  "stages",
+                  "description",
+                  "defaultFrequency",
+                  "phaseSource"
+                ],
+                "additionalProperties": false
+              },
+              "major": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 120
+                  },
+                  "stages": {
+                    "minItems": 2,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  },
+                  "defaultFrequency": {
+                    "default": 0.05,
+                    "type": "number",
+                    "minimum": -2,
+                    "maximum": 2
+                  },
+                  "phaseSource": {
+                    "default": "synthetic",
+                    "type": "string",
+                    "enum": [
+                      "operational-stage",
+                      "seasonal",
+                      "market-cycle",
+                      "policy-cycle",
+                      "estimated",
+                      "synthetic"
+                    ]
+                  }
+                },
+                "required": [
+                  "label",
+                  "stages",
+                  "description",
+                  "defaultFrequency",
+                  "phaseSource"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "minor",
+              "major"
+            ],
+            "additionalProperties": false
+          },
+          "phaseEvidence": {
+            "type": "object",
+            "properties": {
+              "thetaSource": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 500
+              },
+              "phiSource": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 500
+              },
+              "independenceClaim": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "thetaSource",
+              "phiSource",
+              "independenceClaim"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "templateId",
+          "title",
+          "shortTitle",
+          "category",
+          "operator",
+          "boundary",
+          "objective",
+          "population",
+          "horizon",
+          "aggregation",
+          "viableRegion",
+          "stateVariables",
+          "constraints",
+          "cycles",
+          "phaseEvidence"
+        ],
+        "additionalProperties": false
+      },
+      "defaultProtocolId": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "protocols": {
+        "minItems": 1,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "systemId": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "templateId": {
+              "default": "capability-correction",
+              "type": "string",
+              "enum": [
+                "regenerative-stock",
+                "threshold-regime-shift",
+                "resistance-contagion",
+                "trust-legitimacy",
+                "capability-correction",
+                "network-cascade",
+                "financial-leverage",
+                "human-capacity"
+              ]
+            },
+            "moduleId": {
+              "default": "system-default",
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 160
+            },
+            "kind": {
+              "default": "baseline",
+              "type": "string",
+              "enum": [
+                "baseline",
+                "stress",
+                "recovery-context"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 1000
+            },
+            "conditions": {
+              "minItems": 1,
+              "maxItems": 30,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 300
+              }
+            },
+            "stressors": {
+              "minItems": 1,
+              "maxItems": 30,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 300
+              }
+            },
+            "interventions": {
+              "minItems": 1,
+              "maxItems": 30,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 300
+              }
+            },
+            "parameterRationale": {
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 1000
+            },
+            "learningObjective": {
+              "default": "Explore how the bounded system responds under the declared synthetic conditions.",
+              "type": "string",
+              "minLength": 20,
+              "maxLength": 1000
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pressure": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 3,
+                  "description": "Optimization or deployment pressure."
+                },
+                "error": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Constraint misunderstanding or error rate."
+                },
+                "feedback": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Feedback fidelity."
+                },
+                "correction": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "Correction capacity."
+                },
+                "drift": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 0.5,
+                  "description": "Environmental drift."
+                },
+                "irreversibleLoss": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 0.5,
+                  "description": "Irreversible loss rate."
+                },
+                "initialDebt": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "Initial alignment debt."
+                },
+                "kappa": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "Radial restoring coefficient."
+                },
+                "chi": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "Debt-to-excursion coupling."
+                },
+                "omegaTheta": {
+                  "type": "number",
+                  "minimum": -2,
+                  "maximum": 2,
+                  "description": "Minor-cycle angular frequency."
+                },
+                "omegaPhi": {
+                  "type": "number",
+                  "minimum": -2,
+                  "maximum": 2,
+                  "description": "Major-cycle angular frequency."
+                },
+                "couplingA": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1,
+                  "description": "Major-to-minor phase coupling."
+                },
+                "couplingB": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1,
+                  "description": "Minor-to-major phase coupling."
+                },
+                "rho0": {
+                  "type": "number",
+                  "minimum": 0.03,
+                  "maximum": 5,
+                  "description": "Reference radial excursion."
+                },
+                "rhoCrit": {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 10,
+                  "description": "Critical radial viability boundary."
+                },
+                "alpha": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "Debt accumulation coefficient."
+                },
+                "beta": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2,
+                  "description": "Debt repayment coefficient."
+                },
+                "seed": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Unsigned deterministic seed."
+                },
+                "steps": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Integration steps."
+                },
+                "dt": {
+                  "type": "number",
+                  "minimum": 0.001,
+                  "maximum": 10,
+                  "description": "Integration time step."
+                }
+              },
+              "required": [
+                "pressure",
+                "error",
+                "feedback",
+                "correction",
+                "drift",
+                "irreversibleLoss",
+                "initialDebt",
+                "kappa",
+                "chi",
+                "omegaTheta",
+                "omegaPhi",
+                "couplingA",
+                "couplingB",
+                "rho0",
+                "rhoCrit",
+                "alpha",
+                "beta",
+                "seed",
+                "steps",
+                "dt"
+              ],
+              "additionalProperties": false
+            },
+            "provenance": {
+              "type": "string",
+              "const": "illustrative-system-protocol"
+            }
+          },
+          "required": [
+            "id",
+            "systemId",
+            "templateId",
+            "moduleId",
+            "version",
+            "title",
+            "kind",
+            "summary",
+            "conditions",
+            "stressors",
+            "interventions",
+            "parameterRationale",
+            "learningObjective",
+            "parameters",
+            "provenance"
+          ],
+          "additionalProperties": false
+        }
       },
       "cycles": {
         "type": "object",
@@ -2958,6 +5199,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "summary",
       "category",
       "watchlistTier",
+      "featured",
       "modelFamily",
       "calibration",
       "difficulty",
@@ -3082,6 +5324,10 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "yellow",
               "featured"
             ]
+          },
+          "featured": {
+            "default": false,
+            "type": "boolean"
           },
           "modelFamily": {
             "default": "capability-correction",
@@ -3280,6 +5526,1249 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "references"
             ],
             "additionalProperties": false
+          },
+          "currentStateEstimate": {
+            "type": "object",
+            "properties": {
+              "asOfDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "observationWindow": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 300
+              },
+              "observationCadence": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 300
+              },
+              "candidateTimeAnchor": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 200
+              },
+              "reviewCadence": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 200
+              },
+              "confidence": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "illustrative-current-state-hypothesis",
+                  "literature-informed-current-state-estimate",
+                  "empirically-fitted-current-state-estimate"
+                ]
+              },
+              "allModelParametersRevisable": {
+                "type": "boolean",
+                "const": true
+              },
+              "parameterProxies": {
+                "type": "object",
+                "properties": {
+                  "pressure": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "error": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "feedback": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "correction": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "drift": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "irreversibleLoss": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "initialDebt": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "kappa": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "chi": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "omegaTheta": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "omegaPhi": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "couplingA": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "couplingB": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "rho0": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "rhoCrit": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "alpha": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "beta": {
+                    "type": "object",
+                    "properties": {
+                      "observable": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "normalization": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      },
+                      "updateCadence": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "sourceStatus": {
+                        "type": "string",
+                        "enum": [
+                          "proposed-observable-proxy",
+                          "documented-observable-proxy"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "observable",
+                      "normalization",
+                      "updateCadence",
+                      "sourceStatus"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "pressure",
+                  "error",
+                  "feedback",
+                  "correction",
+                  "drift",
+                  "irreversibleLoss",
+                  "initialDebt",
+                  "kappa",
+                  "chi",
+                  "omegaTheta",
+                  "omegaPhi",
+                  "couplingA",
+                  "couplingB",
+                  "rho0",
+                  "rhoCrit",
+                  "alpha",
+                  "beta"
+                ],
+                "additionalProperties": false
+              },
+              "limitations": {
+                "minItems": 1,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 10,
+                  "maxLength": 1000
+                }
+              }
+            },
+            "required": [
+              "asOfDate",
+              "observationWindow",
+              "observationCadence",
+              "candidateTimeAnchor",
+              "reviewCadence",
+              "confidence",
+              "basis",
+              "allModelParametersRevisable",
+              "parameterProxies",
+              "limitations"
+            ],
+            "additionalProperties": false
+          },
+          "system": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^\\d+\\.\\d+\\.\\d+$"
+              },
+              "templateId": {
+                "default": "capability-correction",
+                "type": "string",
+                "enum": [
+                  "regenerative-stock",
+                  "threshold-regime-shift",
+                  "resistance-contagion",
+                  "trust-legitimacy",
+                  "capability-correction",
+                  "network-cascade",
+                  "financial-leverage",
+                  "human-capacity"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 160
+              },
+              "shortTitle": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 80
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "AI",
+                  "Ecology",
+                  "Healthcare",
+                  "Organizations",
+                  "Infrastructure",
+                  "Economy",
+                  "Society"
+                ]
+              },
+              "operator": {
+                "type": "string",
+                "minLength": 5,
+                "maxLength": 300
+              },
+              "boundary": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 1000
+              },
+              "objective": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 500
+              },
+              "population": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 1000
+              },
+              "horizon": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 500
+              },
+              "aggregation": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 1000
+              },
+              "viableRegion": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 1000
+              },
+              "stateVariables": {
+                "minItems": 3,
+                "maxItems": 30,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 200
+                }
+              },
+              "constraints": {
+                "type": "object",
+                "properties": {
+                  "physical": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 300
+                    }
+                  },
+                  "biological": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 300
+                    }
+                  },
+                  "constructed": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 300
+                    }
+                  }
+                },
+                "required": [
+                  "physical",
+                  "biological",
+                  "constructed"
+                ],
+                "additionalProperties": false
+              },
+              "cycles": {
+                "type": "object",
+                "properties": {
+                  "minor": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                      },
+                      "stages": {
+                        "minItems": 2,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        }
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 500
+                      },
+                      "defaultFrequency": {
+                        "default": 0.05,
+                        "type": "number",
+                        "minimum": -2,
+                        "maximum": 2
+                      },
+                      "phaseSource": {
+                        "default": "synthetic",
+                        "type": "string",
+                        "enum": [
+                          "operational-stage",
+                          "seasonal",
+                          "market-cycle",
+                          "policy-cycle",
+                          "estimated",
+                          "synthetic"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "stages",
+                      "description",
+                      "defaultFrequency",
+                      "phaseSource"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "major": {
+                    "type": "object",
+                    "properties": {
+                      "label": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
+                      },
+                      "stages": {
+                        "minItems": 2,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        }
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 500
+                      },
+                      "defaultFrequency": {
+                        "default": 0.05,
+                        "type": "number",
+                        "minimum": -2,
+                        "maximum": 2
+                      },
+                      "phaseSource": {
+                        "default": "synthetic",
+                        "type": "string",
+                        "enum": [
+                          "operational-stage",
+                          "seasonal",
+                          "market-cycle",
+                          "policy-cycle",
+                          "estimated",
+                          "synthetic"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "label",
+                      "stages",
+                      "description",
+                      "defaultFrequency",
+                      "phaseSource"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "minor",
+                  "major"
+                ],
+                "additionalProperties": false
+              },
+              "phaseEvidence": {
+                "type": "object",
+                "properties": {
+                  "thetaSource": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  },
+                  "phiSource": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  },
+                  "independenceClaim": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "thetaSource",
+                  "phiSource",
+                  "independenceClaim"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "templateId",
+              "title",
+              "shortTitle",
+              "category",
+              "operator",
+              "boundary",
+              "objective",
+              "population",
+              "horizon",
+              "aggregation",
+              "viableRegion",
+              "stateVariables",
+              "constraints",
+              "cycles",
+              "phaseEvidence"
+            ],
+            "additionalProperties": false
+          },
+          "defaultProtocolId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "protocols": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "systemId": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "templateId": {
+                  "default": "capability-correction",
+                  "type": "string",
+                  "enum": [
+                    "regenerative-stock",
+                    "threshold-regime-shift",
+                    "resistance-contagion",
+                    "trust-legitimacy",
+                    "capability-correction",
+                    "network-cascade",
+                    "financial-leverage",
+                    "human-capacity"
+                  ]
+                },
+                "moduleId": {
+                  "default": "system-default",
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "version": {
+                  "type": "string",
+                  "pattern": "^\\d+\\.\\d+\\.\\d+$"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 160
+                },
+                "kind": {
+                  "default": "baseline",
+                  "type": "string",
+                  "enum": [
+                    "baseline",
+                    "stress",
+                    "recovery-context"
+                  ]
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 20,
+                  "maxLength": 1000
+                },
+                "conditions": {
+                  "minItems": 1,
+                  "maxItems": 30,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "stressors": {
+                  "minItems": 1,
+                  "maxItems": 30,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "interventions": {
+                  "minItems": 1,
+                  "maxItems": 30,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "parameterRationale": {
+                  "type": "string",
+                  "minLength": 20,
+                  "maxLength": 1000
+                },
+                "learningObjective": {
+                  "default": "Explore how the bounded system responds under the declared synthetic conditions.",
+                  "type": "string",
+                  "minLength": 20,
+                  "maxLength": 1000
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "pressure": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 3,
+                      "description": "Optimization or deployment pressure."
+                    },
+                    "error": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Constraint misunderstanding or error rate."
+                    },
+                    "feedback": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1,
+                      "description": "Feedback fidelity."
+                    },
+                    "correction": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Correction capacity."
+                    },
+                    "drift": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 0.5,
+                      "description": "Environmental drift."
+                    },
+                    "irreversibleLoss": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 0.5,
+                      "description": "Irreversible loss rate."
+                    },
+                    "initialDebt": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Initial alignment debt."
+                    },
+                    "kappa": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Radial restoring coefficient."
+                    },
+                    "chi": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt-to-excursion coupling."
+                    },
+                    "omegaTheta": {
+                      "type": "number",
+                      "minimum": -2,
+                      "maximum": 2,
+                      "description": "Minor-cycle angular frequency."
+                    },
+                    "omegaPhi": {
+                      "type": "number",
+                      "minimum": -2,
+                      "maximum": 2,
+                      "description": "Major-cycle angular frequency."
+                    },
+                    "couplingA": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1,
+                      "description": "Major-to-minor phase coupling."
+                    },
+                    "couplingB": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1,
+                      "description": "Minor-to-major phase coupling."
+                    },
+                    "rho0": {
+                      "type": "number",
+                      "minimum": 0.03,
+                      "maximum": 5,
+                      "description": "Reference radial excursion."
+                    },
+                    "rhoCrit": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 10,
+                      "description": "Critical radial viability boundary."
+                    },
+                    "alpha": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt accumulation coefficient."
+                    },
+                    "beta": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2,
+                      "description": "Debt repayment coefficient."
+                    },
+                    "seed": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Unsigned deterministic seed."
+                    },
+                    "steps": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Integration steps."
+                    },
+                    "dt": {
+                      "type": "number",
+                      "minimum": 0.001,
+                      "maximum": 10,
+                      "description": "Integration time step."
+                    }
+                  },
+                  "required": [
+                    "pressure",
+                    "error",
+                    "feedback",
+                    "correction",
+                    "drift",
+                    "irreversibleLoss",
+                    "initialDebt",
+                    "kappa",
+                    "chi",
+                    "omegaTheta",
+                    "omegaPhi",
+                    "couplingA",
+                    "couplingB",
+                    "rho0",
+                    "rhoCrit",
+                    "alpha",
+                    "beta",
+                    "seed",
+                    "steps",
+                    "dt"
+                  ],
+                  "additionalProperties": false
+                },
+                "provenance": {
+                  "type": "string",
+                  "const": "illustrative-system-protocol"
+                }
+              },
+              "required": [
+                "id",
+                "systemId",
+                "templateId",
+                "moduleId",
+                "version",
+                "title",
+                "kind",
+                "summary",
+                "conditions",
+                "stressors",
+                "interventions",
+                "parameterRationale",
+                "learningObjective",
+                "parameters",
+                "provenance"
+              ],
+              "additionalProperties": false
+            }
           },
           "cycles": {
             "type": "object",
@@ -4091,6 +7580,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "summary",
           "category",
           "watchlistTier",
+          "featured",
           "modelFamily",
           "calibration",
           "difficulty",
@@ -4419,6 +7909,36 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                         "type": "number",
                         "minimum": 0,
                         "maximum": 1000000
+                      },
+                      "definitionId": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                      },
+                      "planId": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                      },
+                      "intensity": {
+                        "type": "number",
+                        "minimum": 0.1,
+                        "maximum": 5
+                      },
+                      "durationSteps": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9999
+                      },
+                      "phase": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "mechanism": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 120
                       }
                     },
                     "required": [

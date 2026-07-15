@@ -10,7 +10,7 @@ async function openDashboard(page: Page) {
   page.on("pageerror", (error) => consoleErrors.push(error.message));
   await page.goto("/");
   await expect(page).toHaveTitle(/Viability Torus Lab/i);
-  await expect(page.getByRole("heading", { name: "LLM Under Deployment Pressure" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Production LLM Answering Service" })).toBeVisible();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-hydrated", "true");
   return consoleErrors;
 }
@@ -56,6 +56,20 @@ test("canvases render and linked playback remains causal and synchronized", asyn
   await page.locator(".chart-grid").screenshot({ path: testInfo.outputPath("paper-aligned-causal-charts.png") });
 
   const torusBefore = await canvasFingerprint(page, 'canvas[data-chart-kind="torus"]');
+  const torusCanvas = page.locator('canvas[data-chart-kind="torus"]');
+  await expect(torusCanvas).toHaveAttribute("data-geometry-regime", "healthy");
+  await expect(torusCanvas).toHaveAttribute("aria-label", /excursion offsets the trajectory; debt produces a potentially repayable asymmetric warp; accumulated loss produces a persistent visual scar/i);
+  await expect(page.locator(".legend-minor")).toContainText("Generate");
+  await expect(page.locator(".legend-minor")).toContainText("Generate → Verify → Retrieve → Revise → Gate");
+  await expect(page.locator(".legend-major")).toContainText("User-context change");
+  const stateInspector = page.getByLabel("Selected-point state inspector");
+  await expect(stateInspector).toContainText("Healthy recurrence");
+  await expect(stateInspector).toContainText("θ · local phase");
+  await expect(stateInspector).toContainText("φ · simulated phase");
+  await expect(stateInspector).toContainText("ρ · radial motion");
+  await expect(stateInspector).toContainText("Memory");
+  await expect(stateInspector).toContainText("Viability");
+  await expect(stateInspector).toContainText("AIx · illustrative");
   await page.getByRole("button", { name: "Step +1" }).click();
   await expect(page.locator(".status-panel").getByText(/step 1$/i)).toBeVisible();
   await expect(timeChart).toHaveAttribute("data-visible-frame-count", "2");
@@ -117,6 +131,31 @@ test("comparison canvas preserves a signed zero baseline and responds to B", asy
   expect(consoleErrors).toEqual([]);
 });
 
+test("torus geometry distinguishes repayable debt deformation from irreversible scarring", async ({ page }, testInfo) => {
+  const consoleErrors = await openDashboard(page);
+  const torus = page.locator('canvas[data-chart-kind="torus"]');
+  const debtControl = page.getByLabel("Unresolved failure patterns numeric value");
+  const lossControl = page.getByLabel("Irreversible downstream action numeric value");
+  const timeline = page.getByLabel("Simulation time");
+  const initialDebt = await debtControl.inputValue();
+  const initialWarp = Number(await torus.getAttribute("data-debt-warp"));
+  const initialScar = Number(await torus.getAttribute("data-loss-scar"));
+  await page.locator(".torus-panel").screenshot({ path: testInfo.outputPath("torus-geometry-healthy.png") });
+
+  await debtControl.fill("2");
+  await expect.poll(async () => Number(await torus.getAttribute("data-debt-warp"))).toBeGreaterThan(initialWarp);
+  await expect(torus).toHaveAttribute("data-geometry-regime", "fragile");
+
+  await debtControl.fill(initialDebt);
+  await lossControl.fill("0.5");
+  await timeline.fill("4");
+  await expect.poll(async () => Number(await torus.getAttribute("data-loss-scar"))).toBeGreaterThan(initialScar);
+  await expect(torus).toHaveAttribute("data-geometry-regime", "hysteretic");
+  await expect(page.getByLabel("Selected-point state inspector")).toContainText("Hysteretic · memory-shaped");
+  await page.locator(".torus-panel").screenshot({ path: testInfo.outputPath("torus-geometry-hysteretic.png") });
+  expect(consoleErrors).toEqual([]);
+});
+
 test("permitted extreme parameters keep terminal rupture evidence visible", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const consoleErrors = await openDashboard(page);
@@ -142,6 +181,8 @@ test("permitted extreme parameters keep terminal rupture evidence visible", asyn
   await expect(radial).toHaveAttribute("aria-label", /marker is clamped to the chart boundary/i);
   await expect(page.getByText("Terminal rupture", { exact: true })).toBeVisible();
   await expect(page.getByText("Modeled recurrence has been lost")).toBeVisible();
+  await expect(torus).toHaveAttribute("data-geometry-regime", "collapse");
+  await expect(page.getByLabel("Selected-point state inspector")).toContainText("Collapse · no invariant torus");
   await expect(page.locator(".viability-progression span").last()).toHaveClass(/active/);
   await expect(page.locator(".status-mini-grid")).toContainText("C−D");
   await expect(page.locator(".status-mini-grid")).toContainText("C−D−χΔ");
@@ -158,17 +199,38 @@ test("causal explanation updates from parameters through current status and term
   const insight = page.locator(".run-insight");
   await expect(insight.getByRole("heading", { name: "Why this run looks this way" })).toBeVisible();
   await expect(page.locator(".run-insight + .watchlist-receipt")).toHaveCount(1);
-  await expect(insight).toContainText("Active causal balance");
+  await expect(insight).toContainText("Active equation balance");
+  for (const source of ["System structure", "Scenario pressure", "User overrides", "Intervention activity", "System memory"]) {
+    await expect(insight).toContainText(source);
+  }
+  await expect(insight).toContainText("Sliders match the protocol");
+  await expect(insight).toContainText("not empirical causal identification");
+  await expect(insight.getByRole("heading", { name: "Why the torus has this shape" })).toBeVisible();
+  await expect(insight).toContainText("Excursion ρ");
+  await expect(insight).toContainText("Debt deformation χΔ");
+  await expect(insight).toContainText("Irreversible scar ΣΛ");
+  await expect(insight).toContainText("not a unique 3D deformation law");
   await expect(insight).toContainText("Stable");
   await expect(insight).toContainText("The final outcome is not yet shown");
+  await expect(insight).toContainText("Radial Neutral");
+  await expect(insight).toContainText("Neutral C*");
+  await expect(insight).toContainText("Gap C*−C");
+  await expect(insight).toContainText("synthetic radial equation");
 
-  await page.locator(".preset-row button").filter({ hasText: "Growth at risk" }).click();
+  await page.getByLabel("Select scenario protocol").selectOption({ label: "Compound stress" });
   await expect(insight).toContainText("Drifting");
   await expect(insight).toContainText("Divergence exceeds correction");
+  await expect(insight).toContainText("Narrows the declared margin");
   await expect(insight).toContainText("π·ε·(1−γ)");
+
+  await page.getByLabel("Response speed & automation pressure numeric value").fill("3");
+  await expect(insight).toContainText("1 configured change");
+  await page.getByRole("button", { name: "Reset protocol" }).click();
+  await expect(insight).toContainText("Sliders match the protocol");
 
   await page.getByRole("button", { name: "Step +1" }).click();
   await expect(insight).toContainText("Worsening");
+  await expect(insight).toContainText("Radial Expansion");
   await expect(insight).toContainText("step 1");
   await insight.screenshot({ path: testInfo.outputPath("dynamic-explanation-worsening.png") });
 
@@ -177,7 +239,10 @@ test("causal explanation updates from parameters through current status and term
   await timeline.press("End");
   await expect(insight).toContainText("Irreversible rupture");
   await expect(insight).toContainText("Terminal policy");
-  await expect(insight).toContainText("Fired at step 642");
+  await expect(insight).toContainText("Fired at step 684");
+  await expect(insight).toContainText("Terminal history is latched");
+  await expect(insight).toContainText("Collapse · no invariant torus");
+  await expect(insight).toContainText("The terminal latch removes the coherent torus");
   await expect(insight).toContainText("finished in irreversible rupture");
   await insight.screenshot({ path: testInfo.outputPath("dynamic-explanation-terminal.png") });
   expect(consoleErrors).toEqual([]);
@@ -209,32 +274,42 @@ test("experiments workspace verifies the paper and exposes all research modules"
   expect(consoleErrors).toEqual([]);
 });
 
-test("scenario pack explains its baseline tier and recalculates the tier from slider changes", async ({ page }, testInfo) => {
+test("bounded-system catalog explains its default protocol tier and recalculates after protocol changes", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
-  await page.locator(".sidebar nav button").filter({ hasText: "Scenarios" }).click();
-  await expect(page.getByRole("heading", { name: /Choose a familiar system/i })).toBeVisible();
-  await expect(page.getByText("32 included educational simulations")).toBeVisible();
+  await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
+  await expect(page.getByRole("heading", { name: /Learn the system class/i })).toBeVisible();
+  await expect(page.getByText("32 bounded instances", { exact: true })).toBeVisible();
   await expect(page.locator(".library-grid .scenario-card")).toHaveCount(32);
+  await page.screenshot({ path: testInfo.outputPath("composable-systems-library.png") });
 
-  await page.getByRole("button", { name: "Red watchlist", exact: true }).click();
-  await expect(page.getByText("Showing 6 scenarios")).toBeVisible();
-  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(6);
+  await page.getByRole("button", { name: /Red watchlist · 4/i }).click();
+  await expect(page.getByText("Showing 4 systems")).toBeVisible();
+  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(4);
 
-  await page.getByRole("button", { name: /Climate & Biosphere/i }).click();
-  await expect(page.getByRole("heading", { name: "Climate System & Biosphere Stability" })).toBeVisible();
+  await page.getByRole("button", { name: /Climate Adaptation Authority/i }).click();
+  await expect(page.getByRole("heading", { name: "Regional Climate Adaptation & Land-System Authority" })).toBeVisible();
+  await expect(page.locator(".system-definition-panel")).toContainText("A reusable system class, instantiated and tested");
+  await expect(page.locator(".system-definition-panel")).toContainText("System template");
+  await expect(page.locator(".system-definition-panel")).toContainText("System instance");
+  await expect(page.locator(".system-definition-panel")).toContainText("Scenario");
+  await expect(page.locator(".system-definition-panel")).toContainText("Intervention");
+  await expect(page.locator(".system-definition-panel")).toContainText("Assessment");
   await expect(page.getByText("RED /", { exact: false })).toBeVisible();
   const receipt = page.locator(".watchlist-receipt");
-  await expect(receipt.getByRole("heading", { name: "Why the default is on this educational watchlist" })).toBeVisible();
+  await expect(receipt.getByRole("heading", { name: "Why this system has this watchlist outlook" })).toBeVisible();
   await expect(receipt).toContainText("Protocol reproduced");
-  await expect(receipt).toContainText("not a classification defined by the paper");
-  await expect(receipt.locator(".classification-step").filter({ hasText: "Derived default protocol" })).toContainText("red tier");
-  await expect(receipt.locator(".classification-step").filter({ hasText: "Current parameter protocol" })).toContainText("red tier");
+  await expect(receipt).toContainText("red, orange, or yellow label shown beside the system name");
+  await expect(receipt).toContainText("Illustrative current-state hypothesis");
+  await expect(receipt).toContainText("2026-07-14");
+  await expect(receipt.locator(".classification-step").filter({ hasText: "Derived default ensemble" })).toContainText("red tier");
+  await expect(receipt.locator(".classification-step").filter({ hasText: "Current slider outlook" })).toContainText("red tier");
   await expect(receipt).toContainText("Ordinary baseline crosses the viability boundary");
   await expect(receipt.locator(".protocol-row")).toHaveCount(5);
 
   const translations = page.locator(".parameter-translation");
   await expect(translations.getByRole("heading", { name: "What each parameter means in this system" })).toBeVisible();
   await expect(translations).toContainText("Emissions, extraction & land-use pressure");
+  await expect(translations).toContainText("Candidate observable");
   await expect(translations.locator(".translation-grid:not(.advanced) .translation-card")).toHaveCount(7);
   await expect(translations.locator(".translation-grid.advanced")).not.toBeVisible();
   await translations.locator("summary").click();
@@ -243,12 +318,12 @@ test("scenario pack explains its baseline tier and recalculates the tier from sl
   await expect(translations).toContainText("The scenario-defined recoverability limit for climate and biosphere overshoot");
   await translations.screenshot({ path: testInfo.outputPath("parameter-real-world-translation.png") });
 
-  await page.locator(".preset-row button").filter({ hasText: "Recovery" }).click();
-  await expect(receipt.locator(".classification-step").filter({ hasText: "Derived default protocol" })).toContainText("red tier");
-  await expect(receipt.locator(".classification-step").filter({ hasText: "Current parameter protocol" })).toContainText("yellow tier");
+  await page.getByLabel("Select scenario protocol").selectOption({ label: "Reduced-stress context" });
+  await expect(receipt.locator(".classification-step").filter({ hasText: "Derived default ensemble" })).toContainText("red tier");
+  await expect(receipt.locator(".classification-step").filter({ hasText: "Current slider outlook" })).toContainText("orange tier");
   await expect(receipt).toContainText("What the sliders changed");
   await expect(receipt).toContainText("improves modeled resilience");
-  await receipt.screenshot({ path: testInfo.outputPath("watchlist-red-to-yellow.png") });
+  await receipt.screenshot({ path: testInfo.outputPath("watchlist-red-to-orange.png") });
   const evidence = page.locator(".scenario-evidence");
   await evidence.locator("summary").click();
   await expect(evidence.getByRole("heading", { name: "Canonical parameter map" })).toBeVisible();
@@ -268,17 +343,17 @@ test("mobile dashboard renders the visualization fallback without clipping the c
   expect(torus.height).toBeGreaterThanOrEqual(150);
   await mobileMenu.click();
   await expect(page.locator(".sidebar")).toHaveClass(/open/);
-  await page.locator(".sidebar nav button").filter({ hasText: "Scenarios" }).click();
-  await expect(page.getByRole("heading", { name: /Choose a familiar system/i })).toBeVisible();
-  await page.getByRole("button", { name: "Featured", exact: true }).click();
-  await expect(page.getByText("Showing 10 scenarios")).toBeVisible();
+  await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
+  await expect(page.getByRole("heading", { name: /Learn the system class/i })).toBeVisible();
+  await page.getByRole("button", { name: /Featured · 10/i }).click();
+  await expect(page.getByText("Showing 10 systems")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await mobileMenu.click();
   await expect(page.locator(".sidebar")).toHaveClass(/open/);
   await page.locator(".sidebar nav button").filter({ hasText: "Home" }).click();
   const insight = page.locator(".run-insight");
   await expect(insight).toBeVisible();
-  await expect(insight).toContainText("Active causal balance");
+  await expect(insight).toContainText("Active equation balance");
   await insight.screenshot({ path: testInfo.outputPath("mobile-run-explanation.png") });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   expect(consoleErrors).toEqual([]);

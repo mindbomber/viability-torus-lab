@@ -2,7 +2,6 @@ import {
   simulate,
   type ScheduledIntervention,
   type SimulationParameters,
-  type SimulationSummary,
 } from "./simulator.ts";
 
 export type SimulatedWatchlistTier = "red" | "orange" | "yellow";
@@ -22,13 +21,14 @@ export type WatchlistProtocolMetrics = {
   terminalRate: number;
   recoveryRate: number;
   meanStableFraction: number;
+  meanWarningOrFragileFraction: number;
   meanFinalDebt: number;
   meanMaxRho: number;
 };
 
 export type WatchlistAssessment = {
   tier: SimulatedWatchlistTier;
-  protocolVersion: "educational-watchlist-v1";
+  protocolVersion: "educational-watchlist-v2";
   seeds: readonly number[];
   protocols: Record<WatchlistProtocolId, WatchlistProtocolMetrics>;
   reasons: string[];
@@ -129,9 +129,10 @@ function mean(values: number[]) {
 
 function summarizeProtocol(
   id: WatchlistProtocolId,
-  summaries: SimulationSummary[],
+  runs: ReturnType<typeof simulate>[],
 ): WatchlistProtocolMetrics {
   const definition = protocolDefinitions[id];
+  const summaries = runs.map((run) => run.summary);
   const crossingRuns = summaries.filter((summary) => summary.boundaryCrossingStep !== undefined);
   return {
     id,
@@ -144,6 +145,10 @@ function summarizeProtocol(
       ? crossingRuns.filter((summary) => summary.recoveredAfterCrossing).length / crossingRuns.length
       : 0,
     meanStableFraction: mean(summaries.map((summary) => summary.stableFraction)),
+    meanWarningOrFragileFraction: mean(runs.map((run) => (
+      run.frames.filter((frame) => frame.status === "Warning" || frame.status === "Fragile").length /
+      Math.max(run.frames.length, 1)
+    ))),
     meanFinalDebt: mean(summaries.map((summary) => summary.finalDebt)),
     meanMaxRho: mean(summaries.map((summary) => summary.maxRho)),
   };
@@ -154,11 +159,11 @@ function evaluateProtocol(
   parameters: SimulationParameters,
 ): WatchlistProtocolMetrics {
   const definition = protocolDefinitions[id];
-  const summaries = WATCHLIST_PROTOCOL_SEEDS.map((seed) => simulate(
+  const runs = WATCHLIST_PROTOCOL_SEEDS.map((seed) => simulate(
     { ...parameters, seed },
     definition.schedule(parameters),
-  ).summary);
-  return summarizeProtocol(id, summaries);
+  ));
+  return summarizeProtocol(id, runs);
 }
 
 function classify(protocols: WatchlistAssessment["protocols"]): SimulatedWatchlistTier {
@@ -168,6 +173,8 @@ function classify(protocols: WatchlistAssessment["protocols"]): SimulatedWatchli
   ) return "red";
 
   if (
+    protocols.baseline.meanWarningOrFragileFraction >= 0.5 ||
+    protocols.baseline.meanStableFraction < 0.8 ||
     protocols["compound-stress"].terminalRate >= 0.25 ||
     protocols["compound-stress"].boundaryCrossingRate >= 0.5 ||
     protocols["mild-stress"].meanStableFraction < 0.8
@@ -190,14 +197,17 @@ function explainTier(
   if (tier === "red") {
     return [
       `Ordinary baseline crosses the viability boundary in ${percent(baseline.boundaryCrossingRate)} of seeded runs and reaches modeled terminal rupture in ${percent(baseline.terminalRate)}.`,
-      `Stable status occupies ${percent(baseline.meanStableFraction)} of the baseline horizon, so the risk is present before an added stress test.`,
+      `Stable status occupies ${percent(baseline.meanStableFraction)} of the baseline horizon, while Warning or Fragile status occupies ${percent(baseline.meanWarningOrFragileFraction)}.`,
       `Under the common timely-action package, ${percent(action.meanStableFraction)} of the simulated horizon is stable and terminal rupture falls to ${percent(action.terminalRate)}.`,
     ];
   }
 
   if (tier === "orange") {
+    const baselineReason = baseline.meanWarningOrFragileFraction >= 0.5 || baseline.meanStableFraction < 0.8
+      ? `Ordinary baseline spends ${percent(baseline.meanWarningOrFragileFraction)} of the simulated horizon in Warning or Fragile status and ${percent(baseline.meanStableFraction)} in Stable status, even without formal rupture.`
+      : `Ordinary baseline terminal rupture is ${percent(baseline.terminalRate)}, but the configuration has limited stress resilience.`;
     return [
-      `Ordinary baseline terminal rupture is ${percent(baseline.terminalRate)}, but the configuration has limited stress resilience.`,
+      baselineReason,
       `Temporary stress leaves ${percent(mild.meanStableFraction)} of the simulated horizon stable.`,
       `Compound stress crosses the viability boundary in ${percent(compound.boundaryCrossingRate)} of runs and reaches terminal rupture in ${percent(compound.terminalRate)}.`,
     ];
@@ -205,7 +215,7 @@ function explainTier(
 
   return [
     `Ordinary baseline remains inside the viability boundary in ${percent(1 - baseline.boundaryCrossingRate)} of seeded runs.`,
-    `Temporary stress retains stable status for ${percent(mild.meanStableFraction)} of the simulated horizon.`,
+    `Ordinary baseline spends ${percent(baseline.meanWarningOrFragileFraction)} of the horizon in Warning or Fragile status; temporary stress retains Stable status for ${percent(mild.meanStableFraction)}.`,
     `Even compound stress reaches terminal rupture in only ${percent(compound.terminalRate)} of runs under this illustrative protocol.`,
   ];
 }
@@ -230,7 +240,7 @@ export function assessWatchlistConfiguration(
 
   return {
     tier,
-    protocolVersion: "educational-watchlist-v1",
+    protocolVersion: "educational-watchlist-v2",
     seeds: WATCHLIST_PROTOCOL_SEEDS,
     protocols,
     reasons: explainTier(tier, protocols),

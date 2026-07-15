@@ -14,6 +14,9 @@
     "shortTitle": "Social Platform",
     "summary": "A social platform balancing engagement optimization, content correction, governance adaptation, user feedback, and cumulative trust debt.",
     "category": "AI",
+    "watchlistTier": "orange",
+    "featured": false,
+    "modelFamily": "capability-correction",
     "difficulty": "Advanced",
     "icon": "◎",
     "accent": "#ff8a4c",
@@ -39,6 +42,58 @@
       "rationale": "Terminal rupture requires persistent boundary violation, accumulated irreversible loss, and either extreme excursion or debt; these values are illustrative pending domain calibration."
     },
     "plainLanguageInterpretation": "A platform can improve a short-term engagement metric while making future correction more difficult and narrowing the set of trustworthy operating states.",
+    "system": {
+      "id": "social-platform",
+      "version": "0.1.0",
+      "templateId": "capability-correction",
+      "title": "Consumer Social Platform",
+      "shortTitle": "Social Platform",
+      "category": "AI",
+      "operator": "The platform organization responsible for ranking, moderation, appeals, governance, and user controls",
+      "boundary": "The platform's ranking surfaces, moderation queues, appeals, user controls, governance process, audit evidence, and measured user exposure; the wider internet remains outside the operational boundary.",
+      "objective": "Support useful and sustainable participation while preserving user agency, information quality, safety, and institutional trust.",
+      "population": "Users, moderators, creators, affected non-users, communities exposed to platform-mediated content, and future users.",
+      "horizon": "Three-year product and governance horizon with per-session ranking cycles and quarterly governance reviews.",
+      "aggregation": "User-safety, agency, and information-quality floors by affected group before platform-wide engagement averages.",
+      "viableRegion": "Engagement that preserves user agency, information quality, safety, and institutional trust",
+      "stateVariables": ["Modeled platform excursion", "Trust and moderation debt", "User and safety signal quality", "Moderation and governance capacity"],
+      "constraints": {
+        "physical": ["Ranking and audit claims must remain consistent with observable platform evidence"],
+        "biological": ["User wellbeing, agency, dignity, and community safety must remain viable"],
+        "constructed": ["Participation objectives must remain coherent with policy, appeals, and governance commitments"]
+      },
+      "cycles": {
+        "minor": { "label": "Rank → observe → correct", "stages": ["Rank", "Distribute", "Observe", "Moderate", "Correct"], "description": "Fast content-ranking, feedback, moderation, and correction cycle", "defaultFrequency": 0.09, "phaseSource": "operational-stage" },
+        "major": { "label": "Govern → adapt", "stages": ["Set policy", "Audit effects", "Consult stakeholders", "Revise governance"], "description": "Slower institutional adaptation to users, adversaries, policy, and social context", "defaultFrequency": 0.055, "phaseSource": "policy-cycle" }
+      },
+      "phaseEvidence": {
+        "thetaSource": "Ranking, distribution, observation, moderation, and correction workflow events identify the operational phase.",
+        "phiSource": "Repeated governance, audit, consultation, and policy-revision records identify the external adaptation phase.",
+        "independenceClaim": "The ranking and governance cycles must recur independently and remain jointly relevant to the same bounded platform system."
+      }
+    },
+    "defaultProtocolId": "social-platform-default",
+    "protocols": [{
+      "id": "social-platform-default",
+      "systemId": "social-platform",
+      "templateId": "capability-correction",
+      "moduleId": "system-default",
+      "version": "0.1.0",
+      "title": "Engagement pressure with delayed governance correction",
+      "kind": "baseline",
+      "summary": "Tests whether ranking feedback, moderation, appeals, audit, and governance correction keep pace with engagement pressure and accumulating trust debt.",
+      "conditions": ["The defined consumer social-platform boundary is held fixed for the run.", "The protocol covers repeated ranking cycles and slower governance adaptation cycles."],
+      "stressors": ["Engagement pressure", "Adversarial content change", "Delayed safety feedback"],
+      "interventions": ["Reduce engagement pressure", "Improve user and safety feedback", "Increase moderation and governance correction"],
+      "parameterRationale": "The dimensionless defaults map the stated engagement pressure, constraint error, feedback, correction, drift, debt, and irreversible harm mechanisms before the educational watchlist classifier is run.",
+      "learningObjective": "Establish the untreated bounded-system trajectory before comparing reusable stress scenarios and intervention plans.",
+      "parameters": {
+        "pressure": 1.7, "error": 0.35, "feedback": 0.6, "correction": 0.48, "drift": 0.08, "irreversibleLoss": 0.02, "initialDebt": 0.25,
+        "kappa": 0.26, "chi": 0.08, "omegaTheta": 0.09, "omegaPhi": 0.055, "couplingA": 0.03, "couplingB": 0.02,
+        "rho0": 0.35, "rhoCrit": 2.5, "alpha": 0.16, "beta": 0.1, "seed": 4217, "steps": 720, "dt": 0.25
+      },
+      "provenance": "illustrative-system-protocol"
+    }],
     "cycles": {
       "minor": {
         "label": "Rank → observe → correct",

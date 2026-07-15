@@ -13,6 +13,26 @@
       "url": "/schemas/v1/scheduled-intervention.schema.json"
     },
     {
+      "name": "system-template",
+      "title": "Reusable system template",
+      "url": "/schemas/v1/system-template.schema.json"
+    },
+    {
+      "name": "scenario-module",
+      "title": "Reusable scenario module",
+      "url": "/schemas/v1/scenario-module.schema.json"
+    },
+    {
+      "name": "intervention-definition",
+      "title": "Reusable intervention definition",
+      "url": "/schemas/v1/intervention-definition.schema.json"
+    },
+    {
+      "name": "intervention-plan",
+      "title": "Composable intervention plan",
+      "url": "/schemas/v1/intervention-plan.schema.json"
+    },
+    {
       "name": "experiment",
       "title": "Experiment specification",
       "url": "/schemas/v1/experiment.schema.json"

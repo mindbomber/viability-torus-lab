@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 160
+    },
+    "shortTitle": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 80
+    },
+    "icon": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12
+    },
+    "mechanism": {
+      "type": "string",
+      "enum": [
+        "increase-constraint-visibility",
+        "reduce-misclassification",
+        "reduce-optimization-pressure",
+        "expand-correction-capacity",
+        "contain-and-observe",
+        "repay-alignment-debt"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "transforms": {
+      "minItems": 1,
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "parameter": {
+            "type": "string",
+            "enum": [
+              "pressure",
+              "error",
+              "feedback",
+              "correction",
+              "drift",
+              "irreversibleLoss",
+              "initialDebt",
+              "kappa",
+              "chi",
+              "omegaTheta",
+              "omegaPhi",
+              "couplingA",
+              "couplingB",
+              "rho0",
+              "rhoCrit",
+              "alpha",
+              "beta"
+            ]
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "add",
+              "multiply",
+              "set"
+            ]
+          },
+          "value": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "parameter",
+          "operation",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "compatibleTemplateIds": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "all"
+        },
+        {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "regenerative-stock",
+              "threshold-regime-shift",
+              "resistance-contagion",
+              "trust-legitimacy",
+              "capability-correction",
+              "network-cascade",
+              "financial-leverage",
+              "human-capacity"
+            ]
+          }
+        }
+      ]
+    },
+    "timing": {
+      "type": "object",
+      "properties": {
+        "onsetDelaySteps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999
+        },
+        "defaultDurationSteps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9999
+        },
+        "decay": {
+          "type": "string",
+          "enum": [
+            "persistent",
+            "restore-at-end"
+          ]
+        }
+      },
+      "required": [
+        "onsetDelaySteps",
+        "decay"
+      ],
+      "additionalProperties": false
+    },
+    "cost": {
+      "type": "object",
+      "properties": {
+        "base": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "perIntensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "unit": {
+          "type": "string",
+          "const": "illustrative-cost-points"
+        }
+      },
+      "required": [
+        "base",
+        "perIntensity",
+        "unit"
+      ],
+      "additionalProperties": false
+    },
+    "prerequisites": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 500
+      }
+    },
+    "tradeoffs": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 500
+      }
+    },
+    "domainTranslations": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "AI",
+          "Ecology",
+          "Healthcare",
+          "Organizations",
+          "Infrastructure",
+          "Economy",
+          "Society"
+        ]
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 10,
+        "maxLength": 1000
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "illustrative"
+        },
+        "calibrationStatus": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "status",
+        "calibrationStatus"
+      ],
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "string",
+      "const": "illustrative-intervention-module"
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "title",
+    "shortTitle",
+    "icon",
+    "mechanism",
+    "summary",
+    "transforms",
+    "compatibleTemplateIds",
+    "timing",
+    "cost",
+    "prerequisites",
+    "tradeoffs",
+    "domainTranslations",
+    "evidence",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/intervention-definition.schema.json",
+  "title": "Reusable intervention definition"
+}
