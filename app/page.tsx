@@ -17,13 +17,21 @@ import {
 import {
   MODEL_VERSION,
   defaultParameters,
+  evaluateAix,
   simulate,
   type ScheduledIntervention,
   type SimulationExplanation,
   type SimulationFrame,
   type SimulationParameters,
 } from "@/engine/simulator";
-import { assessRun } from "@/engine/assessment";
+import {
+  activeParametersAtFrame,
+  assessRun,
+  finalViabilityOutcomeLabel,
+  isPlaybackTransitionFrame,
+  nextPlaybackFrameIndex,
+  viabilityJourneyAt,
+} from "@/engine/assessment";
 import {
   assessWatchlistConfiguration,
   type SimulatedWatchlistTier,
@@ -85,10 +93,10 @@ const navItems: { id: View; icon: string; label: string; description: string }[]
   { id: "scenarios", icon: "▦", label: "Systems", description: "Explore 32 bounded systems" },
   { id: "lab", icon: "⚗", label: "Simulation Lab", description: "Advanced experiments" },
   { id: "compare", icon: "⇆", label: "Compare", description: "Side-by-side outcomes" },
-  { id: "experiments", icon: "◫", label: "Experiments", description: "Protocol-driven studies" },
+  { id: "experiments", icon: "◫", label: "Experiments", description: "Reproducible studies" },
   { id: "empirical", icon: "⌁", label: "Empirical Lab", description: "Browser-local observations" },
-  { id: "evidence", icon: "⌘", label: "Evidence Registry", description: "Compare redacted receipts" },
-  { id: "builder", icon: "◇", label: "Build Your Own System", description: "Template-based builder" },
+  { id: "evidence", icon: "⌘", label: "Evidence Registry", description: "Compare study records" },
+  { id: "builder", icon: "◇", label: "Build Your Own System", description: "Describe and test a system" },
   { id: "learn", icon: "▤", label: "Learn", description: "Guides & exercises" },
   { id: "theory", icon: "Σ", label: "About the Theory", description: "Paper & foundations" },
 ];
@@ -119,6 +127,7 @@ export default function Home() {
   const [clientReady, setClientReady] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
+  const playbackHoldTicks = useRef(0);
   const scenario = scenarioById[scenarioId];
   const protocol = scenario.protocols.find((item) => item.id === protocolId)
     ?? scenario.protocols.find((item) => item.id === scenario.defaultProtocolId)
@@ -146,6 +155,7 @@ export default function Home() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    if (view !== "home") setPlaying(false);
   }, [view]);
 
   const announce = useCallback((message: string) => {
@@ -156,7 +166,7 @@ export default function Home() {
   const registerEvidence = useCallback((receipt: ParsedEmpiricalReceipt) => {
     setEvidenceReceipts((current) => mergeEmpiricalReceipts(current, [receipt]));
     setView("evidence");
-    announce("Redacted receipt added to the Evidence Registry; raw observations remain in the Empirical Lab");
+    announce("Redacted study record added to the Evidence Registry; raw observations remain in the Empirical Lab");
   }, [announce]);
 
   const track = useCallback((event: string, detail: Record<string, unknown> = {}) => {
@@ -174,7 +184,7 @@ export default function Home() {
         const envelope = JSON.parse(sharedConfig);
         if (envelope.modelVersion !== MODEL_VERSION) throw new Error("Shared run uses an incompatible model version");
         const parsed = experimentSpecSchema.safeParse(envelope.experiment);
-        if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Shared run contract is invalid");
+        if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "This shared run is not valid");
         const restoredSystemId = parsed.data.systemId ?? parsed.data.scenarioId;
         const selected = restoredSystemId ? scenarioById[restoredSystemId] : undefined;
         if (!selected) throw new Error("Shared run references an unknown scenario");
@@ -220,15 +230,21 @@ export default function Home() {
 
   useEffect(() => {
     if (!playing) return;
+    const interventionSteps = new Set(scheduled.map((event) => event.step));
     const id = window.setInterval(() => {
       setFrameIndex((index) => {
-        const next = Math.min(run.frames.length - 1, index + speed);
+        if (playbackHoldTicks.current > 0) {
+          playbackHoldTicks.current -= 1;
+          return index;
+        }
+        const next = nextPlaybackFrameIndex(run.frames, index, speed, interventionSteps);
+        if (isPlaybackTransitionFrame(run.frames, next, interventionSteps)) playbackHoldTicks.current = 7;
         if (next >= run.frames.length - 1) setPlaying(false);
         return next;
       });
     }, 42);
     return () => window.clearInterval(id);
-  }, [playing, run.frames.length, speed]);
+  }, [playing, run.frames, scheduled, speed]);
 
   const selectScenario = (selected: ScenarioDefinition) => {
     setScenarioId(selected.id);
@@ -265,12 +281,14 @@ export default function Home() {
 
   const startRun = () => {
     if (frameIndex >= run.frames.length - 1) setFrameIndex(0);
+    playbackHoldTicks.current = 0;
     setPlaying(true);
     track("simulation_started", { scenario: scenario.id, seed: params.seed });
   };
 
   const resetRun = () => {
     setPlaying(false);
+    playbackHoldTicks.current = 0;
     setFrameIndex(0);
     setCustomScheduled([]);
     announce("Run reset to initial conditions");
@@ -278,13 +296,11 @@ export default function Home() {
 
   const applyIntervention = (definition: InterventionDefinition) => {
     const step = Math.min(frameIndex + 1, params.steps - 1);
-    const activeParameters = scheduled
-      .filter((event) => event.step <= step)
-      .sort((left, right) => left.step - right.step)
-      .reduce((current, event) => ({ ...current, ...event.effects }), { ...params });
+    const activeParameters = activeParametersAtFrame(params, scheduled, step);
     const compiled = compileIntervention({ definition, parameters: activeParameters, step, planId: "manual", occurrenceId: `${definition.id}-${Date.now()}` });
     const event = compiled.events[0];
     setCustomScheduled((items) => [...items, ...compiled.events]);
+    playbackHoldTicks.current = 0;
     setPlaying(true);
     track("intervention_applied", { intervention: definition.id, step: frameIndex });
     announce(`${definition.shortTitle} scheduled at t=${(event.step * params.dt).toFixed(1)}`);
@@ -299,7 +315,7 @@ export default function Home() {
     setFrameIndex(0);
     setPlaying(false);
     track("protocol_selected", { system: scenario.system.id, protocol: nextProtocol.id });
-    announce(`${nextProtocol.title} protocol loaded`);
+    announce(`${nextProtocol.title} scenario loaded`);
   };
 
   const applyInterventionPlan = (nextPlanId: string) => {
@@ -318,7 +334,7 @@ export default function Home() {
     setCustomScheduled([]);
     setFrameIndex(0);
     setPlaying(false);
-    announce(`${protocol.title} parameters restored`);
+    announce(`${protocol.title} starting values restored`);
   };
 
   const savePreset = () => {
@@ -394,7 +410,7 @@ export default function Home() {
         interventions: data.configuration.customInterventions ?? data.configuration.interventions,
       } : data);
       const parsed = experimentSpecSchema.safeParse(candidate);
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid configuration schema");
+      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "This configuration file is not valid");
       const importedSystemId = parsed.data.systemId ?? parsed.data.scenarioId;
       const selected = importedSystemId ? scenarioById[importedSystemId] : undefined;
       if (!selected) throw new Error("Unknown scenario id");
@@ -430,7 +446,7 @@ export default function Home() {
     setMode(protocol.mode ?? "guided");
     setView(protocol.view ?? "home");
     track("lesson_protocol_loaded", { lesson: lesson.title, scenario: scenario.id });
-    announce(`${lesson.title} protocol loaded — ${protocol.observation}`);
+    announce(`${lesson.title} guided example loaded — ${protocol.observation}`);
   };
 
   return (
@@ -463,12 +479,12 @@ export default function Home() {
         <header className="topbar">
           <button className="mobile-menu" aria-label={`${mobileNav ? "Close" : "Open"} primary navigation menu`} onClick={() => setMobileNav((v) => !v)} aria-expanded={mobileNav} aria-controls="primary-nav"><span aria-hidden="true">☰</span><span>Menu</span></button>
           <div className="laboratory-selectors">
-            <label className="scenario-select"><span>System class</span><select aria-label="Select reusable system template" value={template.id} onChange={(event) => selectTemplate(event.target.value)}>{systemTemplates.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
-            <label className="scenario-select"><span>Bounded system</span><select value={scenarioId} onChange={(event) => selectScenario(scenarioById[event.target.value])}>{scenarios.filter((item) => item.system.templateId === template.id).map((item) => <option value={item.id} key={item.id}>{item.system.shortTitle} · {item.watchlistTier}</option>)}</select></label>
+            <label className="scenario-select"><span>System type</span><select aria-label="Select a type of system" value={template.id} onChange={(event) => selectTemplate(event.target.value)}>{systemTemplates.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
+            <label className="scenario-select"><span>System</span><select value={scenarioId} onChange={(event) => selectScenario(scenarioById[event.target.value])}>{scenarios.filter((item) => item.system.templateId === template.id).map((item) => <option value={item.id} key={item.id}>{item.system.shortTitle} · {item.watchlistTier}</option>)}</select></label>
           </div>
           <div className="mode-switch" role="group" aria-label="Interface mode"><button className={mode === "guided" ? "active" : ""} onClick={() => setMode("guided")}>Guided</button><button className={mode === "research" ? "active" : ""} onClick={() => setMode("research")}>Research</button></div>
           <div className="top-actions">
-            <button className="primary" onClick={startRun}><span aria-hidden="true">▶</span>{playing ? "Running" : frameIndex > 0 ? "Resume" : "Run Simulation"}</button>
+            <button className="primary" disabled={playing} onClick={() => { setView("home"); startRun(); }}><span aria-hidden="true">▶</span>{playing ? "Running system" : frameIndex > 0 ? "Resume system" : "Run system"}</button>
             <button onClick={() => setView("compare")}>⇆ <span>Compare</span></button>
             <button onClick={savePreset}>♡ <span>Save Preset</span></button>
             <button onClick={() => setView("theory")}>ⓘ <span>About the Theory</span></button>
@@ -529,7 +545,7 @@ export default function Home() {
           {view === "learn" && <LearnSection launchProtocol={launchLessonProtocol} />}
           {view === "theory" && <TheorySection announce={announce} />}
         </main>
-        <footer className="site-footer"><span>{view === "empirical" ? `Model ${MODEL_VERSION} · Browser-local observational replay; model attribution is not causal identification.` : view === "evidence" ? `Model ${MODEL_VERSION} · Compatible-receipt summaries are descriptive, not meta-analysis or empirical validation.` : `Model ${MODEL_VERSION} · Synthetic model behavior, not empirical validation.`}</span><button onClick={() => setHighContrast((v) => !v)} aria-pressed={highContrast}>◐ High contrast</button><a href="/api/v1/model">Agent API</a><a href="/llms.txt">llms.txt</a><a href="/paper.pdf" download>Download paper</a></footer>
+        <footer className="site-footer"><span>{view === "empirical" ? `Model ${MODEL_VERSION} · Browser-local observational replay; model attribution is not causal identification.` : view === "evidence" ? `Model ${MODEL_VERSION} · Compatible-study summaries are descriptive, not meta-analysis or empirical validation.` : `Model ${MODEL_VERSION} · Synthetic model behavior, not empirical validation.`}</span><button onClick={() => setHighContrast((v) => !v)} aria-pressed={highContrast}>◐ High contrast</button><a href="/api/v1/model">Agent API</a><a href="/llms.txt">llms.txt</a><a href="/paper.pdf" download>Download paper</a></footer>
       </div>
       <input ref={importRef} hidden type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importConfiguration(file); event.target.value = ""; }} />
       <div className="sr-status" aria-live="polite">{toast}</div>
@@ -582,12 +598,19 @@ function SimulatorView(props: SimulatorProps) {
   const displayStatus = viabilityStatusLabel(frame);
   const statusTone = statusToneFor(displayStatus);
   const activeParameters = useMemo(
-    () => [...scheduled]
-      .sort((left, right) => left.step - right.step)
-      .filter((event) => event.step <= frame.step)
-      .reduce((current, event) => ({ ...current, ...event.effects }), { ...params }),
+    () => activeParametersAtFrame(params, scheduled, frame.step),
     [frame.step, params, scheduled],
   );
+  const currentAix = useMemo(
+    () => evaluateAix(frame, activeParameters),
+    [activeParameters, frame],
+  );
+  const viabilityJourney = useMemo(
+    () => viabilityJourneyAt(frames, frameIndex),
+    [frameIndex, frames],
+  );
+  const occurredInterventions = scheduled.filter((event) => event.step <= frame.step);
+  const upcomingIntervention = scheduled.find((event) => event.step > frame.step);
   const currentWatchlist = useMemo(
     () => assessWatchlistConfiguration(params),
     [params],
@@ -619,7 +642,7 @@ function SimulatorView(props: SimulatorProps) {
   return (
     <div className="dashboard-view">
       <section className="scenario-title-row">
-        <div><div className="eyebrow"><span>{scenario.category}</span><span className={`tier-${scenario.watchlistTier}`}>{tierLabels[scenario.watchlistTier]}</span>{scenario.featured && <span>Featured system</span>}<span>{template.title}</span><span>System v{scenario.version}</span><span>{scenario.evidence.status}</span></div><h1>{scenario.system.title}</h1><p><strong>Scenario:</strong> {protocol.title}. <strong>Intervention plan:</strong> {interventionPlan.title}.</p></div>
+        <div><div className="eyebrow"><span>{scenario.category}</span><span className={`tier-${scenario.watchlistTier}`}>{tierLabels[scenario.watchlistTier]}</span>{scenario.featured && <span>Featured system</span>}<span>{template.title}</span><span>System v{scenario.version}</span><span>{scenario.evidence.status}</span></div><h1>{scenario.system.title}</h1><p><strong>Scenario:</strong> {protocol.title}. <strong>Changes to test:</strong> {interventionPlan.title}.</p></div>
         <div className="scenario-facts"><span><small>Accountable operator</small>{scenario.system.operator}</span><span><small>Current seed</small>{params.seed}</span><span><small>Present-state outlook / live status</small>{scenario.watchlistTier.toUpperCase()} / {displayStatus}</span></div>
       </section>
       <SystemDefinitionPanel scenario={scenario} template={template} protocol={protocol} interventionPlan={interventionPlan} />
@@ -627,10 +650,10 @@ function SimulatorView(props: SimulatorProps) {
         <Panel className="torus-panel" title="Alignment Maintenance Torus" subtitle={`Eqs. 4–6 synthetic embedding · ${scenario.cycles.minor.label} × ${scenario.cycles.major.label}`} action={<span className="panel-chip">Synthetic 3D embedding</span>}>
           <TorusCanvas cycles={scenario.cycles} frames={frames} frameIndex={frameIndex} params={activeParameters} playing={playing} onSelectFrame={(index) => { setFrameIndex(index); props.setPlaying(false); }} />
         </Panel>
-        <Panel className="parameter-panel" title="System Parameters" subtitle={mode === "guided" ? "Plain-language controls for the selected protocol" : "Canonical ATS/AANA/AIx variables"} action={<button className="text-button" onClick={props.restoreDefaults}>Reset protocol</button>}>
+        <Panel className="parameter-panel" title="System Parameters" subtitle={mode === "guided" ? "Plain-language controls for the selected scenario" : "ATS/AANA/AIx equation variables"} action={<button className="text-button" onClick={props.restoreDefaults}>Reset scenario</button>}>
           <div className="composition-controls">
-            <label><span>Scenario module</span><select aria-label="Select scenario protocol" value={protocol.id} onChange={(event) => props.applyProtocol(event.target.value)}>{scenario.protocols.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><small>{protocol.kind.replace("-", " ")} · {protocol.learningObjective}</small></label>
-            <label><span>Intervention plan</span><select aria-label="Select intervention plan" value={interventionPlan.id} onChange={(event) => props.applyInterventionPlan(event.target.value)}>{interventionPlans.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><small>{interventionPlan.strategy} · {interventionPlan.learningObjective}</small></label>
+            <label><span>Scenario</span><select aria-label="Select a scenario" value={protocol.id} onChange={(event) => props.applyProtocol(event.target.value)}>{scenario.protocols.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><small>{protocol.kind.replace("-", " ")} · {protocol.learningObjective}</small></label>
+            <label><span>Changes to test</span><select aria-label="Select changes to test" value={interventionPlan.id} onChange={(event) => props.applyInterventionPlan(event.target.value)}>{interventionPlans.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><small>{interventionPlan.strategy} · {interventionPlan.learningObjective}</small></label>
           </div>
           <div className="parameter-list">
             {visibleParameters.map((key) => <ParameterControl key={key} label={scenario.labels[key]} value={params[key]} meta={parameterMeta[key]} locked={props.locked.includes(key)} onLock={() => props.toggleLock(key)} onChange={(value) => props.updateParam(key, value)} />)}
@@ -650,28 +673,29 @@ function SimulatorView(props: SimulatorProps) {
         </Panel>
         <div className="status-column">
           <Panel className="status-panel" title="System Status" subtitle={`Eq. 11 state + illustrative UI thresholds · t = ${frame.time.toFixed(1)} · step ${frame.step}`} action={<span className="panel-chip">Illustrative classifier</span>}>
-            <div className={`status-banner ${statusTone}`}><span className="status-orb" aria-hidden="true" /><div><strong>{displayStatus.toUpperCase()}</strong><small>{statusMessage(frame)}</small></div><span className="shield" aria-hidden="true">◇</span></div>
-            <div className="viability-progression" aria-label={`Rupture-state progression: ${frame.viabilityState}`}>
-              <span className={frame.viabilityState === "Viability-boundary crossing" ? "active" : summary.boundaryCrossingStep !== undefined ? "complete" : ""}><b>1</b><small>Boundary crossing</small></span>
-              <span className={frame.viabilityState === "Recoverable excursion" ? "active" : summary.boundaryCrossingStep !== undefined ? "complete" : ""}><b>2</b><small>Recoverable excursion</small></span>
-              <span className={frame.viabilityState === "Irreversible rupture" ? "active terminal" : ""}><b>3</b><small>Irreversible rupture</small></span>
+            <div className={`status-banner ${statusTone}`} aria-live="polite" aria-atomic="true"><span className="status-orb" aria-hidden="true" /><div><strong>{displayStatus.toUpperCase()}</strong><small>{statusMessage(frame)}</small></div><span className="shield" aria-hidden="true">◇</span></div>
+            <div className="viability-progression" data-phase={viabilityJourney.phase} aria-live="polite" aria-label={`Causal viability path at step ${frame.step}: ${viabilityJourney.phase}`}>
+              <span className={viabilityJourney.phase === "crossing" ? "active" : viabilityJourney.crossed ? "complete" : ""} aria-current={viabilityJourney.phase === "crossing" ? "step" : undefined}><b>1</b><small>{viabilityJourney.crossed && viabilityJourney.phase !== "crossing" ? "Boundary crossed" : "Boundary crossing"}</small></span>
+              <span className={viabilityJourney.phase === "recovery-window" ? "active" : viabilityJourney.phase === "recovered" ? "complete recovered" : viabilityJourney.phase === "irreversible-rupture" ? "failed" : ""} aria-current={viabilityJourney.phase === "recovery-window" ? "step" : undefined}><b>2</b><small>{viabilityJourney.phase === "recovered" ? "Recovered inside" : viabilityJourney.phase === "irreversible-rupture" ? "Recovery window closed" : "Recovery possible"}</small></span>
+              <span className={viabilityJourney.phase === "irreversible-rupture" ? "active terminal" : ""} aria-current={viabilityJourney.phase === "irreversible-rupture" ? "step" : undefined}><b>3</b><small>Irreversible rupture</small></span>
             </div>
+            <p className={`viability-progress-note phase-${viabilityJourney.phase}`}>{viabilityJourney.explanation}</p>
             <div className="metric-list">{metricRows.map(([label, value, max, tone]) => <Metric key={label} label={label} value={value} max={max} tone={tone} />)}</div>
             <div className="status-mini-grid"><span><small>Instantaneous margin C−D</small>{signed(frame.correctionMargin)}</span><span><small>Debt-adjusted margin C−D−χΔ</small>{signed(frame.debtAdjustedMargin)}</span><span><small>Full radial velocity dρ/dt</small>{signed(frame.radialVelocity)}</span><span><small>Cumulative irreversible loss</small>{frame.cumulativeIrreversibleLoss.toFixed(3)}</span><span><small>Minor phase (simulated)</small>{phaseName(frame.theta, scenario.cycles.minor.stages)}</span><span><small>Offline major phase estimate</small>{phaseReady ? frame.phaseIdentifiable && frame.estimatedPhi !== undefined ? phaseName(frame.estimatedPhi, scenario.cycles.major.stages) : "Not identifiable" : "Available after full run"}</span></div>
-            <details className="aix-drawer"><summary>Full ATS 4.0 AIx & AANA gate · {summary.aix.score.toFixed(1)}</summary><AixPanel assessment={summary.aix} scenario={scenario} compact /></details>
+            <details className="aix-drawer" data-frame-step={frame.step} data-aix-score={currentAix.score.toFixed(3)}><summary>Live ATS 4.0 AIx & AANA check · {currentAix.score.toFixed(1)}</summary><AixPanel assessment={currentAix} scenario={scenario} compact /></details>
           </Panel>
-          <Panel className="intervention-panel" title="Intervention modules" subtitle={`${interventionPlan.title} · add a manual module while the run is active`}>
+          <Panel className="intervention-panel" title="Changes you can test" subtitle={`${interventionPlan.title} · apply a change while the run is active`}>
             <div className="intervention-grid">{interventionDefinitions.map((item) => <button key={item.id} className={item.id === "pause-optimization" ? "wide warning" : ""} onClick={() => props.applyIntervention(item)} title={item.domainTranslations[scenario.category]}><span aria-hidden="true">{item.icon}</span><strong>{item.shortTitle}</strong><small>{item.mechanism.replaceAll("-", " ")} · cost {(item.cost.base + item.cost.perIntensity).toFixed(1)}</small></button>)}</div>
             <details className="intervention-definition"><summary>Why these actions mean something in this system</summary>{interventionDefinitions.map((item) => <article key={item.id}><strong>{item.title}</strong><p>{item.domainTranslations[scenario.category]}</p><small>{item.timing.decay === "persistent" ? "Persistent parameter change" : `Temporary for ${item.timing.defaultDurationSteps} steps`} · {item.tradeoffs[0]}</small></article>)}</details>
-            {scheduled.length > 0 && <div className="intervention-log"><strong>Resolved run schedule</strong>{scheduled.slice(-5).map((event) => <span key={event.id}><i />t {(event.step * params.dt).toFixed(1)} · {event.label} · {event.definitionId ?? "custom"} · cost {event.cost}</span>)}</div>}
+            {scheduled.length > 0 && <div className="intervention-log" aria-live="polite"><strong>Change timeline at step {frame.step}</strong>{occurredInterventions.slice(-4).map((event) => <span className="occurred" data-event-step={event.step} key={event.id}><i />Applied at step {event.step} · t {(event.step * params.dt).toFixed(1)} · {event.label} · {event.definitionId ?? "custom"} · cost {event.cost}</span>)}{upcomingIntervention && <span className="upcoming" data-event-step={upcomingIntervention.step} key={upcomingIntervention.id}><i />Scheduled for step {upcomingIntervention.step} · t {(upcomingIntervention.step * params.dt).toFixed(1)} · {upcomingIntervention.label} · not active yet</span>}</div>}
           </Panel>
         </div>
       </div>
 
       <div className="simulation-bar" role="toolbar" aria-label="Simulation playback">
-        <button className="primary" onClick={props.startRun}>▶ {playing ? "Running" : frameIndex > 0 ? "Resume" : "Run"}</button>
-        <button onClick={() => props.setPlaying(!playing)}>{playing ? "Ⅱ Pause" : "▶ Resume"}</button>
-        <button onClick={() => props.setPlaying(false)}>■ Stop</button>
+        <button className="primary" disabled={playing} onClick={props.startRun}>▶ {playing ? "Running" : frameIndex > 0 ? "Resume" : "Run"}</button>
+        <button disabled={!playing} onClick={() => props.setPlaying(false)}>Ⅱ Pause</button>
+        <button onClick={() => { props.setPlaying(false); setFrameIndex(0); }}>|◀ Start</button>
         <button onClick={() => { props.resetRun(); props.startRun(); }}>↻ Restart</button>
         <button onClick={() => { props.setPlaying(false); setFrameIndex((i) => Math.min(frames.length - 1, i + 1)); }}>Step +1</button>
         <button onClick={props.resetRun}>↺ Reset</button>
@@ -717,7 +741,7 @@ function SimulatorView(props: SimulatorProps) {
         advanced={parameterEducation.advanced}
       />
 
-      <details className="scenario-evidence"><summary>Scenario map, AIx labels, evidence, and limitations</summary><div><p><strong>{scenario.evidence.status} · {scenario.evidence.calibrationStatus}</strong> {scenario.evidence.parameterUnits}</p><div className="scenario-map-grid"><section><h3>Canonical parameter map</h3><dl>{[["π", scenario.labels.pressure], ["ε", scenario.labels.error], ["γ", scenario.labels.feedback], ["C", scenario.labels.correction], ["Φ", scenario.labels.drift], ["Δ", scenario.labels.initialDebt], ["Λ", scenario.labels.irreversibleLoss], ["κ", scenario.labels.restoration], ["χ", scenario.labels.debtCoupling], ["ρ", scenario.labels.radialExcursion]].map(([symbol, meaning]) => <div key={symbol}><dt>{symbol}</dt><dd>{meaning}</dd></div>)}</dl></section><section><h3>Scenario-specific AIx layers</h3><dl>{[["P", scenario.aixLabels.physical], ["B", scenario.aixLabels.biological], ["Cƒ", scenario.aixLabels.constructed], ["F", scenario.aixLabels.feedback]].map(([symbol, meaning]) => <div key={symbol}><dt>{symbol}</dt><dd>{meaning}</dd></div>)}</dl><h3>Illustrative events</h3><ul>{scenario.events.map((item) => <li key={item}>{item}</li>)}</ul><h3>Available intervention meanings</h3><ul>{scenario.interventions.map((item) => <li key={item}>{item}</li>)}</ul></section></div><h3>Assumptions</h3><ul>{scenario.evidence.assumptions.map((item) => <li key={item}>{item}</li>)}</ul><h3>What would challenge this mapping</h3><ul>{scenario.evidence.falsificationCriteria.map((item) => <li key={item}>{item}</li>)}</ul><p>{scenario.evidence.references.map((reference, index) => <span key={reference.title}>{index ? " · " : ""}{reference.url ? <a href={reference.url}>{reference.title}</a> : reference.title}</span>)}</p></div></details>
+      <details className="scenario-evidence"><summary>Scenario variables, AIx labels, evidence, and limitations</summary><div><p><strong>{scenario.evidence.status} · {scenario.evidence.calibrationStatus}</strong> {scenario.evidence.parameterUnits}</p><div className="scenario-map-grid"><section><h3>What each equation variable means here</h3><dl>{[["π", scenario.labels.pressure], ["ε", scenario.labels.error], ["γ", scenario.labels.feedback], ["C", scenario.labels.correction], ["Φ", scenario.labels.drift], ["Δ", scenario.labels.initialDebt], ["Λ", scenario.labels.irreversibleLoss], ["κ", scenario.labels.restoration], ["χ", scenario.labels.debtCoupling], ["ρ", scenario.labels.radialExcursion]].map(([symbol, meaning]) => <div key={symbol}><dt>{symbol}</dt><dd>{meaning}</dd></div>)}</dl></section><section><h3>AIx meanings in this scenario</h3><dl>{[["P", scenario.aixLabels.physical], ["B", scenario.aixLabels.biological], ["Cƒ", scenario.aixLabels.constructed], ["F", scenario.aixLabels.feedback]].map(([symbol, meaning]) => <div key={symbol}><dt>{symbol}</dt><dd>{meaning}</dd></div>)}</dl><h3>Illustrative events</h3><ul>{scenario.events.map((item) => <li key={item}>{item}</li>)}</ul><h3>What the available changes mean</h3><ul>{scenario.interventions.map((item) => <li key={item}>{item}</li>)}</ul></section></div><h3>Assumptions</h3><ul>{scenario.evidence.assumptions.map((item) => <li key={item}>{item}</li>)}</ul><h3>What would challenge this mapping</h3><ul>{scenario.evidence.falsificationCriteria.map((item) => <li key={item}>{item}</li>)}</ul><p>{scenario.evidence.references.map((reference, index) => <span key={reference.title}>{index ? " · " : ""}{reference.url ? <a href={reference.url}>{reference.title}</a> : reference.title}</span>)}</p></div></details>
 
       <section className="scenario-strip"><div className="section-heading"><div><h2>Featured bounded systems</h2><p>Editorial highlights from the 32-system educational catalog</p></div><button onClick={() => document.querySelector<HTMLElement>(".sidebar nav button:nth-child(2)")?.click()}>View all systems →</button></div><div className="scenario-cards">{compactScenarios.map((item) => <ScenarioCard key={item.id} scenario={item} active={item.id === scenario.id} onClick={() => props.selectScenario(item)} compact />)}</div></section>
 
@@ -764,16 +788,16 @@ function WatchlistReceipt({ scenario, protocol, baseline, current, parameters, l
     <section className="watchlist-receipt" aria-labelledby="watchlist-receipt-title">
       <header className="receipt-heading">
         <div>
-          <span className="receipt-kicker">Present-state outlook · standardized four-seed synthetic protocol</span>
+          <span className="receipt-kicker">Present-state outlook · standardized four-seed synthetic test</span>
           <h2 id="watchlist-receipt-title">Why this system has this watchlist outlook</h2>
           <p>The watchlist outlook is the red, orange, or yellow label shown beside the system name. It summarizes the default present-state hypothesis across a common future stress suite; the live System Status changes frame by frame during playback.</p>
         </div>
         <span className={`receipt-verdict ${baselineMatchesPublication ? "verified" : "mismatch"}`}>
-          {baselineMatchesPublication ? "Protocol reproduced" : "Needs recalibration"}
+          {baselineMatchesPublication ? "Default result reproduced" : "Needs recalibration"}
         </span>
       </header>
 
-      <div className="classification-chain" aria-label="Published educational, assessed protocol, current protocol, and illustrative live classifications">
+      <div className="classification-chain" aria-label="Published educational outlook, default scenario result, current scenario result, and illustrative live status">
         <ClassificationStep label="Default present-state outlook" value={`${scenario.watchlistTier} watchlist`} tier={publishedRiskTier} />
         <span aria-hidden="true">→</span>
         <ClassificationStep label="Derived default ensemble" value={`${baseline.tier} tier`} tier={baseline.tier} />
@@ -795,7 +819,7 @@ function WatchlistReceipt({ scenario, protocol, baseline, current, parameters, l
 
       <div className="receipt-body">
         <article className="receipt-reasons">
-          <h3>Why the default protocol evaluates {baseline.tier}</h3>
+          <h3>Why the default scenario evaluates {baseline.tier}</h3>
           <ol>{baseline.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ol>
           <div className="balance-equation">
             <span><small>Pressure term π·ε·(1−γ)</small>{baseline.causalBalance.optimizationPressure.toFixed(3)}</span>
@@ -808,12 +832,12 @@ function WatchlistReceipt({ scenario, protocol, baseline, current, parameters, l
         </article>
 
         <article className="protocol-receipt">
-          <h3>Default present-state outlook receipt</h3>
-          <div className="protocol-table" role="table" aria-label="Default watchlist protocol results">
-            <div className="protocol-row header" role="row"><span>Protocol</span><span>Boundary</span><span>Terminal</span><span>Stable</span><span title="Warning or Fragile time">W/F time</span></div>
+          <h3>How the default was tested</h3>
+          <div className="protocol-table" role="table" aria-label="Default watchlist test results">
+            <div className="protocol-row header" role="row"><span>Test condition</span><span>Boundary</span><span>Terminal</span><span>Stable</span><span title="Warning or Fragile time">W/F time</span></div>
             {baselineProtocols.map((protocol) => <div className="protocol-row" role="row" key={protocol.id} title={protocol.description}><span>{protocol.label}</span><span>{formatPercent(protocol.boundaryCrossingRate)}</span><span>{formatPercent(protocol.terminalRate)}</span><span>{formatPercent(protocol.meanStableFraction)}</span><span>{formatPercent(protocol.meanWarningOrFragileFraction)}</span></div>)}
           </div>
-          <p>The watchlist outlook classifies the bounded system&apos;s default present-state protocol, “{scenario.protocols.find((item) => item.id === scenario.defaultProtocolId)?.title}.” The selected run protocol is “{protocol.title}.” Red means ordinary baseline failure; Orange includes sustained Warning/Fragile operation or material stress sensitivity without baseline rupture; Yellow means recoverable operation across this common synthetic stress suite. This is an illustrative product rule, not a paper threshold.</p>
+          <p>The watchlist outlook classifies the system&apos;s default present-state scenario, “{scenario.protocols.find((item) => item.id === scenario.defaultProtocolId)?.title}.” The selected scenario is “{protocol.title}.” Red means ordinary baseline failure; Orange includes sustained Warning/Fragile operation or material stress sensitivity without baseline rupture; Yellow means recoverable operation across this common synthetic stress suite. This is an illustrative product rule, not a paper threshold.</p>
         </article>
 
         <article className="current-change-receipt">
@@ -821,8 +845,8 @@ function WatchlistReceipt({ scenario, protocol, baseline, current, parameters, l
           {changes.length ? <>
             <ul>{changes.slice(0, 5).map((change) => <li key={change.key}><span><b>{change.symbol}</b>{change.label}</span><strong>{change.before.toFixed(2)} → {change.after.toFixed(2)}</strong><small>{change.direction}</small></li>)}</ul>
             {changes.length > 5 && <p>Plus {changes.length - 5} additional changed parameters.</p>}
-          </> : <p className="defaults-loaded">Default parameters are loaded, so the current slider tier should reproduce the default protocol result.</p>}
-          <div className={`current-tier-summary tier-${current.tier}`}><span>Current protocol tier</span><strong>{current.tier.toUpperCase()}</strong><small>{current.reasons[0]}</small></div>
+          </> : <p className="defaults-loaded">The default starting values are loaded, so the current slider result should reproduce the default scenario.</p>}
+          <div className={`current-tier-summary tier-${current.tier}`}><span>Current scenario result</span><strong>{current.tier.toUpperCase()}</strong><small>{current.reasons[0]}</small></div>
         </article>
       </div>
 
@@ -946,20 +970,23 @@ function RunInsight({ explanation, frame, geometry, actions }: { explanation: Si
 
 function SystemDefinitionPanel({ scenario, template, protocol, interventionPlan }: { scenario: ScenarioDefinition; template: SystemTemplateDefinition; protocol: ScenarioProtocolDefinition; interventionPlan: InterventionPlanDefinition }) {
   const system = scenario.system;
-  return <section className="system-definition-panel" aria-label="Reusable laboratory composition">
-    <header><div><span>WHAT IS BEING SIMULATED</span><h2>A reusable system class, instantiated and tested</h2></div><div className="model-flow five" aria-label="System template leads to system instance, scenario protocol, intervention plan, and run assessment"><b>System template</b><i>→</i><b>System instance</b><i>→</i><b>Scenario</b><i>→</i><b>Intervention</b><i>→</i><b>Assessment</b></div></header>
-    <div className="system-definition-grid">
-      <article><small>REUSABLE SYSTEM CLASS</small><p><strong>{template.title}</strong> {template.stateArchetype}</p></article>
-      <article><small>BOUNDARY</small><p>{system.boundary}</p></article>
-      <article><small>OBJECTIVE</small><p>{system.objective}</p></article>
-      <article><small>POPULATION & AGGREGATION</small><p>{system.population} {system.aggregation}</p></article>
-      <article><small>TIME HORIZON</small><p>{system.horizon}</p></article>
-      <article><small>SCENARIO MODULE</small><p><strong>{protocol.title}</strong> {protocol.summary}</p></article>
-      <article><small>INTERVENTION PLAN</small><p><strong>{interventionPlan.title}</strong> {interventionPlan.summary}</p></article>
-      <article><small>TORUS ELIGIBILITY · DECLARED</small><p><strong>Two distinct recurrent cycles required for catalog inclusion.</strong><br />θ: {system.cycles.minor.label}<br />φ: {system.cycles.major.label}</p></article>
+  return <details className="system-definition-panel" aria-label="Simulation setup">
+    <summary className="system-definition-summary"><div><span>WHAT IS BEING SIMULATED</span><h2>See exactly what this simulation represents</h2></div><small>Show simulation setup</small></summary>
+    <div className="system-definition-body">
+      <div className="model-flow five" aria-label="System type leads to the selected system, scenario conditions, changes to test, and run result"><b>System type</b><i>→</i><b>Selected system</b><i>→</i><b>Scenario conditions</b><i>→</i><b>Changes to test</b><i>→</i><b>Run result</b></div>
+      <div className="system-definition-grid">
+        <article><small>TYPE OF SYSTEM</small><p><strong>{template.title}</strong> {template.stateArchetype}</p></article>
+        <article><small>BOUNDARY</small><p>{system.boundary}</p></article>
+        <article><small>OBJECTIVE</small><p>{system.objective}</p></article>
+        <article><small>POPULATION & AGGREGATION</small><p>{system.population} {system.aggregation}</p></article>
+        <article><small>TIME HORIZON</small><p>{system.horizon}</p></article>
+        <article><small>SCENARIO CONDITIONS</small><p><strong>{protocol.title}</strong> {protocol.summary}</p></article>
+        <article><small>CHANGES TO TEST</small><p><strong>{interventionPlan.title}</strong> {interventionPlan.summary}</p></article>
+        <article><small>TORUS ELIGIBILITY · DECLARED</small><p><strong>Two distinct recurrent cycles required for catalog inclusion.</strong><br />θ: {system.cycles.minor.label}<br />φ: {system.cycles.major.label}</p></article>
+      </div>
+      <details><summary>System assumptions, scenario conditions, planned changes, and phase evidence</summary><div className="system-detail-grid"><section><h3>System assumptions</h3><ul>{template.structuralAssumptions.map((item) => <li key={item}>{item}</li>)}</ul><h3>Learning questions</h3><ul>{template.learningQuestions.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Scenario conditions and stressors</h3><ul>{[...protocol.conditions, ...protocol.stressors].map((item) => <li key={item}>{item}</li>)}</ul><h3>Why these starting values were chosen</h3><p>{protocol.parameterRationale}</p></section><section><h3>Planned changes</h3>{interventionPlan.items.length ? <ol>{interventionPlan.items.map((item) => <li key={`${item.interventionId}-${item.startFraction}`}><strong>{interventionDefinitionById[item.interventionId]?.title}</strong> at {Math.round(item.startFraction * 100)}% of the run · intensity {item.intensity}</li>)}</ol> : <p>No operator change is scheduled.</p>}<h3>Evidence for two recurrent phases</h3><p>{system.phaseEvidence.thetaSource}</p><p>{system.phaseEvidence.phiSource}</p><p>{system.phaseEvidence.independenceClaim}</p></section></div></details>
     </div>
-    <details><summary>Template assumptions, scenario transforms, intervention sequence, and phase evidence</summary><div className="system-detail-grid"><section><h3>Template assumptions</h3><ul>{template.structuralAssumptions.map((item) => <li key={item}>{item}</li>)}</ul><h3>Learning questions</h3><ul>{template.learningQuestions.map((item) => <li key={item}>{item}</li>)}</ul></section><section><h3>Scenario conditions and stressors</h3><ul>{[...protocol.conditions, ...protocol.stressors].map((item) => <li key={item}>{item}</li>)}</ul><h3>Parameter rationale</h3><p>{protocol.parameterRationale}</p></section><section><h3>Intervention sequence</h3>{interventionPlan.items.length ? <ol>{interventionPlan.items.map((item) => <li key={`${item.interventionId}-${item.startFraction}`}><strong>{interventionDefinitionById[item.interventionId]?.title}</strong> at {Math.round(item.startFraction * 100)}% of the run · intensity {item.intensity}</li>)}</ol> : <p>No operator intervention is scheduled.</p>}<h3>Phase admissibility</h3><p>{system.phaseEvidence.thetaSource}</p><p>{system.phaseEvidence.phiSource}</p><p>{system.phaseEvidence.independenceClaim}</p></section></div></details>
-  </section>;
+  </details>;
 }
 
 function Panel({ title, subtitle, action, children, className = "" }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
@@ -992,12 +1019,12 @@ function ScenarioLibrary({ filter, setFilter, selectScenario }: { filter: string
   const isTemplateFilter = systemTemplates.some((item) => item.id === filter);
   const filtered = filter === "All" ? scenarios : filter === "Featured" ? scenarios.filter((item) => item.featured) : isTemplateFilter ? scenarios.filter((item) => item.system.templateId === filter) : tierOrder.includes(filter as (typeof tierOrder)[number]) ? scenarios.filter((item) => item.watchlistTier === filter) : scenarios.filter((item) => item.category === filter);
   const filters = ["All", "Featured", ...tierOrder, ...scenarioCategories];
-  return <div className="page-view"><section className="page-hero"><div className="eyebrow"><span>Educational systems laboratory</span><span>{systemTemplates.length} reusable classes</span><span>{scenarios.length} bounded instances</span><span>{featuredSystemCount} editorial highlights</span></div><h1>Learn the system class.<br /><em>Then compose the experiment.</em></h1><p>Templates teach reusable dynamics. Bounded instances supply an operator, boundary, population, horizon, aggregation rule, phases, and real-world variable meanings. Scenario and intervention modules can then be exchanged without redefining the system.</p></section><section className="template-library" aria-labelledby="template-library-title"><div className="section-heading"><div><h2 id="template-library-title">Reusable system templates</h2><p>Select a structural class to compare its bounded instances.</p></div><button onClick={() => setFilter("All")}>Show all systems</button></div><div className="template-grid">{systemTemplates.map((item) => <button key={item.id} className={filter === item.id ? "active" : ""} onClick={() => setFilter(item.id)}><span>{scenarios.filter((system) => system.system.templateId === item.id).length} systems</span><h3>{item.title}</h3><p>{item.summary}</p><small>{item.learningQuestions[0]}</small></button>)}</div></section><div className="filter-row" role="group" aria-label="Filter systems">{filters.map((item) => <button className={filter === item ? "active" : ""} key={item} onClick={() => setFilter(item)}>{item in tierLabels ? `${tierLabels[item as keyof typeof tierLabels]} · ${watchlistCounts[item as keyof typeof watchlistCounts]}` : item === "Featured" ? `Featured · ${featuredSystemCount}` : item}</button>)}</div><p className="filter-result" aria-live="polite">Showing {filtered.length} system{filtered.length === 1 ? "" : "s"}{isTemplateFilter ? ` in ${systemTemplateById[filter as keyof typeof systemTemplateById].title}` : ""}</p><div className="library-grid">{filtered.map((item) => <ScenarioCard key={item.id} scenario={item} onClick={() => selectScenario(item)} />)}</div></div>;
+  return <div className="page-view"><section className="page-hero"><div className="eyebrow"><span>Educational systems laboratory</span><span>{systemTemplates.length} system types</span><span>{scenarios.length} real-world examples</span><span>{featuredSystemCount} featured systems</span></div><h1>Choose a type of system.<br /><em>Then test how it behaves.</em></h1><p>Each system type captures recurring dynamics. The examples add a real operator, boundary, population, time horizon, decision rule, cycles, and plain-language variable meanings. You can then change the scenario or planned response without redefining the system.</p></section><section className="template-library" aria-labelledby="template-library-title"><div className="section-heading"><div><h2 id="template-library-title">Types of systems</h2><p>Choose a system type to see its real-world examples.</p></div><button onClick={() => setFilter("All")}>Show all systems</button></div><div className="template-grid">{systemTemplates.map((item) => <button key={item.id} className={filter === item.id ? "active" : ""} onClick={() => setFilter(item.id)}><span>{scenarios.filter((system) => system.system.templateId === item.id).length} systems</span><h3>{item.title}</h3><p>{item.summary}</p><small>{item.learningQuestions[0]}</small></button>)}</div></section><div className="filter-row" role="group" aria-label="Filter systems">{filters.map((item) => <button className={filter === item ? "active" : ""} key={item} onClick={() => setFilter(item)}>{item in tierLabels ? `${tierLabels[item as keyof typeof tierLabels]} · ${watchlistCounts[item as keyof typeof watchlistCounts]}` : item === "Featured" ? `Featured · ${featuredSystemCount}` : item}</button>)}</div><p className="filter-result" aria-live="polite">Showing {filtered.length} system{filtered.length === 1 ? "" : "s"}{isTemplateFilter ? ` of type ${systemTemplateById[filter as keyof typeof systemTemplateById].title}` : ""}</p><div className="library-grid">{filtered.map((item) => <ScenarioCard key={item.id} scenario={item} onClick={() => selectScenario(item)} />)}</div></div>;
 }
 
 function ScenarioCard({ scenario, onClick, compact = false, active = false }: { scenario: ScenarioDefinition; onClick: () => void; compact?: boolean; active?: boolean }) {
   const defaultProtocol = scenario.protocols.find((item) => item.id === scenario.defaultProtocolId) ?? scenario.protocols[0];
-  return <button className={`scenario-card ${compact ? "compact" : ""} ${active ? "active" : ""}`} onClick={onClick} style={{ "--scenario-accent": scenario.accent } as React.CSSProperties}><div className="scenario-art"><span>{scenario.icon}</span><i /><i /><i /></div><div className="scenario-card-body"><div><span className="category-pill">{scenario.category}</span><span>{systemTemplateById[scenario.system.templateId].title}</span><span className={`tier-label tier-${scenario.watchlistTier}`}>{scenario.watchlistTier} outlook</span>{scenario.featured && <span>Featured</span>}</div><h3>{scenario.system.shortTitle}</h3><p><strong>{defaultProtocol.title}.</strong> {defaultProtocol.summary}</p>{!compact && <dl><div><dt>Reusable class</dt><dd>{systemTemplateById[scenario.system.templateId].stateArchetype}</dd></div><div><dt>Operator</dt><dd>{scenario.system.operator}</dd></div><div><dt>Boundary</dt><dd>{scenario.system.boundary}</dd></div><div><dt>Population / rule</dt><dd>{scenario.system.population} {scenario.system.aggregation}</dd></div><div><dt>Minor cycle θ</dt><dd>{scenario.cycles.minor.label}</dd></div><div><dt>Major cycle φ</dt><dd>{scenario.cycles.major.label}</dd></div><div><dt>Present-state basis</dt><dd>{scenario.currentStateEstimate ? `${scenario.currentStateEstimate.asOfDate} · low-confidence illustrative hypothesis` : "Illustrative · not empirically calibrated"}</dd></div></dl>}<strong className="launch-link">Compose experiment <span>→</span></strong></div></button>;
+  return <button className={`scenario-card ${compact ? "compact" : ""} ${active ? "active" : ""}`} onClick={onClick} style={{ "--scenario-accent": scenario.accent } as React.CSSProperties}><div className="scenario-art"><span>{scenario.icon}</span><i /><i /><i /></div><div className="scenario-card-body"><div><span className="category-pill">{scenario.category}</span><span>{systemTemplateById[scenario.system.templateId].title}</span><span className={`tier-label tier-${scenario.watchlistTier}`}>{scenario.watchlistTier} outlook</span>{scenario.featured && <span>Featured</span>}</div><h3>{scenario.system.shortTitle}</h3><p><strong>{defaultProtocol.title}.</strong> {defaultProtocol.summary}</p>{!compact && <dl><div><dt>System type</dt><dd>{systemTemplateById[scenario.system.templateId].stateArchetype}</dd></div><div><dt>Operator</dt><dd>{scenario.system.operator}</dd></div><div><dt>Boundary</dt><dd>{scenario.system.boundary}</dd></div><div><dt>Population / rule</dt><dd>{scenario.system.population} {scenario.system.aggregation}</dd></div><div><dt>Minor cycle θ</dt><dd>{scenario.cycles.minor.label}</dd></div><div><dt>Major cycle φ</dt><dd>{scenario.cycles.major.label}</dd></div><div><dt>Present-state basis</dt><dd>{scenario.currentStateEstimate ? `${scenario.currentStateEstimate.asOfDate} · low-confidence illustrative hypothesis` : "Illustrative · not empirically calibrated"}</dd></div></dl>}<strong className="launch-link">Open simulation <span>→</span></strong></div></button>;
 }
 
 const labAdvancedParameters: (keyof SimulationParameters)[] = ["kappa", "chi", "omegaTheta", "omegaPhi", "couplingA", "couplingB", "rho0", "rhoCrit", "alpha", "beta"];
@@ -1030,7 +1057,7 @@ function SimulationLab({ scenario, protocol, interventionPlan, params, updatePar
   const warnedCount = batch.filter((item) => item.summary.firstWarningStep !== undefined).length;
   const recoveredCount = batch.filter((item) => item.summary.recovered).length;
   return <div className="page-view">
-    <section className="page-hero compact"><div className="eyebrow"><span>Research mode</span><span>Model {MODEL_VERSION}</span><span>{systemTemplates.length} templates</span><span>{interventionDefinitions.length} intervention modules</span></div><h1>Simulation Laboratory</h1><p>Compose a reusable system class, bounded instance, scenario module, and intervention plan; then execute deterministic runs and inspect the resulting assessment.</p></section>
+    <section className="page-hero compact"><div className="eyebrow"><span>Research mode</span><span>Model {MODEL_VERSION}</span><span>{systemTemplates.length} system types</span><span>{interventionDefinitions.length} available changes</span></div><h1>Simulation Laboratory</h1><p>Choose a system, scenario, and response to test; then run deterministic simulations and inspect the result.</p></section>
     <div className="lab-layout">
       <Panel title="Run configuration" subtitle={scenario.title}>
         <div className="form-grid">
@@ -1042,14 +1069,14 @@ function SimulationLab({ scenario, protocol, interventionPlan, params, updatePar
         <div className="lab-factor-grid" aria-label="Paper-aligned study factors">{visibleParameters.map((key) => <NumberField key={key} label={`${canonicalParameterLabels[key]} · ${scenario.labels[key]}`} value={params[key]} min={PARAMETER_LIMITS[key].min} max={PARAMETER_LIMITS[key].max} step={scenario.ranges[key].step} onChange={(value) => updateParam(key, value)} />)}</div>
         <details className="lab-advanced-controls"><summary>Research dynamics: restoration, phase, coupling, debt, and boundary controls</summary><div className="lab-factor-grid">{labAdvancedParameters.map((key) => <NumberField key={key} label={canonicalParameterLabels[key] ?? key} value={params[key]} min={PARAMETER_LIMITS[key].min} max={PARAMETER_LIMITS[key].max} step={.01} onChange={(value) => updateParam(key, value)} />)}</div></details>
         <div className="button-row"><button className="primary" onClick={runBatch}>Run batch</button><button onClick={exportConfiguration}>Export configuration</button><button onClick={importConfiguration}>Import configuration</button><button onClick={() => downloadCsv(`${scenario.id}-timeseries.csv`, frames)}>Export CSV</button></div>
-        <p className="lab-protocol-note">Composition: {systemTemplateById[scenario.system.templateId].title} → {scenario.system.shortTitle} → {protocol.title} → {interventionPlan.title} · {batchSize} adjacent deterministic seeds · {scheduled.length} resolved event{scheduled.length === 1 ? "" : "s"} preserved in every run.</p>
+        <p className="lab-protocol-note">Simulation setup: {systemTemplateById[scenario.system.templateId].title} → {scenario.system.shortTitle} → {protocol.title} → {interventionPlan.title} · {batchSize} nearby deterministic seeds · {scheduled.length} planned change{scheduled.length === 1 ? "" : "s"} retained in every run.</p>
       </Panel>
-      <Panel title="Current run summary" subtitle={`Seed ${params.seed} · illustrative synthetic status`}>
-        <div className="summary-cards"><SummaryStat label="Final viability" value={summary.finalStatus} /><SummaryStat label="Stable time" value={`${(summary.stableFraction * 100).toFixed(1)}%`} /><SummaryStat label="Time outside viable tube" value={`${(currentOutside * 100).toFixed(1)}%`} /><SummaryStat label="Max excursion ρ" value={summary.maxRho.toFixed(3)} /><SummaryStat label="Final debt Δ" value={summary.finalDebt.toFixed(3)} /><SummaryStat label="Final toy proxy A=e⁻ρ" value={summary.finalAlignment.toFixed(3)} /><SummaryStat label="Recovery outcome" value={summary.firstWarningStep === undefined ? "Not needed · no warning episode" : summary.recovered ? `Recovered in ${summary.recoveryTime?.toFixed(2) ?? "?"} time` : "Warning episode did not recover"} /><SummaryStat label="Winding ratio θ/φ" value={summary.windingRatio.toFixed(3)} /><SummaryStat label="Phase identifiability" value={summary.phase.identifiable ? `Identified · ${(summary.phase.spectralConcentration * 100).toFixed(0)}% spectral` : `Undefined · ${summary.phase.reason}`} /><SummaryStat label="First warning time" value={summary.firstWarningStep === undefined ? "None" : (summary.firstWarningStep * params.dt).toFixed(2)} /><SummaryStat label="Boundary crossing time" value={summary.boundaryCrossingStep === undefined ? "None" : (summary.boundaryCrossingStep * params.dt).toFixed(2)} /><SummaryStat label="Terminal rupture time" value={summary.irreversibleRuptureStep === undefined ? "None" : (summary.irreversibleRuptureStep * params.dt).toFixed(2)} /></div>
+      <Panel className="full-run-result" title="Projected full-run result" subtitle={`Complete deterministic trajectory for seed ${params.seed} · independent of the playback cursor`}>
+        <div className="summary-cards" data-result-scope="full-run-projection"><SummaryStat label="Final viability state" value={summary.finalViabilityState} /><SummaryStat label="Full-run stable time" value={`${(summary.stableFraction * 100).toFixed(1)}%`} /><SummaryStat label="Full-run time outside viable tube" value={`${(currentOutside * 100).toFixed(1)}%`} /><SummaryStat label="Maximum excursion ρ" value={summary.maxRho.toFixed(3)} /><SummaryStat label="Final debt Δ" value={summary.finalDebt.toFixed(3)} /><SummaryStat label="Final toy proxy A=e⁻ρ" value={summary.finalAlignment.toFixed(3)} /><SummaryStat label="Boundary recovery outcome" value={summary.boundaryCrossingStep === undefined ? "No boundary crossing" : summary.recoveredAfterCrossing ? "Recovered inside viable tube" : summary.irreversibleRuptureStep !== undefined ? "Ended in irreversible rupture" : "Did not return inside the viable tube"} /><SummaryStat label="Warning recovery outcome" value={summary.firstWarningStep === undefined ? "Not needed · no warning episode" : summary.recovered ? `Recovered in ${summary.recoveryTime?.toFixed(2) ?? "?"} time` : "Warning episode did not recover"} /><SummaryStat label="Winding ratio θ/φ" value={summary.windingRatio.toFixed(3)} /><SummaryStat label="Phase identifiability" value={summary.phase.identifiable ? `Identified · ${(summary.phase.spectralConcentration * 100).toFixed(0)}% spectral` : `Undefined · ${summary.phase.reason}`} /><SummaryStat label="First warning time" value={summary.firstWarningStep === undefined ? "None" : (summary.firstWarningStep * params.dt).toFixed(2)} /><SummaryStat label="Boundary crossing time" value={summary.boundaryCrossingStep === undefined ? "None" : (summary.boundaryCrossingStep * params.dt).toFixed(2)} /><SummaryStat label="Terminal rupture time" value={summary.irreversibleRuptureStep === undefined ? "None" : (summary.irreversibleRuptureStep * params.dt).toFixed(2)} /></div>
       </Panel>
       {batch.length > 0 && <Panel className="full-span" title="Ensemble result" subtitle={`${batch.length} deterministic seeds · observed fractions, not calibrated probabilities`}><div className="ensemble-strip"><SummaryStat label="Mean final toy proxy A" value={avgSummary("finalAlignment").toFixed(3)} /><SummaryStat label="Mean final debt" value={avgSummary("finalDebt").toFixed(3)} /><SummaryStat label="Mean max excursion" value={avgSummary("maxRho").toFixed(3)} /><SummaryStat label="Mean stable time" value={`${(avgSummary("stableFraction") * 100).toFixed(1)}%`} /><SummaryStat label="Mean time outside tube" value={`${(avgOutside * 100).toFixed(1)}%`} /><SummaryStat label="Boundary-crossing seed fraction" value={`${boundaryCount}/${batch.length} · ${(boundaryCount / batch.length * 100).toFixed(1)}%`} /><SummaryStat label="Terminal-rupture seed fraction" value={`${terminalCount}/${batch.length} · ${(terminalCount / batch.length * 100).toFixed(1)}%`} /><SummaryStat label="Recovery among warned seeds" value={warnedCount ? `${recoveredCount}/${warnedCount}` : "No warning episodes"} /></div></Panel>}
-      <Panel className="full-span" title="Reusable laboratory modules" subtitle="These modules are the educational product; published systems are worked instances"><div className="module-registry-grid"><section><h3>System templates</h3>{systemTemplates.map((item) => <article key={item.id}><strong>{item.title}</strong><small>{item.summary}</small></article>)}</section><section><h3>Scenario modules</h3>{scenario.protocols.map((item) => <article key={item.id}><strong>{item.title}</strong><small>{item.kind} · {item.learningObjective}</small></article>)}</section><section><h3>Intervention plans</h3>{interventionPlans.map((item) => <article key={item.id}><strong>{item.title}</strong><small>{item.strategy} · {item.items.length} module{item.items.length === 1 ? "" : "s"}</small></article>)}</section></div></Panel>
-      <Panel className="full-span" title="Bounded-system registry" subtitle="32 systems; featured status is editorial and the watchlist outlook is derived from each dated default protocol"><div className="table-wrap"><table><thead><tr><th>Bounded system</th><th>Operator</th><th>Default protocol</th><th>Derived outlook</th><th>Featured</th><th>Model family</th><th>Version</th><th>Estimate basis</th></tr></thead><tbody>{scenarios.map((item) => <tr key={item.id}><td>{item.system.title}</td><td>{item.system.operator}</td><td>{item.protocols.find((protocol) => protocol.id === item.defaultProtocolId)?.title}</td><td>{item.watchlistTier}</td><td>{item.featured ? "Yes" : "No"}</td><td>{item.modelFamily}</td><td>{item.version}</td><td>{item.currentStateEstimate ? `${item.currentStateEstimate.asOfDate} · ${item.currentStateEstimate.confidence} confidence` : "Illustrative · not empirically calibrated"}</td></tr>)}</tbody></table></div></Panel>
+      <Panel className="full-span" title="What you can vary" subtitle="Explore system types, scenarios, and planned responses independently"><div className="module-registry-grid"><section><h3>System types</h3>{systemTemplates.map((item) => <article key={item.id}><strong>{item.title}</strong><small>{item.summary}</small></article>)}</section><section><h3>Available scenarios</h3>{scenario.protocols.map((item) => <article key={item.id}><strong>{item.title}</strong><small>{item.kind} · {item.learningObjective}</small></article>)}</section><section><h3>Planned responses</h3>{interventionPlans.map((item) => <article key={item.id}><strong>{item.title}</strong><small>{item.strategy} · {item.items.length} change{item.items.length === 1 ? "" : "s"}</small></article>)}</section></div></Panel>
+      <Panel className="full-span" title="Published systems" subtitle="32 systems; featured status is editorial and each watchlist outlook comes from the system's dated default scenario"><div className="table-wrap"><table><thead><tr><th>System</th><th>Operator</th><th>Default scenario</th><th>Derived outlook</th><th>Featured</th><th>System type</th><th>Version</th><th>Estimate basis</th></tr></thead><tbody>{scenarios.map((item) => <tr key={item.id}><td>{item.system.title}</td><td>{item.system.operator}</td><td>{item.protocols.find((protocol) => protocol.id === item.defaultProtocolId)?.title}</td><td>{item.watchlistTier}</td><td>{item.featured ? "Yes" : "No"}</td><td>{item.modelFamily}</td><td>{item.version}</td><td>{item.currentStateEstimate ? `${item.currentStateEstimate.asOfDate} · ${item.currentStateEstimate.confidence} confidence` : "Illustrative · not empirically calibrated"}</td></tr>)}</tbody></table></div></Panel>
     </div>
   </div>;
 }
@@ -1094,7 +1121,7 @@ function CompareMode({ scenario, params, scheduled, primaryFrames, primarySummar
   const factorLimit = factor === "interventionTiming" ? { min: -Math.min(100, scheduled[0]?.step ?? 0), max: 100 } : PARAMETER_LIMITS[factor];
   const factorLabel = factor === "interventionTiming" ? "Intervention timing" : canonicalParameterLabels[factor] ?? factor;
   return <div className="page-view">
-    <section className="page-hero compact"><div className="eyebrow"><span>Controlled comparison</span><span>Seed {params.seed}</span><span>{changedParameters} controlled change{changedParameters === 1 ? "" : "s"}</span></div><h1>Compare two futures</h1><p>Both runs begin with the same scenario, seed, and protocol. Select exactly one B factor so its modeled effect remains identifiable.</p></section>
+    <section className="page-hero compact"><div className="eyebrow"><span>Controlled comparison</span><span>Seed {params.seed}</span><span>{changedParameters} controlled change{changedParameters === 1 ? "" : "s"}</span></div><h1>Compare two futures</h1><p>Both runs begin with the same system, scenario, and seed. Select exactly one B factor so its modeled effect remains identifiable.</p></section>
     <div className="compare-controls">
       <label>Comparison scenario<input value={scenario.title} readOnly /></label>
       <label>One factor to vary<select aria-label="One comparison factor" value={factor} onChange={(event) => selectFactor(event.target.value as CompareFactor)}>{compareFactors.map((key) => <option key={key} value={key}>{canonicalParameterLabels[key] ?? key}</option>)}{scheduled.length > 0 && <option value="interventionTiming">Intervention timing</option>}</select></label>
@@ -1103,13 +1130,13 @@ function CompareMode({ scenario, params, scheduled, primaryFrames, primarySummar
     </div>
     <div className="compare-grid">
       <Panel title="A · Active configuration" subtitle={`${scenario.shortTitle} · synthetic embedding · ${scheduled.length} intervention${scheduled.length === 1 ? "" : "s"}`}><TorusCanvas compact cycles={scenario.cycles} frames={primaryFrames} frameIndex={index} params={params} playing={false} onSelectFrame={() => {}} /><CompareSummary summary={primarySummary} /></Panel>
-      <Panel title="B · Controlled variation" subtitle={`${scenario.shortTitle} · synthetic embedding · same seed and protocol`}><TorusCanvas compact cycles={scenario.cycles} frames={comparison.frames} frameIndex={index} params={compareParams} playing={false} onSelectFrame={() => {}} /><CompareSummary summary={comparison.summary} /></Panel>
+      <Panel title="B · Controlled variation" subtitle={`${scenario.shortTitle} · synthetic embedding · same seed and scenario`}><TorusCanvas compact cycles={scenario.cycles} frames={comparison.frames} frameIndex={index} params={compareParams} playing={false} onSelectFrame={() => {}} /><CompareSummary summary={comparison.summary} /></Panel>
       <Panel className="full-span" title="Outcome difference · A minus B" subtitle={`${changedParameters} controlled change${changedParameters === 1 ? "" : "s"} · independent metric lanes · raw values retained`}><div className="difference-cards"><SummaryStat label="Δ toy proxy A=e⁻ρ" value={signed(delta.alignment)} tone={delta.alignment >= 0 ? "good" : "bad"} /><SummaryStat label="Δ max excursion" value={signed(delta.rho)} tone={delta.rho <= 0 ? "good" : "bad"} /><SummaryStat label="Δ debt" value={signed(delta.debt)} tone={delta.debt <= 0 ? "good" : "bad"} /><SummaryStat label="Warning time A / B" value={`${warningTime(primarySummary, params.dt)} / ${warningTime(comparison.summary, compareParams.dt)}`} /></div><DifferenceChart frames={differenceFrames} frameIndex={index} params={params} label="Signed difference chart for toy proxy A equals e to the minus rho, debt, and radial excursion" /><p className="compare-conclusion">{comparisonConclusion(factorLabel, baselineValue, factorValue, primarySummary, comparison.summary, differenceFrames)}</p></Panel>
     </div>
   </div>;
 }
 
-function CompareSummary({ summary }: { summary: ReturnType<typeof simulate>["summary"] }) { return <div className="compare-summary"><SummaryStat label="Final toy A=e⁻ρ" value={summary.finalAlignment.toFixed(3)} /><SummaryStat label="Final Δ" value={summary.finalDebt.toFixed(3)} /><SummaryStat label="Max ρ" value={summary.maxRho.toFixed(3)} /><SummaryStat label="Outcome" value={summary.ruptureStep !== undefined ? "Ruptured" : summary.recovered ? "Recovered" : summary.finalStatus} /></div>; }
+function CompareSummary({ summary }: { summary: ReturnType<typeof simulate>["summary"] }) { return <div className="compare-summary"><SummaryStat label="Final toy A=e⁻ρ" value={summary.finalAlignment.toFixed(3)} /><SummaryStat label="Final Δ" value={summary.finalDebt.toFixed(3)} /><SummaryStat label="Max ρ" value={summary.maxRho.toFixed(3)} /><SummaryStat label="Outcome" value={finalViabilityOutcomeLabel(summary)} /></div>; }
 
 function SystemBuilder({ announce, onOpenEmpirical }: { announce: (message: string) => void; onOpenEmpirical: (scenario: ScenarioDefinition) => void }) {
   const [step, setStep] = useState(0);
@@ -1144,7 +1171,7 @@ function SystemBuilder({ announce, onOpenEmpirical }: { announce: (message: stri
       const result = await response.json() as typeof validation;
       setValidation(result);
       setTestResult(null);
-      announce(response.ok && result?.valid ? "Draft contract and executable protocols validated" : "Draft needs corrections before it can be tested");
+      announce(response.ok && result?.valid ? "Draft system and test scenarios validated" : "Draft needs corrections before it can be tested");
     } catch (error) {
       setValidation({ valid: false, publishable: false, issues: [{ path: "api", message: error instanceof Error ? error.message : "Proposal validation failed" }] });
       announce("Proposal validation failed");
@@ -1160,17 +1187,17 @@ function SystemBuilder({ announce, onOpenEmpirical }: { announce: (message: stri
     onOpenEmpirical(scenarioDefinitionSchema.parse(proposal.scenario) as ScenarioDefinition);
   };
   return <div className="page-view builder-page">
-    <section className="page-hero"><div className="eyebrow"><span>Draft proposal builder</span><span>{eligibility.complete}/{eligibility.total} mapped</span><span>{eligibility.eligible ? "Torus eligibility established" : "Eligibility pending"}</span></div><h1>Test whether a real system<br /><em>warrants a torus.</em></h1><p>Map two independently recurrent and observable phases, define every canonical variable, state what would falsify the mapping, then validate an executable draft proposal.</p></section>
+    <section className="page-hero"><div className="eyebrow"><span>Build your own system</span><span>{eligibility.complete}/{eligibility.total} mapped</span><span>{eligibility.eligible ? "Torus eligibility established" : "Eligibility pending"}</span></div><h1>Test whether a real system<br /><em>warrants a torus.</em></h1><p>Map two independently recurrent and observable phases, explain what each theory variable means in the real system, state what would falsify the mapping, then test the proposed system.</p></section>
     <div className="builder-shell">
       <aside><div className="progress-ring" style={{ "--progress": `${eligibility.complete / eligibility.total * 100}%` } as React.CSSProperties}><span>{eligibility.complete}<small>/{eligibility.total}</small></span></div>{builderQuestions.map((item, index) => <button key={item.id} className={`${step === index ? "active" : ""} ${answers[item.id].trim() ? "done" : ""}`} onClick={() => setStep(index)}><span>{answers[item.id].trim() ? "✓" : index + 1}</span>{item.question}</button>)}</aside>
       <div className="builder-main-column">
-        <Panel title={`Question ${step + 1} of ${builderQuestions.length}`} subtitle="Template, bounded instance, scenario modules, and evidence remain distinct"><div className="builder-question"><span className="question-number">{String(step + 1).padStart(2, "0")}</span><h2>{question.question}</h2><p>{question.hint}</p>{question.kind === "choice" ? <select autoFocus value={answers[question.id]} onChange={(event) => setAnswer(event.target.value)}><option value="">{question.placeholder}</option>{question.options?.map((option) => <option key={option} value={option}>{question.id === "template" ? systemTemplateById[option as keyof typeof systemTemplateById]?.title ?? option : option}</option>)}</select> : <textarea autoFocus value={answers[question.id]} onChange={(event) => setAnswer(event.target.value)} placeholder={question.placeholder} />}<div className="builder-actions"><button disabled={step === 0} onClick={() => setStep((value) => value - 1)}>← Back</button>{step < builderQuestions.length - 1 ? <button className="primary" disabled={!answers[question.id].trim()} onClick={() => setStep((value) => value + 1)}>Continue →</button> : <button className="primary" disabled={!eligibility.eligible || validating} onClick={() => void validateDraft()}>{validating ? "Validating…" : "Validate draft proposal"}</button>}</div></div></Panel>
+        <Panel title={`Question ${step + 1} of ${builderQuestions.length}`} subtitle="Keep the system type, real-world system, scenario, and evidence distinct"><div className="builder-question"><span className="question-number">{String(step + 1).padStart(2, "0")}</span><h2>{question.question}</h2><p>{question.hint}</p>{question.kind === "choice" ? <select autoFocus value={answers[question.id]} onChange={(event) => setAnswer(event.target.value)}><option value="">{question.placeholder}</option>{question.options?.map((option) => <option key={option} value={option}>{question.id === "template" ? systemTemplateById[option as keyof typeof systemTemplateById]?.title ?? option : option}</option>)}</select> : <textarea autoFocus value={answers[question.id]} onChange={(event) => setAnswer(event.target.value)} placeholder={question.placeholder} />}<div className="builder-actions"><button disabled={step === 0} onClick={() => setStep((value) => value - 1)}>← Back</button>{step < builderQuestions.length - 1 ? <button className="primary" disabled={!answers[question.id].trim()} onClick={() => setStep((value) => value + 1)}>Continue →</button> : <button className="primary" disabled={!eligibility.eligible || validating} onClick={() => void validateDraft()}>{validating ? "Checking…" : "Check draft system"}</button>}</div></div></Panel>
         <Panel title="Draft simulation defaults" subtitle="Dimensionless starting values; domain calibration remains required"><div className="lab-factor-grid builder-default-grid">{visibleParameters.map((key) => <NumberField key={key} label={canonicalParameterLabels[key] ?? key} value={draftDefaults[key]} min={PARAMETER_LIMITS[key].min} max={PARAMETER_LIMITS[key].max} step={.01} onChange={(value) => setDraftParameter(key, value)} />)}</div></Panel>
-        <section className={`builder-eligibility ${eligibility.eligible ? "eligible" : "pending"}`}><strong>{eligibility.eligible ? "Two-phase eligibility established for a draft test" : "A torus is not yet warranted"}</strong>{eligibility.issues.length ? <ul>{eligibility.issues.map((issue) => <li key={`${issue.field}-${issue.message}`}><button onClick={() => setStep(builderQuestions.findIndex((item) => item.id === issue.field))}>{issue.message}</button></li>)}</ul> : <p>The builder has distinct cycles, observation paths, an affirmative independence claim, and a falsification condition. API validation still checks the contract and executable protocols.</p>}</section>
+        <section className={`builder-eligibility ${eligibility.eligible ? "eligible" : "pending"}`}><strong>{eligibility.eligible ? "Two-phase eligibility established for a draft test" : "A torus is not yet warranted"}</strong>{eligibility.issues.length ? <ul>{eligibility.issues.map((issue) => <li key={`${issue.field}-${issue.message}`}><button onClick={() => setStep(builderQuestions.findIndex((item) => item.id === issue.field))}>{issue.message}</button></li>)}</ul> : <p>The draft has distinct cycles, observation paths, an affirmative independence claim, and a falsification condition. The final check also confirms that every proposed scenario can run safely.</p>}</section>
       </div>
-      <Panel className="builder-preview" title="Draft evidence receipt" subtitle="Canonical variables stay distinct from domain labels">
+      <Panel className="builder-preview" title="Draft evidence summary" subtitle="Theory variables stay distinct from real-world meanings">
         <div className="mapping-list"><span><i>Goal</i><strong>{answers.objective || "Optimization objective"}</strong></span><span><i>π</i><strong>{answers.pressure || "Optimization pressure"}</strong></span><span><i>θ</i><strong>{answers.minorCycle || "Internal correction cycle"}</strong></span><span><i>φ</i><strong>{answers.majorCycle || "External adaptation cycle"}</strong></span><span><i>γ</i><strong>{answers.feedback || "Feedback fidelity"}</strong></span><span><i>ε</i><strong>{answers.misclassification || "Misclassification"}</strong></span><span><i>C</i><strong>{answers.correction || "Correction capacity"}</strong></span><span><i>Φ</i><strong>{answers.drift || "Viable-region drift"}</strong></span><span><i>Δ</i><strong>{answers.debt || "Alignment debt"}</strong></span><span><i>Λ</i><strong>{answers.irreversibleLoss || "Irreversible loss"}</strong></span><span><i>ρ</i><strong>{answers.viableRegion ? `Distance from: ${answers.viableRegion}` : "Distance from viable recurrence"}</strong></span></div>
-        <div className="builder-validation"><strong>Contract & protocol validation</strong>{validation ? <><span className={validation.valid ? "valid" : "invalid"}>{validation.valid ? "VALID DRAFT · HUMAN REVIEW REQUIRED" : "CORRECTIONS REQUIRED"}</span>{validation.issues.length ? <ul>{validation.issues.map((issue) => <li key={`${issue.path}-${issue.message}`}><b>{issue.path}</b>{issue.message}</li>)}</ul> : <p>Schema, execution limits, and all draft protocol assertions passed.</p>}{validation.publicationRequirement && <small>{validation.publicationRequirement}</small>}</> : <p>Complete the evidence gate and validate through <code>/api/v1/proposals/validate</code>. Validation never publishes a scenario.</p>}<div className="button-row"><button disabled={!proposal || validating} onClick={() => void validateDraft()}>Validate</button><button disabled={!proposal} onClick={() => proposal && downloadJson(`${proposal.scenario.id}.draft.json`, proposal)}>Download draft</button><button className="primary" disabled={!validation?.valid} onClick={testDraft}>Test validated draft</button><button disabled={!validation?.valid} onClick={openEmpirical}>Open in Empirical Lab</button></div>{testResult && <div className="builder-test-result"><SummaryStat label="Final status" value={testResult.summary.finalStatus} /><SummaryStat label="Max ρ" value={testResult.summary.maxRho.toFixed(3)} /><SummaryStat label="Final debt" value={testResult.summary.finalDebt.toFixed(3)} /><SummaryStat label="Toy A=e⁻ρ" value={testResult.summary.finalAlignment.toFixed(3)} /></div>}</div>
+        <div className="builder-validation"><strong>System and scenario checks</strong>{validation ? <><span className={validation.valid ? "valid" : "invalid"}>{validation.valid ? "VALID DRAFT · HUMAN REVIEW REQUIRED" : "CORRECTIONS REQUIRED"}</span>{validation.issues.length ? <ul>{validation.issues.map((issue) => <li key={`${issue.path}-${issue.message}`}><b>{issue.path}</b>{issue.message}</li>)}</ul> : <p>All required fields, safety limits, and test scenarios passed.</p>}{validation.publicationRequirement && <small>{validation.publicationRequirement}</small>}</> : <p>Complete the evidence steps, then check the draft. A successful check never publishes it automatically.</p>}<div className="button-row"><button disabled={!proposal || validating} onClick={() => void validateDraft()}>Check draft</button><button disabled={!proposal} onClick={() => proposal && downloadJson(`${proposal.scenario.id}.draft.json`, proposal)}>Download draft</button><button className="primary" disabled={!validation?.valid} onClick={testDraft}>Test checked draft</button><button disabled={!validation?.valid} onClick={openEmpirical}>Open in Empirical Lab</button></div>{testResult && <div className="builder-test-result"><SummaryStat label="Final status" value={testResult.summary.finalStatus} /><SummaryStat label="Max ρ" value={testResult.summary.maxRho.toFixed(3)} /><SummaryStat label="Final debt" value={testResult.summary.finalDebt.toFixed(3)} /><SummaryStat label="Toy A=e⁻ρ" value={testResult.summary.finalAlignment.toFixed(3)} /></div>}</div>
       </Panel>
     </div>
   </div>;
@@ -1180,18 +1207,18 @@ type LearnTopic = { id: string; title: string; subtitle: string; explanation: st
 const learnTopics: LearnTopic[] = [
   { id: "ats", title: "ATS", subtitle: "Viability under layered constraints", explanation: "ATS defines alignment as probability mass inside a viable region shaped by physical, human or ecological, and constructed constraints.", example: "A hospital cannot optimize patient flow while ignoring clinical harm, staffing limits, or regulatory obligations.", equation: "A_ATS(S,t) = ∫ₓ* p_S(x,t) dx", exercise: "Load a stressed run and inspect whether correction C exceeds total divergence D across the layered scenario evidence.", visual: "layers", visualTerms: ["Kₚ", "Kᵦ", "K𝚌", "X*"] },
   { id: "aana", title: "AANA", subtitle: "Verifier-grounded correctability", explanation: "AANA externalizes grounding, verification, correction policy, and an alignment gate around a generator so errors can be revised, retrieved, questioned, refused, or deferred.", example: "An agent grounds a proposed change, runs tests and policy checks, revises failures, then gates release.", equation: "generate → ground → verify → correct → gate → monitor", exercise: "Load a run with a scheduled correction intervention and watch debt Δ and excursion ρ respond; phase θ is not claimed to be bounded by C.", visual: "loop", visualTerms: ["Generate", "Ground", "Verify", "Correct", "Gate", "Monitor"] },
-  { id: "aix", title: "AIx", subtitle: "Illustrative diagnostic surface", explanation: "The site’s eight-domain AIx is a transparent synthetic diagnostic and decision surface, not the ATS alignment definition and not an empirically calibrated universal score.", example: "Feedback, misclassification control, graceful degradation, and correction capacity can disagree even when their weighted composite looks acceptable.", equation: "AIx = Σ wₖ sₖ; hard gates remain separate", exercise: "Load an elevated-risk run, open the AIx drawer, and compare component evidence with the hard-blocker and routing decision.", visual: "score", visualTerms: ["P", "B", "C", "F", "M", "G", "R", "Π"] },
-  { id: "torus", title: "Why a torus?", subtitle: "Two independently recurrent phases", explanation: "A torus is conditional: it represents the product of two meaningful, independently recurrent phases, not every dynamic system.", example: "A fast operating-and-correction cycle can interact with a slower seasonal or governance cycle.", equation: "q(t)=(θ(t),φ(t)) ∈ S¹×S¹ = T²", exercise: "Load a two-frequency protocol and compare the 3D synthetic embedding with the unwrapped θ–φ path.", visual: "torus", visualTerms: ["θ", "φ", "T²"] },
+  { id: "aix", title: "AIx", subtitle: "Illustrative diagnostic", explanation: "The site’s eight-domain AIx is a transparent synthetic diagnostic and decision aid, not the ATS alignment definition and not an empirically calibrated universal score.", example: "Feedback, misclassification control, graceful degradation, and correction capacity can disagree even when their weighted composite looks acceptable.", equation: "AIx = Σ wₖ sₖ; safety checks remain separate", exercise: "Load an elevated-risk run, open the AIx explanation, and compare component evidence with the safety check and routing decision.", visual: "score", visualTerms: ["P", "B", "C", "F", "M", "G", "R", "Π"] },
+  { id: "torus", title: "Why a torus?", subtitle: "Two independently recurrent phases", explanation: "A torus is conditional: it represents the product of two meaningful, independently recurrent phases, not every dynamic system.", example: "A fast operating-and-correction cycle can interact with a slower seasonal or governance cycle.", equation: "q(t)=(θ(t),φ(t)) ∈ S¹×S¹ = T²", exercise: "Load a two-frequency example and compare the 3D synthetic embedding with the unwrapped θ–φ path.", visual: "torus", visualTerms: ["θ", "φ", "T²"] },
   { id: "minor", title: "Correction cycle", subtitle: "Internal phase θ", explanation: "θ tracks position in a fast internal recurrent process. Its source should be an observable operational stage or a justified estimator.", example: "Observe → propose → verify → correct → gate → repeat.", equation: "θₜ₊₁=(θₜ+ωθ+a sinφₜ+ξθ) mod 2π", exercise: "Load a faster internal cycle and inspect θ travel and winding without treating frequency as correction quality.", visual: "cycle", visualTerms: ["Observe", "Act", "Verify", "Correct"] },
   { id: "major", title: "Adaptation cycle", subtitle: "External phase φ", explanation: "φ tracks the slower recurrent process through which environment, policy, or operating context changes.", example: "Measure demand → revise policy → reallocate capacity → evaluate outcomes.", equation: "φₜ₊₁=(φₜ+ωφ+b sinθₜ+ξφ) mod 2π", exercise: "Load a slower external cycle and inspect the changed winding ratio and coverage pattern.", visual: "cycle-major", visualTerms: ["Measure", "Revise", "Allocate", "Evaluate"] },
   { id: "radial", title: "Radial excursion", subtitle: "Distance from viable recurrence", explanation: "ρ represents modeled distance from a recurrent viable tube. Positive radial velocity means expansion; negative radial velocity means contraction.", example: "High excursion can still be recoverable before the terminal policy is satisfied.", equation: "ρ̇=−κ(ρ−ρ₀)+D−C+χΔ", exercise: "Load an adverse radial balance and use the Radial Stability chart to connect C−D−χΔ with expansion or contraction.", visual: "radial", visualTerms: ["ρ₀", "ρ", "ρcrit", "ρ̇"] },
   { id: "debt", title: "Alignment debt", subtitle: "Deferred correction Δ", explanation: "Unresolved divergence accumulates as debt and raises later radial pressure until excess correction can repay it.", example: "Skipped audits and unresolved cases make later remediation more expensive.", equation: "Δ̇=α[D−C]₊−βrepay[C−D]₊q(A_toy)", exercise: "Load high initial debt and compare its debt-adjusted margin with the instantaneous C−D margin.", visual: "debt", visualTerms: ["Delay", "Backlog", "χΔ", "Recovery cost"] },
-  { id: "hysteresis", title: "Hysteresis", subtitle: "History changes recovery", explanation: "Returning pressure to an earlier value may not restore the earlier state after debt and irreversible loss have accumulated.", example: "Late remediation can require more correction than prevention under the same current pressure.", equation: "C_recover(Δ,history) > C_prevent", exercise: "Load a stress-then-relief protocol and inspect remaining debt after pressure falls.", visual: "hysteresis", visualTerms: ["Stress", "Debt", "Relief", "Different return"] },
-  { id: "locking", title: "Phase locking", subtitle: "Synchronized recurrence", explanation: "When phase frequencies approach a rational ratio, the path may repeat a narrow set of phase combinations instead of covering the torus broadly.", example: "Coordination can improve timing—or synchronize a shared misclassification.", equation: "ωθ/ωφ ≈ p/q", exercise: "Load a 2:1 frequency protocol and compare winding, coverage, and risk rather than calling synchronization alignment.", visual: "locking", visualTerms: ["2 θ", "1 φ", "repeat", "blind spots"] },
+  { id: "hysteresis", title: "Hysteresis", subtitle: "History changes recovery", explanation: "Returning pressure to an earlier value may not restore the earlier state after debt and irreversible loss have accumulated.", example: "Late remediation can require more correction than prevention under the same current pressure.", equation: "C_recover(Δ,history) > C_prevent", exercise: "Load a stress-then-relief example and inspect remaining debt after pressure falls.", visual: "hysteresis", visualTerms: ["Stress", "Debt", "Relief", "Different return"] },
+  { id: "locking", title: "Phase locking", subtitle: "Synchronized recurrence", explanation: "When phase frequencies approach a rational ratio, the path may repeat a narrow set of phase combinations instead of covering the torus broadly.", example: "Coordination can improve timing—or synchronize a shared misclassification.", equation: "ωθ/ωφ ≈ p/q", exercise: "Load a 2:1 frequency example and compare winding, coverage, and risk rather than calling synchronization alignment.", visual: "locking", visualTerms: ["2 θ", "1 φ", "repeat", "blind spots"] },
   { id: "viable", title: "Viable region", subtitle: "Where constraints hold", explanation: "The viable region is the subset of phase-and-radius states that preserves continued operation and correction under the stated perspective and horizon.", example: "A fishery must retain a recoverable stock while its harvest and ecological cycles continue.", equation: "V={ (θ,φ,ρ)∈T²×ℝ₊ : ρ≤ρcrit }", exercise: "Load a tighter illustrative boundary and compare warning time with boundary-crossing time.", visual: "boundary", visualTerms: ["V", "ρ≤ρcrit", "warning", "crossing"] },
   { id: "loss", title: "Irreversibility", subtitle: "Loss Λ", explanation: "Some loss changes the future state space and cannot be repaid through ordinary feedback, debt repayment, or correction.", example: "Extinction, permanent data disclosure, or loss of life cannot be modeled as an ordinary reversible backlog.", equation: "D=πε(1−γ)+Φ+Λ", exercise: "Load high Λ and inspect cumulative irreversible loss and the explicit terminal policy separately from boundary crossing.", visual: "loss", visualTerms: ["Before", "Λ", "After", "No ordinary return"] },
-  { id: "identifiability", title: "Phase identifiability", subtitle: "Estimated φ may be undefined", explanation: "An external phase estimate is shown only after amplitude, spectral concentration, cycle-count, and sampling gates pass. Failure means undefined—not φ=0.", example: "A short or nearly flat signal cannot support a defensible position in an external cycle.", equation: "gate(signal)=pass ⇒ φ̂ defined; fail ⇒ φ̂ undefined", exercise: "Load a short slow-cycle protocol, complete the run, and confirm the estimated phase remains unavailable with a stated gate reason.", visual: "identifiability", visualTerms: ["signal", "gates", "φ̂", "undefined"] },
-  { id: "not-torus", title: "When not a torus", subtitle: "A valid negative result", explanation: "If one phase is absent, dependent, or unobservable, the responsible conclusion is that this toroidal representation is not established.", example: "A one-off project with no slower recurrent environmental cycle may need a trajectory or state-space model instead.", equation: "¬(two identifiable recurrent phases) ⇒ no T² claim", exercise: "Load a one-cycle protocol and observe that the synthetic 3D drawing alone does not establish toroidal geometry.", visual: "not-torus", visualTerms: ["one cycle", "no φ evidence", "reject T²", "choose another model"] },
+  { id: "identifiability", title: "Phase identifiability", subtitle: "Estimated φ may be undefined", explanation: "An external phase estimate is shown only after amplitude, spectral concentration, cycle-count, and sampling gates pass. Failure means undefined—not φ=0.", example: "A short or nearly flat signal cannot support a defensible position in an external cycle.", equation: "gate(signal)=pass ⇒ φ̂ defined; fail ⇒ φ̂ undefined", exercise: "Load a short slow-cycle example, complete the run, and confirm the estimated phase remains unavailable with a stated reason.", visual: "identifiability", visualTerms: ["signal", "checks", "φ̂", "undefined"] },
+  { id: "not-torus", title: "When not a torus", subtitle: "A valid negative result", explanation: "If one phase is absent, dependent, or unobservable, the responsible conclusion is that this toroidal representation is not established.", example: "A one-off project with no slower recurrent environmental cycle may need a trajectory or state-space model instead.", equation: "¬(two identifiable recurrent phases) ⇒ no T² claim", exercise: "Load a one-cycle example and observe that the synthetic 3D drawing alone does not establish toroidal geometry.", visual: "not-torus", visualTerms: ["one cycle", "no φ evidence", "reject T²", "choose another model"] },
 ];
 
 type LessonProtocol = { parameters: Partial<SimulationParameters>; interventions?: ScheduledIntervention[]; mode?: Mode; view?: View; observation: string };
@@ -1208,14 +1235,14 @@ const lessonProtocols: LessonProtocol[] = [
   { parameters: { omegaTheta: .1, omegaPhi: .05, couplingA: .04, couplingB: .04, steps: 960 }, mode: "research", observation: "compare synchronization with radial viability" },
   { parameters: { rhoCrit: 1.2, pressure: 1.95, correction: .4 }, mode: "research", observation: "compare warning, crossing, and terminal times" },
   { parameters: { irreversibleLoss: .2, pressure: 2.1, correction: .38, feedback: .38 }, mode: "research", observation: "separate cumulative loss from debt and excursion" },
-  { parameters: { omegaPhi: .004, couplingB: 0, steps: 160 }, mode: "research", observation: "finish the run and read the phase-gate reason" },
+  { parameters: { omegaPhi: .004, couplingB: 0, steps: 160 }, mode: "research", observation: "finish the run and read why the phase estimate is unavailable" },
   { parameters: { omegaPhi: 0, couplingB: 0, couplingA: 0, steps: 480 }, mode: "research", observation: "treat an undefined second phase as a negative torus result" },
 ];
 
 function LearnSection({ launchProtocol }: { launchProtocol: (index: number) => void }) {
   const [selected, setSelected] = useState(0);
   const topic = learnTopics[selected];
-  return <div className="page-view learn-page"><section className="page-hero"><div className="eyebrow"><span>Learn</span><span>{learnTopics.length} configured concepts</span><span>Each launches a named protocol</span></div><h1>Understand the geometry<br /><em>through systems you know.</em></h1><p>Start in plain language, connect the idea to its exact mathematical role, then load a reproducible protocol with a specific observation prompt.</p></section><div className="learn-layout"><div className="topic-grid">{learnTopics.map((item, index) => <button key={item.id} className={selected === index ? "active" : ""} onClick={() => setSelected(index)}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.title}</strong><small>{item.subtitle}</small></button>)}</div><Panel className="lesson-panel" title={topic.title} subtitle={topic.subtitle}><LessonVisual topic={topic} /><div className="lesson-copy"><h3>Plain-language explanation</h3><p>{topic.explanation}</p><h3>Scenario example</h3><p>{topic.example}</p><h3>Mathematical view</h3><code>{topic.equation}</code><div className="exercise"><strong>Configured lab exercise</strong><p>{topic.exercise}</p><button onClick={() => launchProtocol(selected)}>Load guided protocol →</button></div></div></Panel></div></div>;
+  return <div className="page-view learn-page"><section className="page-hero"><div className="eyebrow"><span>Learn</span><span>{learnTopics.length} guided concepts</span><span>Each includes a ready-to-run example</span></div><h1>Understand the geometry<br /><em>through systems you know.</em></h1><p>Start in plain language, connect the idea to its exact mathematical role, then load a reproducible example with a specific observation prompt.</p></section><div className="learn-layout"><div className="topic-grid">{learnTopics.map((item, index) => <button key={item.id} className={selected === index ? "active" : ""} onClick={() => setSelected(index)}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.title}</strong><small>{item.subtitle}</small></button>)}</div><Panel className="lesson-panel" title={topic.title} subtitle={topic.subtitle}><LessonVisual topic={topic} /><div className="lesson-copy"><h3>Plain-language explanation</h3><p>{topic.explanation}</p><h3>Scenario example</h3><p>{topic.example}</p><h3>Mathematical view</h3><code>{topic.equation}</code><div className="exercise"><strong>Try it in the lab</strong><p>{topic.exercise}</p><button onClick={() => launchProtocol(selected)}>Load guided example →</button></div></div></Panel></div></div>;
 }
 
 function LessonVisual({ topic }: { topic: LearnTopic }) {
@@ -1226,7 +1253,7 @@ function TheorySection({ announce }: { announce: (message: string) => void }) {
   const citation = "Sori, A. (2026). Toroidal Geometry in ATS/AANA/AIx: Stable Recurrence, Invariant Tori, and Viability-Preserving Cycles in Layered Alignment Systems. Revised phase-coordinate edition.";
   const principles = [
     ["Preserve the correction cycle", "θ and the AANA correction loop", "Use the internal-cycle and intervention controls without treating speed as correction quality."],
-    ["Track external phase", "φ source and identifiability gate", "Use latent φ only for synthetic ground truth; estimated φ remains undefined when its gates fail."],
+    ["Track external phase", "φ source and identifiability checks", "Use latent φ only for synthetic ground truth; estimated φ remains undefined when its evidence checks fail."],
     ["Measure radial excursion", "ρ, ρ̇, warning and boundary views", "Inspect distance, direction, and duration rather than a single score."],
     ["Scale correction with pressure", "C versus D=πε(1−γ)+Φ+Λ", "Use controlled comparisons to test whether correction keeps pace with divergence."],
     ["Avoid phase-specific blind spots", "Unwrapped coverage and topology studies", "Look for narrow or locked phase combinations, not merely synchronization."],
@@ -1237,17 +1264,17 @@ function TheorySection({ announce }: { announce: (message: string) => void }) {
     <div className="theory-grid">
       <Panel className="theory-summary" title="The central claim" subtitle="Conditional geometry, not a universal shape"><blockquote>When alignment requires two coupled recurrent processes—internal correction and external adaptation—the natural geometric object is a torus.</blockquote><p>The ATS, AANA, and AIx equations do not by themselves prove toroidal geometry. A torus is justified only after two distinct recurrent phases and a bounded radial coordinate are established.</p><div className="theorem-cards"><article><span>01</span><strong>Two-cycle state</strong><code>T²=S¹×S¹</code><p>θ is the internal operational/correction phase; φ is the external adaptation phase.</p></article><article><span>02</span><strong>ATS balance</strong><code>Ȧ=C−D</code><p>D=πε(1−γ)+Φ+Λ; this describes alignment balance, not radial geometry by itself.</p></article><article><span>03</span><strong>Radial stability</strong><code>ρ̇=−κ(ρ−ρ₀)+D−C+χΔ</code><p>Positive ρ̇ expands excursion; negative ρ̇ contracts it.</p></article><article><span>04</span><strong>Debt & hysteresis</strong><code>Δ̇=α[D−C]₊−βrepay[C−D]₊q</code><p>Deferred correction can raise later recovery requirements.</p></article></div></Panel>
 
-      <Panel title="Two different meanings of alignment" subtitle="The ATS definition and the simulator proxy are not interchangeable"><div className="definition-stack"><article><span>ATS 4.0 definition</span><code>A_ATS(S,t)=∫ₓ* p_S(x,t)dx</code><p>Probability mass inside the viable region. This requires a real state distribution and a defensible viable set.</p></article><article><span>Section 14 minimal toy proxy</span><code>A_toy(t)=exp(−ρ(t))</code><p>A monotone visualization proxy used by this synthetic simulator. It is not an empirical alignment measurement.</p></article><article><span>AIx product diagnostic</span><code>AIx=Σwₖsₖ + hard gates</code><p>An eight-domain illustrative decision surface. It neither replaces A_ATS nor proves viability.</p></article></div></Panel>
+      <Panel title="Two different meanings of alignment" subtitle="The ATS definition and the simulator proxy are not interchangeable"><div className="definition-stack"><article><span>ATS 4.0 definition</span><code>A_ATS(S,t)=∫ₓ* p_S(x,t)dx</code><p>Probability mass inside the viable region. This requires a real state distribution and a defensible viable set.</p></article><article><span>Section 14 minimal toy proxy</span><code>A_toy(t)=exp(−ρ(t))</code><p>A monotone visualization proxy used by this synthetic simulator. It is not an empirical alignment measurement.</p></article><article><span>Illustrative AIx diagnostic</span><code>AIx=Σwₖsₖ + safety checks</code><p>An eight-domain illustrative decision aid. It neither replaces A_ATS nor proves viability.</p></article></div></Panel>
 
       <Panel title="Paper-aligned torus dynamics" subtitle="The engine uses bounded internal substeps"><div className="equation-stack"><code>Dₜ=πₜεₜ(1−γₜ)+Λₜ+Φₜ</code><code>θₜ₊₁=(θₜ+ωθ+a sinφₜ+ξθₜ) mod 2π</code><code>φₜ₊₁=(φₜ+ωφ+b sinθₜ+ξφₜ) mod 2π</code><code>Δₜ₊₁=Δₜ+α[D−C]₊−βrepay[C−D]₊q(A_toy)</code><code>ρₜ₊₁=ρₜ−κ(ρₜ−ρ₀)+D−C+χΔₜ+ξρₜ</code></div><div className="phase-source-note"><strong>Phase source rule</strong><p>θ here is an operational cycle phase—not the neural parameter subscript in fθ and not an AIx score. φ may be latent in a synthetic run or estimated from an external signal. An estimated phase is shown only after amplitude, spectral, cycle-count, and sampling gates pass.</p></div></Panel>
 
-      <Panel className="full-span theory-principles" title="Six paper design principles" subtitle="Direct crosswalk from the foundational paper to the interactive modules"><div className="principle-grid">{principles.map(([principle, surface, action], index) => <article key={principle}><span>{String(index + 1).padStart(2, "0")}</span><strong>{principle}</strong><b>{surface}</b><p>{action}</p></article>)}</div></Panel>
+      <Panel className="full-span theory-principles" title="Six paper design principles" subtitle="How each principle appears in the interactive lab"><div className="principle-grid">{principles.map(([principle, surface, action], index) => <article key={principle}><span>{String(index + 1).padStart(2, "0")}</span><strong>{principle}</strong><b>{surface}</b><p>{action}</p></article>)}</div></Panel>
 
-      <Panel title="Framework and product boundaries" subtitle="Related layers with different evidentiary status"><div className="boundary-stack"><article><strong>Foundational torus paper</strong><p>Conditional two-phase geometry, radial excursion, debt, recovery, winding, phase observation, and design principles.</p></article><article><strong>ATS 4.0</strong><p>Layered viable-region alignment and the balance Ȧ=C−D.</p></article><article><strong>AANA</strong><p>Verifier-grounded runtime correctability: generate, ground, verify, revise/retrieve/ask/refuse/defer, gate, and monitor.</p></article><article><strong>Site extensions</strong><p>Watchlist colors, status thresholds, the eight-domain synthetic AIx, scenario families, and terminal rupture policies are transparent illustrative product rules—not theorem results from the attached paper.</p></article></div></Panel>
+      <Panel title="What comes from the paper—and what does not" subtitle="Related ideas with different evidentiary status"><div className="boundary-stack"><article><strong>Foundational torus paper</strong><p>Conditional two-phase geometry, radial excursion, debt, recovery, winding, phase observation, and design principles.</p></article><article><strong>ATS 4.0</strong><p>Layered viable-region alignment and the balance Ȧ=C−D.</p></article><article><strong>AANA</strong><p>Verifier-grounded runtime correctability: generate, ground, verify, revise/retrieve/ask/refuse/defer, gate, and monitor.</p></article><article><strong>Educational additions on this site</strong><p>Watchlist colors, status thresholds, the eight-domain synthetic AIx, scenario families, and terminal rupture policies are transparent illustrative rules—not theorem results from the attached paper.</p></article></div></Panel>
 
       <Panel title="Research status & limitations" subtitle="What the simulator does—and does not—show"><ul className="limitation-list"><li><strong>Conditional geometry.</strong> Two meaningful, independently recurrent phases are required; a torus-shaped rendering is not evidence.</li><li><strong>Synthetic evidence.</strong> Experiments demonstrate model behavior, not empirical validation or operational advice.</li><li><strong>Rupture semantics.</strong> Boundary crossing remains distinct from the site’s illustrative terminal policy.</li><li><strong>Phase identifiability.</strong> A failed gate leaves φ undefined rather than assigning an arbitrary angle.</li><li><strong>Scenario mappings are hypotheses.</strong> Units, evidence, assumptions, calibration, and falsification remain visible.</li><li><strong>Coordination is not alignment.</strong> Coupled systems can synchronize a shared error.</li></ul></Panel>
 
-      <Panel className="full-span" title="Paper & citation" subtitle="Armando Sori · Independent Researcher · July 13, 2026"><div className="paper-card"><div className="paper-preview"><span>TOROIDAL GEOMETRY</span><strong>ATS / AANA / AIx</strong><i /></div><p>{citation}</p><div className="button-row"><a className="button" href="/paper.pdf" download>Download PDF</a><button onClick={() => downloadText("citation.bib", `@article{sori2026toroidal,\n  title={Toroidal Geometry in ATS/AANA/AIx},\n  author={Sori, Armando},\n  year={2026},\n  note={Revised phase-coordinate edition}\n}`)}>BibTeX</button></div></div><div className="changelog"><strong>Model changelog</strong><span><b>v1.2.0</b> Recoverable versus terminal rupture, cumulative-loss telemetry, debt-adjusted margin, synthetic AIx/AANA gate, exact paper fixtures, imported telemetry, and protocol-driven research modules.</span><span><b>Evidence boundary</b> The served PDF matches the revised paper; product classifiers and mappings remain separately labeled illustrative rules.</span></div></Panel>
+      <Panel className="full-span" title="Paper & citation" subtitle="Armando Sori · Independent Researcher · July 13, 2026"><div className="paper-card"><div className="paper-preview"><span>TOROIDAL GEOMETRY</span><strong>ATS / AANA / AIx</strong><i /></div><p>{citation}</p><div className="button-row"><a className="button" href="/paper.pdf" download>Download PDF</a><button onClick={() => downloadText("citation.bib", `@article{sori2026toroidal,\n  title={Toroidal Geometry in ATS/AANA/AIx},\n  author={Sori, Armando},\n  year={2026},\n  note={Revised phase-coordinate edition}\n}`)}>BibTeX</button></div></div><div className="changelog"><strong>Model changelog</strong><span><b>v1.2.0</b> Recoverable versus terminal rupture, cumulative-loss telemetry, debt-adjusted margin, synthetic AIx/AANA checks, exact paper reference runs, imported telemetry, and reproducible research studies.</span><span><b>Evidence boundary</b> The served PDF matches the revised paper; site classifications and real-world mappings remain separately labeled illustrative rules.</span></div></Panel>
     </div>
   </div>;
 }

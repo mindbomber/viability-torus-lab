@@ -153,7 +153,7 @@ function compareText(
   matching: string,
   differing: string,
 ) {
-  if (!candidate.trim() || !anchor.trim()) return dimension(id, "unknown", severity, `${labels[id]} is not fully declared in both receipts.`);
+  if (!candidate.trim() || !anchor.trim()) return dimension(id, "unknown", severity, `${labels[id]} is not fully declared in both study records.`);
   return normalizedText(candidate) === normalizedText(anchor)
     ? dimension(id, "match", "none", matching)
     : dimension(id, "differs", severity, differing);
@@ -161,7 +161,7 @@ function compareText(
 
 function compareUnits(candidate: NormalizedReceipt, anchor: NormalizedReceipt) {
   const roles = [...new Set([...Object.keys(anchor.mappingUnits), ...Object.keys(candidate.mappingUnits)])].sort();
-  if (roles.length === 0) return dimension("units", "unknown", "partial", "No mapped measurement units are available in both receipts.");
+  if (roles.length === 0) return dimension("units", "unknown", "partial", "No mapped measurement units are available in both study records.");
   const missing = roles.filter((role) => !anchor.mappingUnits[role] || !candidate.mappingUnits[role]);
   if (missing.length > 0) return dimension("units", "unknown", "partial", `Mapped units are missing for ${missing.join(", ")}.`);
   const changed = roles.filter((role) => anchor.mappingUnits[role] !== candidate.mappingUnits[role]);
@@ -170,7 +170,7 @@ function compareUnits(candidate: NormalizedReceipt, anchor: NormalizedReceipt) {
 }
 
 function comparePreprocessing(candidate: NormalizedReceipt, anchor: NormalizedReceipt) {
-  if (!candidate.preprocessing || !anchor.preprocessing) return dimension("preprocessing", "unknown", "partial", "Preprocessing is not declared in both receipts.");
+  if (!candidate.preprocessing || !anchor.preprocessing) return dimension("preprocessing", "unknown", "partial", "Data preparation is not declared in both study records.");
   return stableString(candidate.preprocessing) === stableString(anchor.preprocessing)
     ? dimension("preprocessing", "match", "none", "The declared preprocessing steps match.")
     : dimension("preprocessing", "differs", "partial", "Declared preprocessing differs; keep this study visible but outside the compatible cohort.");
@@ -178,7 +178,7 @@ function comparePreprocessing(candidate: NormalizedReceipt, anchor: NormalizedRe
 
 function compareAssumptions(candidate: NormalizedReceipt, anchor: NormalizedReceipt) {
   return stableString(candidate.assumptions) === stableString(anchor.assumptions)
-    ? dimension("assumptions", "match", "none", "κ, χ, ρ₀, and ρcrit match the anchor receipt.")
+    ? dimension("assumptions", "match", "none", "κ, χ, ρ₀, and ρcrit match the anchor study.")
     : dimension("assumptions", "differs", "partial", "Declared radial assumptions differ; prediction-error summaries are not directly comparable.");
 }
 
@@ -188,12 +188,12 @@ function compatibilityDimensions(candidate: NormalizedReceipt, anchor: Normalize
   return [
     candidate.evidenceKind === "synthetic"
       ? dimension("evidence-kind", "excluded", "critical", "Bundled synthetic teaching data remain visible but are excluded from empirical aggregation.")
-      : dimension("evidence-kind", "match", "none", "This receipt describes researcher-supplied observations."),
+      : dimension("evidence-kind", "match", "none", "This study record describes researcher-supplied observations."),
     compareText("model-version", candidate.modelVersion, anchor.modelVersion, "critical", "The model versions match.", "The model versions differ; re-analysis under a common version is required."),
     candidate.scenarioId === anchor.scenarioId && candidate.scenarioVersion === anchor.scenarioVersion
       ? dimension("scenario-version", "match", "none", "The scenario id and scenario version match.")
       : dimension("scenario-version", "differs", "critical", `Scenario/version differs (${candidate.scenarioId} / ${candidate.scenarioVersion} versus ${anchor.scenarioId} / ${anchor.scenarioVersion}).`),
-    compareText("population", receipt.study.population, anchorReceipt.study.population, "critical", "The population ω and inclusion boundary match.", "Population ω differs; these receipts describe different systems or inclusion boundaries."),
+    compareText("population", receipt.study.population, anchorReceipt.study.population, "critical", "The population ω and inclusion boundary match.", "Population ω differs; these study records describe different systems or inclusion boundaries."),
     compareText("horizon", receipt.study.horizon, anchorReceipt.study.horizon, "partial", "The evidence horizon τ matches.", "Horizon τ differs; temporal summaries are only partially comparable."),
     compareText("aggregation", receipt.study.aggregation, anchorReceipt.study.aggregation, "critical", "The aggregation rule α matches.", "Aggregation rule α differs; heterogeneous outcomes are being combined differently."),
     compareText("viable-region", receipt.study.viableRegion, anchorReceipt.study.viableRegion, "critical", "The declared viable region X* matches.", "The viable-region definition differs; status outcomes do not have the same meaning."),
@@ -230,9 +230,9 @@ export function aggregateEmpiricalReceipts(input: unknown) {
   for (const receipt of normalized) if (!byId.has(receipt.id)) byId.set(receipt.id, receipt);
   const unique = [...byId.values()];
   const requestedAnchor = request.anchorReceiptId ? byId.get(request.anchorReceiptId) : undefined;
-  if (request.anchorReceiptId && !requestedAnchor) throw new Error(`Unknown anchor receipt '${request.anchorReceiptId}'.`);
+  if (request.anchorReceiptId && !requestedAnchor) throw new Error(`Unknown anchor study '${request.anchorReceiptId}'.`);
   const anchor = requestedAnchor ?? unique.find((receipt) => receipt.evidenceKind === "observed") ?? unique[0];
-  if (!anchor) throw new Error("The registry requires at least one receipt.");
+  if (!anchor) throw new Error("The registry requires at least one study record.");
 
   const entries = unique.map((receipt) => {
     const dimensions = compatibilityDimensions(receipt, anchor);
@@ -293,7 +293,7 @@ export function aggregateEmpiricalReceipts(input: unknown) {
         rhoCrit: range(cohortReceipts.map((receipt) => receipt.assumptions.rhoCrit)),
       },
     },
-    interpretationBoundary: "Only compatible observed receipts are summarized descriptively. Synthetic, partially comparable, and non-comparable receipts remain visible but are excluded. No raw observations are pooled, no watchlist tier is averaged, and these summaries are not a meta-analysis, causal estimate, or empirical validation of the theory. Non-combinability is a valid result.",
+    interpretationBoundary: "Only compatible observed studies are summarized descriptively. Synthetic, partially comparable, and non-comparable study records remain visible but are excluded. No raw observations are pooled, no watchlist tier is averaged, and these summaries are not a meta-analysis, causal estimate, or empirical validation of the theory. Non-combinability is a valid result.",
   });
 }
 

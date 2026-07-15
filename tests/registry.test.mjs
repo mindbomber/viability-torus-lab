@@ -73,5 +73,5 @@ test("registry bundle is redacted, schema-valid, and re-importable", () => {
 });
 
 test("unknown anchors are rejected instead of silently changing the comparison", () => {
-  assert.throws(() => aggregateEmpiricalReceipts({ receipts: demo(), anchorReceiptId: "er-not-present" }), /unknown anchor receipt/i);
+  assert.throws(() => aggregateEmpiricalReceipts({ receipts: demo(), anchorReceiptId: "er-not-present" }), /unknown anchor study/i);
 });

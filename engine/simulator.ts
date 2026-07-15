@@ -1262,7 +1262,7 @@ export function analyzePhaseOccupancy(frames: Pick<SimulationFrame, "theta" | "p
     spansTheta,
     spansPhi,
     heuristicBetti: [connectedComponents, beta1, beta1 === 2 ? 1 : 0],
-    limitation: "The live Betti tuple is an occupancy-grid heuristic. The archived research module remains the authoritative cubical-homology result.",
+    limitation: "The live Betti tuple is an occupancy-grid heuristic. The archived topology study remains the authoritative cubical-homology result.",
   };
 }
 
@@ -1504,7 +1504,7 @@ function buildExplanationSources(input: {
   const scenarioChanges = explanationParameterChanges(systemBaseline, scenarioParameters);
   const scenarioMargin = declaredDebtAdjustedMargin(scenarioParameters);
   const scenarioShift = scenarioMargin - baselineMargin;
-  const scenarioTitle = context?.scenario.title ?? "Configured conditions";
+  const scenarioTitle = context?.scenario.title ?? "Selected scenario";
   const scenarioKind = context?.scenario.kind.replaceAll("-", " ") ?? "scenario";
 
   const overrideChanges = explanationParameterChanges(scenarioParameters, configuredParameters);
@@ -1572,9 +1572,9 @@ function buildExplanationSources(input: {
     {
       id: "system-structure",
       title: "System structure",
-      state: context ? `${context.system.templateTitle} → ${context.system.systemTitle}` : "Configured system baseline",
+      state: context ? `${context.system.templateTitle} → ${context.system.systemTitle}` : "Selected system baseline",
       tone: "neutral",
-      summary: context?.system.structureSummary ?? "The configured baseline establishes restoration, debt sensitivity, recurrence, and the viability boundary before other changes are applied.",
+      summary: context?.system.structureSummary ?? "The selected system establishes restoration, debt sensitivity, recurrence, and the viability boundary before other changes are applied.",
       detail: `Pre-scenario C−D−χΔ=${signedExplanationValue(baselineMargin)} · ${structuralValues}`,
     },
     {
@@ -1590,11 +1590,11 @@ function buildExplanationSources(input: {
     {
       id: "user-overrides",
       title: "User overrides",
-      state: overrideChanges.length ? `${overrideChanges.length} configured change${overrideChanges.length === 1 ? "" : "s"}` : "Sliders match the protocol",
+      state: overrideChanges.length ? `${overrideChanges.length} slider change${overrideChanges.length === 1 ? "" : "s"}` : "Sliders match the selected scenario",
       tone: shiftTone(overrideShift),
       summary: overrideChanges.length
         ? "These slider or run-control changes were made after the scenario loaded and are part of this run's starting configuration."
-        : "No user override is contributing to the current result; the configured values match the selected scenario protocol.",
+        : "No slider change is contributing to the current result; the values match the selected scenario.",
       detail: `${formatExplanationChanges(overrideChanges)} · margin ${signedExplanationValue(scenarioMargin)}→${signedExplanationValue(configuredMargin)}`,
     },
     {
@@ -1776,7 +1776,7 @@ export function explainSimulationFrame(
     tone: explanationTone(frame),
     classification: classificationExplanation(frame, parameters, outsideStreak),
     sources,
-    attributionBoundary: "These are deterministic contributions inside the configured educational model, not empirical causal identification or proof that the domain mapping is correct.",
+    attributionBoundary: "These are deterministic contributions inside the selected educational model, not empirical causal identification or proof that the real-world mapping is correct.",
     balanceSummary,
     balance: [
       { label: "Pressure × error × feedback gap", symbol: "π·ε·(1−γ)", value: optimizationPressure, tone: "negative" },

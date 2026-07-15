@@ -51,7 +51,7 @@ export type BuilderAnswers = Record<BuilderAnswerKey, string>;
 
 export const builderQuestions: readonly BuilderAnswer[] = [
   { id: "systemName", question: "What bounded system are you modeling?", hint: "Name the entity whose state will be simulated—not the stress condition applied to it.", placeholder: "e.g. Metropolitan emergency-department flow system" },
-  { id: "template", question: "Which reusable system class best describes its structure?", hint: "The template supplies shared synthetic dynamics; your answers supply the real system boundary and parameter meanings.", placeholder: "Select a structural template", kind: "choice", options: systemTemplates.map((item) => item.id) },
+  { id: "template", question: "Which type of system best describes its structure?", hint: "The system type supplies shared synthetic dynamics; your answers supply the real boundary and parameter meanings.", placeholder: "Select a system type", kind: "choice", options: systemTemplates.map((item) => item.id) },
   { id: "operator", question: "Who can observe and change this system?", hint: "Name the accountable operator or decision-making body inside the boundary.", placeholder: "e.g. Hospital flow, staffing, bed-management, and quality teams" },
   { id: "boundary", question: "What is inside and outside the system boundary?", hint: "Name the assets, processes, controls, and interfaces included in the model.", placeholder: "e.g. Emergency arrivals, triage, treatment spaces, staffing, discharge paths, and safety feedback" },
   { id: "population", question: "Whose viability must the system preserve?", hint: "Name affected people, communities, organisms, or future populations explicitly.", placeholder: "e.g. Patients by acuity, families, clinical staff, and the region served" },
@@ -72,7 +72,7 @@ export const builderQuestions: readonly BuilderAnswer[] = [
   { id: "debt", question: "What accumulates as alignment debt Δ?", hint: "Name deferred correction that raises future recovery cost.", placeholder: "e.g. unresolved cases, staff fatigue, and audit backlog" },
   { id: "irreversibleLoss", question: "What damage is irreversible, Λ?", hint: "Name loss that ordinary feedback and correction cannot cheaply undo.", placeholder: "e.g. preventable death or permanent loss of public trust" },
   { id: "viableRegion", question: "What defines viable operation?", hint: "State the conditions that must remain true for recurrent operation and recovery.", placeholder: "e.g. safe outcomes, bounded queues, sustainable workload, and retained surge capacity" },
-  { id: "shocks", question: "What shocks or interventions should a protocol test?", hint: "Separate multiple items with commas or new lines.", placeholder: "e.g. demand spike, staffing loss, early surge activation, improved feedback" },
+  { id: "shocks", question: "What shocks or responses should the simulation test?", hint: "Separate multiple items with commas or new lines.", placeholder: "e.g. demand spike, staffing loss, early surge activation, improved feedback" },
   { id: "falsification", question: "What evidence would show this torus mapping is wrong?", hint: "State a concrete condition that would challenge two-phase recurrence or the proposed variable mappings.", placeholder: "e.g. the external signal does not recur, or correction and adaptation are not dynamically distinct" },
 ] as const;
 
@@ -113,7 +113,7 @@ export function buildScenarioProposal(
   const systemName = bounded(answers.systemName, 80);
   const modelFamily = answers.template as ModelFamily;
   const template = systemTemplateById[modelFamily];
-  if (!template) throw new Error("Select a valid reusable system template.");
+  if (!template) throw new Error("Select a valid system type.");
   const defaults: SimulationParameters = { ...baseDefaults, ...template.baseDynamics };
   const pressure = bounded(answers.pressure, 160);
   const id = slugify(systemName);
@@ -180,7 +180,7 @@ export function buildScenarioProposal(
     bounded(`Improve ${answers.feedback.trim()}`, 200),
     bounded(`Reduce ${answers.pressure.trim()}`, 200),
   ];
-  const protocolRationale = bounded(`The dimensionless values map ${answers.pressure.trim()}, ${answers.misclassification.trim()}, ${answers.feedback.trim()}, ${answers.correction.trim()}, ${answers.drift.trim()}, ${answers.debt.trim()}, and ${answers.irreversibleLoss.trim()} into the canonical equations before watchlist classification.`, 1_000);
+  const protocolRationale = bounded(`The dimensionless values connect ${answers.pressure.trim()}, ${answers.misclassification.trim()}, ${answers.feedback.trim()}, ${answers.correction.trim()}, ${answers.drift.trim()}, ${answers.debt.trim()}, and ${answers.irreversibleLoss.trim()} to the paper equations before the watchlist rating is calculated.`, 1_000);
   const defaultProtocolId = `${id}-default`;
   const protocols = scenarioModules
     .filter((module) => scenarioModuleAppliesTo(module.compatibleTemplateIds, template.id))
@@ -246,7 +246,7 @@ export function buildScenarioProposal(
           "The internal and external cycles are meaningfully distinct and independently recurrent.",
           bounded(`Internal phase observation: ${answers.minorObservation.trim()}`, 500),
           bounded(`External phase observation and identifiability plan: ${answers.majorObservation.trim()}`, 500),
-          "The canonical parameter mappings are hypotheses rather than measured quantities.",
+          "The connections between paper variables and real-world measurements are hypotheses rather than measured quantities.",
         ],
         falsificationCriteria: [bounded(answers.falsification, 500)],
         references: [{ title: "Sori (2026), Toroidal Geometry in ATS/AANA/AIx, revised phase-coordinate edition" }],
@@ -305,7 +305,7 @@ export function buildScenarioProposal(
         bounded(`Phase independence claim: ${answers.independentCycles}`, 500),
         bounded(`θ observation source: ${answers.minorObservation}`, 500),
         bounded(`φ observation and identifiability plan: ${answers.majorObservation}`, 500),
-        "The initial protocol values and thresholds are illustrative rather than empirically calibrated.",
+        "The initial scenario values and thresholds are illustrative rather than empirically calibrated.",
       ],
       references: ["Sori, A. (2026). Toroidal Geometry in ATS/AANA/AIx, revised phase-coordinate edition."],
       evaluations: [

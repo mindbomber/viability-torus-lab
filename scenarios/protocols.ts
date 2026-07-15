@@ -150,7 +150,7 @@ export function resolveScenarioProtocol(input: {
   const title = isDefault ? input.domainDefaultTitle : module.title;
   const summary = isDefault
     ? input.domainDefaultSummary
-    : `${module.summary} Applied to this bounded system without changing its boundary, population, horizon, or aggregation rule.`;
+    : `${module.summary} Applied to this system without changing its boundary, population, time horizon, or decision rule.`;
   return {
     id: isDefault ? `${input.systemId}-default` : module.id === "reduced-stress-context" ? `${input.systemId}-early-correction` : `${input.systemId}-${module.id}`,
     systemId: input.systemId,
@@ -163,7 +163,7 @@ export function resolveScenarioProtocol(input: {
     conditions: [...input.domainConditions, ...module.conditions],
     stressors: isDefault ? input.domainStressors : module.stressors,
     interventions: input.interventionMeanings,
-    parameterRationale: `The ${module.title.toLowerCase()} module applies a documented transform to the independently declared ${input.template.title.toLowerCase()} instance parameters. The watchlist classifier is run only after composition; it does not choose these values.`,
+    parameterRationale: `This scenario adjusts the starting values declared for the ${input.template.title.toLowerCase()} system type to represent ${module.title.toLowerCase()}. The educational watchlist rating is calculated afterward; it does not determine these values.`,
     learningObjective: module.learningObjective,
     parameters: module.transforms.length ? applyParameterTransforms(input.baseParameters, module.transforms) : input.baseParameters,
     provenance: "illustrative-system-protocol",

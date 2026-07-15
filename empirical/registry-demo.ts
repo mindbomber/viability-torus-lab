@@ -7,7 +7,7 @@ import { analyzeEmpiricalStudy, empiricalRoleDefinitions, exampleEmpiricalStudy 
 export function createSyntheticRegistryDemo(scenario: ScenarioDefinition): ParsedEmpiricalReceipt[] {
   const example = exampleEmpiricalStudy(scenario);
   const analysis = analyzeEmpiricalStudy(example.dataset, example.mapping, example.study, example.assumptions);
-  if (!analysis.replay) throw new Error("The bundled demonstration must produce a replay receipt.");
+  if (!analysis.replay) throw new Error("The bundled demonstration must produce replay results.");
   const finalStatus = analysis.replay.points.at(-1)?.statusLabel ?? "Replay complete";
   const baseReplay = {
     method: analysis.replay.method,
@@ -87,7 +87,7 @@ export function createSyntheticRegistryDemo(scenario: ScenarioDefinition): Parse
     replay: negative ? null : { ...baseReplay, holdoutRmse, holdoutIntervalCoverage: intervalCoverage },
     limitations: [
       "This is a synthetic registry demonstration and is not empirical evidence.",
-      "Raw observations are excluded; the receipt contains only redacted study metadata and diagnostics.",
+      "Raw observations are excluded; the study record contains only redacted study details and diagnostics.",
       "Compatibility and cohort metrics are descriptive and do not establish causality or validate the theory.",
     ],
   });

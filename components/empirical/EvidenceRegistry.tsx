@@ -67,7 +67,7 @@ export function EvidenceRegistry({ scenario, receipts, onReceiptsChange, announc
         setPersistOnDevice(true);
         onReceiptsChange(mergeEmpiricalReceipts(receipts, bundle.receipts));
         setAnchorReceiptId(bundle.anchorReceiptId);
-        announce(`${bundle.receipts.length} redacted receipts restored from this device`);
+        announce(`${bundle.receipts.length} redacted study records restored from this device`);
       });
     } catch {
       window.localStorage.removeItem(registryStorageKey);
@@ -112,9 +112,9 @@ export function EvidenceRegistry({ scenario, receipts, onReceiptsChange, announc
       }
       const merged = mergeEmpiricalReceipts(receipts, additions);
       onReceiptsChange(merged);
-      announce(`${merged.length - receipts.length} new redacted receipt${merged.length - receipts.length === 1 ? "" : "s"} added; duplicates were ignored`);
+      announce(`${merged.length - receipts.length} new redacted study record${merged.length - receipts.length === 1 ? "" : "s"} added; duplicates were ignored`);
     } catch (error) {
-      announce(error instanceof Error ? error.message : "Evidence receipts could not be imported");
+      announce(error instanceof Error ? error.message : "Study records could not be imported");
     }
   };
 
@@ -144,11 +144,11 @@ export function EvidenceRegistry({ scenario, receipts, onReceiptsChange, announc
     <section className="registry-heading">
       <div>
         <h1>Evidence Registry</h1>
-        <p>Compare redacted study receipts without pooling incompatible evidence.</p>
+        <p>Compare redacted study records without pooling incompatible evidence.</p>
         <div className="registry-labels" aria-label="Registry evidence boundaries"><span>Browser-local registry</span><span>Raw observations excluded</span><span>Descriptive aggregation</span></div>
       </div>
       <div className="registry-actions">
-        <button className="primary" onClick={() => importRef.current?.click()}>⇧ Import receipts</button>
+        <button className="primary" onClick={() => importRef.current?.click()}>⇧ Import study records</button>
         <button onClick={loadDemo}>◇ Load synthetic demonstration</button>
         <button disabled={!summary} onClick={exportRegistry}>⇩ Export registry</button>
         <input ref={importRef} hidden multiple type="file" accept="application/json,.json" onChange={(event) => { if (event.target.files) void importReceipts(event.target.files); event.target.value = ""; }} />
@@ -157,16 +157,16 @@ export function EvidenceRegistry({ scenario, receipts, onReceiptsChange, announc
 
     {!summary ? <section className="registry-empty">
       <span aria-hidden="true">⌘</span>
-      <h2>Start with a redacted evidence receipt</h2>
-      <p>Import JSON receipts from the Empirical Lab, local MCP, CLI, or opt-in API. The registry stores no raw observations and will not combine studies until their boundaries, variables, and model versions are compatible.</p>
-      <div><button className="primary" onClick={() => importRef.current?.click()}>Import receipts</button><button onClick={loadDemo}>Explore a synthetic demonstration</button></div>
+      <h2>Start with a redacted study record</h2>
+      <p>Import JSON study records from the Empirical Lab, local MCP, CLI, or opt-in API. The registry stores no raw observations and will not combine studies until their boundaries, variables, and model versions are compatible.</p>
+      <div><button className="primary" onClick={() => importRef.current?.click()}>Import study records</button><button onClick={loadDemo}>Explore a synthetic demonstration</button></div>
     </section> : <>
       <section className="registry-summary-strip" aria-label="Evidence registry summary">
-        <RegistryStat label="Total receipts" value={summary.counts.totalReceipts} />
+        <RegistryStat label="Total records" value={summary.counts.totalReceipts} />
         <RegistryStat label="Observed studies" value={summary.counts.observedStudies} />
         <RegistryStat label="Negative studies" value={summary.counts.negativeStudies} tone="negative" />
         <RegistryStat label="Compatible with anchor" value={summary.counts.compatibleWithAnchor} tone="positive" />
-        <label className="registry-persistence"><input type="checkbox" checked={persistOnDevice} onChange={(event) => setPersistOnDevice(event.target.checked)} /><span><strong>{persistOnDevice ? "Saved on this device" : "Session-only registry"}</strong><small>{persistOnDevice ? "Only redacted receipts are retained." : "Nothing is retained after this browser session."}</small></span></label>
+        <label className="registry-persistence"><input type="checkbox" checked={persistOnDevice} onChange={(event) => setPersistOnDevice(event.target.checked)} /><span><strong>{persistOnDevice ? "Saved on this device" : "Session-only registry"}</strong><small>{persistOnDevice ? "Only redacted study records are retained." : "Nothing is retained after this browser session."}</small></span></label>
       </section>
 
       <section className="registry-workspace">
@@ -175,30 +175,30 @@ export function EvidenceRegistry({ scenario, receipts, onReceiptsChange, announc
             <label>Anchor study <select aria-label="Anchor study" value={summary.anchorReceiptId} onChange={(event) => { setAnchorReceiptId(event.target.value); setSelectedReceiptId(event.target.value); }}>
               {availableAnchors.map((receipt) => <option key={receipt.id} value={receipt.id}>{receipt.studyName}{receipt.evidenceKind === "synthetic" ? " (synthetic; aggregation disabled)" : ""}</option>)}
             </select></label>
-            <label className="registry-search"><span className="sr-only">Search receipts</span><input value={search} placeholder="Search receipts…" onChange={(event) => setSearch(event.target.value)} /></label>
+            <label className="registry-search"><span className="sr-only">Search study records</span><input value={search} placeholder="Search study records…" onChange={(event) => setSearch(event.target.value)} /></label>
           </header>
           <nav className="registry-filters" aria-label="Registry filters">{filters.map((item) => <button key={item.id} className={filter === item.id ? "active" : ""} onClick={() => setFilter(item.id)}>{item.label}</button>)}</nav>
           <div className="registry-table-wrap"><table>
             <thead><tr><th>Study</th><th>Source</th><th>Scenario / version</th><th>Evidence</th><th>Phase result</th><th>Compatibility</th><th>Rows</th><th>Holdout RMSE</th></tr></thead>
             <tbody>{visibleReceipts.map((receipt) => <tr key={receipt.id} className={selected?.id === receipt.id ? "selected" : ""} onClick={() => setSelectedReceiptId(receipt.id)}>
               <td><button className="registry-study-link" onClick={() => setSelectedReceiptId(receipt.id)}>{receipt.studyName}</button></td>
-              <td>{receipt.receiptKind === "browser-local-empirical-study" ? "Browser receipt" : "Headless receipt"}</td>
+              <td>{receipt.receiptKind === "browser-local-empirical-study" ? "Browser study" : "API or MCP study"}</td>
               <td>{receipt.scenarioId} / {receipt.scenarioVersion}</td>
               <td><span className={`registry-pill ${receipt.evidenceKind}`}>{receipt.evidenceKind === "observed" ? "Observed" : "Synthetic"}</span></td>
               <td><span className={`registry-pill phase-${receipt.phaseResult}`}>{receipt.phaseResult[0].toUpperCase() + receipt.phaseResult.slice(1)}</span></td>
               <td><span className={`registry-pill compatibility-${receipt.compatibility}`}>{compatibilityLabel(receipt.compatibility)}</span></td>
               <td>{receipt.rows}</td><td>{receipt.replay ? receipt.replay.holdoutRmse.toFixed(3) : "—"}</td>
             </tr>)}</tbody>
-          </table>{visibleReceipts.length === 0 && <p className="registry-no-results">No receipts match this filter.</p>}</div>
-          <footer>Showing {visibleReceipts.length} of {summary.counts.totalReceipts} receipts <span>Duplicates removed: {summary.counts.deduplicatedReceipts}</span></footer>
+          </table>{visibleReceipts.length === 0 && <p className="registry-no-results">No study records match this filter.</p>}</div>
+          <footer>Showing {visibleReceipts.length} of {summary.counts.totalReceipts} study records <span>Duplicates removed: {summary.counts.deduplicatedReceipts}</span></footer>
         </div>
 
         {selected && <aside className="registry-inspector">
           <header><h2>Compatibility with anchor</h2><span>Anchor: {summary.receipts.find((receipt) => receipt.id === summary.anchorReceiptId)?.studyName}</span><strong>Selected: {selected.studyName}</strong></header>
           <div className="registry-dimensions">{selected.dimensions.map((entry) => <article key={entry.id} className={`dimension-${entry.status}`}><div><span>{entry.label}</span><b>{dimensionLabel(entry.status)}</b></div><p>{entry.explanation}</p></article>)}</div>
           <section className={`registry-verdict verdict-${selected.compatibility}`}><strong>{compatibilityVerdict(selected.compatibility)}</strong>{selected.dimensions.some((entry) => entry.status !== "match") && <small>{selected.dimensions.filter((entry) => entry.status !== "match").map((entry) => `${entry.label}: ${entry.status}`).join(" · ")}</small>}<span>Non-combinability is a valid result.</span></section>
-          <p className="registry-inspector-boundary">This receipt remains visible for transparency. Only an anchor or fully compatible observed receipt enters the descriptive cohort.</p>
-          <button onClick={removeSelected}>Remove selected receipt</button>
+          <p className="registry-inspector-boundary">This study record remains visible for transparency. Only an anchor or fully compatible observed study enters the descriptive cohort.</p>
+          <button onClick={removeSelected}>Remove selected record</button>
         </aside>}
       </section>
 
@@ -207,7 +207,7 @@ export function EvidenceRegistry({ scenario, receipts, onReceiptsChange, announc
         <div className="registry-cohort-body">
           <div className="registry-cohort-stats">
             <RegistryStat label="Compatible observed studies" value={summary.cohort.compatibleObservedStudies} tone="positive" />
-            <RegistryStat label="Phase-gate pass rate" value={formatPercent(summary.cohort.phaseGatePassRate)} tone="positive" />
+            <RegistryStat label="Phase-check pass rate" value={formatPercent(summary.cohort.phaseGatePassRate)} tone="positive" />
             <RegistryStat label="Mean holdout RMSE" value={formatMetric(summary.cohort.meanHoldoutRmse)} tone="data" />
             <RegistryStat label="Interval coverage" value={formatPercent(summary.cohort.meanIntervalCoverage)} tone="data" />
             <RegistryStat label="Negative studies preserved" value={summary.cohort.negativeStudiesPreserved} tone="negative" />
@@ -229,7 +229,7 @@ function RmseRange({ minimum, maximum, mean }: { minimum: number | null; maximum
   const domainMin = Math.max(0, minimum - Math.max(0.02, (maximum - minimum) * 2));
   const domainMax = maximum + Math.max(0.02, (maximum - minimum) * 2);
   const x = (value: number) => 40 + ((value - domainMin) / Math.max(0.0001, domainMax - domainMin)) * 360;
-  return <section className="registry-range"><header><h3>Descriptive heterogeneity</h3><span>Holdout RMSE · compatible observed receipts</span></header><svg viewBox="0 0 440 90" role="img" aria-label={`Holdout RMSE ranges from ${formatMetric(minimum)} to ${formatMetric(maximum)}, mean ${formatMetric(mean)}`}><line x1="40" y1="56" x2="400" y2="56" className="range-axis"/><line x1={x(minimum)} y1="38" x2={x(maximum)} y2="38" className="range-line"/><circle cx={x(minimum)} cy="38" r="5"/><circle cx={x(maximum)} cy="38" r="5"/><line x1={x(mean)} y1="18" x2={x(mean)} y2="62" className="range-mean"/><text x={x(minimum)} y="28">{formatMetric(minimum)}</text><text x={x(maximum)} y="28">{formatMetric(maximum)}</text><text x={x(mean)} y="80">Mean {formatMetric(mean)}</text></svg></section>;
+  return <section className="registry-range"><header><h3>Descriptive heterogeneity</h3><span>Holdout RMSE · compatible observed studies</span></header><svg viewBox="0 0 440 90" role="img" aria-label={`Holdout RMSE ranges from ${formatMetric(minimum)} to ${formatMetric(maximum)}, mean ${formatMetric(mean)}`}><line x1="40" y1="56" x2="400" y2="56" className="range-axis"/><line x1={x(minimum)} y1="38" x2={x(maximum)} y2="38" className="range-line"/><circle cx={x(minimum)} cy="38" r="5"/><circle cx={x(maximum)} cy="38" r="5"/><line x1={x(mean)} y1="18" x2={x(mean)} y2="62" className="range-mean"/><text x={x(minimum)} y="28">{formatMetric(minimum)}</text><text x={x(maximum)} y="28">{formatMetric(maximum)}</text><text x={x(mean)} y="80">Mean {formatMetric(mean)}</text></svg></section>;
 }
 
 function parseReceiptPayload(payload: unknown): ParsedEmpiricalReceipt[] {
