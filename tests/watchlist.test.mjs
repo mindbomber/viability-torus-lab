@@ -5,7 +5,7 @@ import { assessWatchlistConfiguration } from "../engine/watchlist.ts";
 import { parameterEducationFor } from "../scenarios/education.ts";
 import { scenarios } from "../scenarios/catalog.ts";
 
-const publishedWatchlist = scenarios.filter((scenario) => scenario.watchlistTier !== "featured");
+const publishedWatchlist = scenarios;
 
 test("common outcome protocols independently reproduce all published watchlist tiers", () => {
   for (const scenario of publishedWatchlist) {
@@ -31,15 +31,15 @@ test("orange and yellow defaults have meaningfully different stress outcomes", (
   assert.equal(yellowAssessment.protocols["compound-stress"].boundaryCrossingRate, 0);
 });
 
-test("a visible recovery parameter package can change red and orange current tiers", () => {
+test("a visible early-correction protocol can improve red and orange current tiers", () => {
   for (const id of ["climate-biosphere", "ai-agent-ecosystems"]) {
     const scenario = scenarios.find((item) => item.id === id);
     assert.ok(scenario);
-    const recovery = scenario.presets.find((preset) => preset.name === "Recovery");
+    const recovery = scenario.protocols.find((protocol) => protocol.id.endsWith("early-correction"));
     assert.ok(recovery);
-    const changed = assessWatchlistConfiguration({ ...scenario.defaults, ...recovery.values });
-    assert.equal(changed.tier, "yellow");
-    assert.equal(changed.protocols["compound-stress"].terminalRate, 0);
+    const changed = assessWatchlistConfiguration(recovery.parameters);
+    assert.notEqual(changed.tier, scenario.watchlistTier);
+    assert.equal(changed.tier, id === "climate-biosphere" ? "orange" : "yellow");
   }
 });
 
@@ -50,6 +50,18 @@ test("watchlist assessment is deterministic and uses a tier-independent canonica
     assessWatchlistConfiguration(scenario.defaults),
     assessWatchlistConfiguration(scenario.defaults),
   );
+  assert.equal(assessWatchlistConfiguration(scenario.defaults).protocolVersion, "educational-watchlist-v2");
+});
+
+test("sustained Warning or Fragile baseline status is visible in the orange outlook", () => {
+  for (const id of ["groundwater-depletion", "engagement-recommender"]) {
+    const scenario = scenarios.find((item) => item.id === id);
+    assert.ok(scenario);
+    const assessment = assessWatchlistConfiguration(scenario.defaults);
+    assert.equal(assessment.tier, "orange");
+    assert.ok(assessment.protocols.baseline.meanWarningOrFragileFraction >= 0.5, id);
+    assert.match(assessment.reasons[0], /Warning or Fragile status/i, id);
+  }
 });
 
 test("parameter education covers every engine parameter with scenario-specific equivalents", () => {
@@ -60,5 +72,7 @@ test("parameter education covers every engine parameter with scenario-specific e
   assert.equal(rows.length, Object.keys(scenario.defaults).length);
   assert.equal(new Set(rows.map((row) => row.key)).size, Object.keys(scenario.defaults).length);
   assert.equal(education.primary.find((row) => row.key === "pressure")?.realWorldEquivalent, "Emissions, extraction & land-use pressure");
+  assert.match(education.primary.find((row) => row.key === "pressure")?.observationProxy ?? "", /emissions/i);
+  assert.ok(rows.filter((row) => !["seed", "steps", "dt"].includes(row.key)).every((row) => row.observationProxy && row.proxyNormalization && row.updateCadence));
   assert.ok(rows.every((row) => row.modelRole && row.scale && row.predictedEffect));
 });

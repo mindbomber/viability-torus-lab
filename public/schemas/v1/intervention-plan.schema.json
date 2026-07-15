@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 160
+    },
+    "strategy": {
+      "type": "string",
+      "enum": [
+        "none",
+        "preventive",
+        "corrective",
+        "restorative",
+        "containment"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "learningObjective": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 1000
+    },
+    "items": {
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "interventionId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "intensity": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 5
+          },
+          "startFraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "onsetDelaySteps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999
+          },
+          "durationSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9999
+          }
+        },
+        "required": [
+          "interventionId",
+          "intensity",
+          "startFraction"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "compatibleTemplateIds": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "all"
+        },
+        {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "regenerative-stock",
+              "threshold-regime-shift",
+              "resistance-contagion",
+              "trust-legitimacy",
+              "capability-correction",
+              "network-cascade",
+              "financial-leverage",
+              "human-capacity"
+            ]
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "type": "string",
+      "const": "illustrative-intervention-plan"
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "title",
+    "strategy",
+    "summary",
+    "learningObjective",
+    "items",
+    "compatibleTemplateIds",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/intervention-plan.schema.json",
+  "title": "Composable intervention plan"
+}

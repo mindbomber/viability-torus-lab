@@ -1,5 +1,8 @@
 import { MAX_INTERNAL_DT, MODEL_VERSION } from "../engine/simulator.ts";
-import { scenarios } from "../scenarios/catalog.ts";
+import { featuredSystemCount, scenarios } from "../scenarios/catalog.ts";
+import { interventionDefinitions, interventionPlans } from "../scenarios/interventions.ts";
+import { scenarioModules } from "../scenarios/protocols.ts";
+import { systemTemplates } from "../scenarios/templates.ts";
 import {
   API_VERSION,
   CONTRACT_VERSION,
@@ -15,11 +18,12 @@ export function getModelManifest(origin = "") {
     modelVersion: MODEL_VERSION,
     contractVersion: CONTRACT_VERSION,
     apiVersion: API_VERSION,
-    scientificScope: "Synthetic model behavior; scenario mappings and optimized parameters are hypotheses, not empirical or operational recommendations.",
+    scientificScope: "Synthetic model behavior; bounded-system mappings and protocol parameters are hypotheses, not empirical or operational recommendations.",
+    catalogModel: "system-template → bounded-system → scenario-module → intervention-plan → run-assessment",
     evidencePolicy: {
       kind: "synthetic-model",
       empiricalValidation: false,
-      publicationGate: "Human review and deterministic reference cases are required before a scenario enters the published registry.",
+      publicationGate: "Human review and deterministic reference cases are required before a bounded system and protocol enter the published registry.",
       empiricalResearch: "Researcher-supplied observations are classified as observed-descriptive. Receipts and explanations remain provisional model evidence, not causal or empirical validation of the theory.",
       evidenceRegistry: "Redacted receipts are compared against an anchor. Only compatible observed receipts receive descriptive summaries; negative, synthetic, and non-comparable studies remain visible and no watchlist tier is averaged.",
     },
@@ -46,7 +50,7 @@ export function getModelManifest(origin = "") {
       states: ["Viable recurrence", "Viability-boundary crossing", "Recoverable excursion", "Irreversible rupture"],
       terminalRule: "Persistent boundary excursion plus cumulative irreversible loss and either domain-policy debt or radial severity.",
       displayedMargins: ["C-D", "C-D-chi*debt", "d-rho/dt"],
-      policyProvenance: "Each scenario declares an illustrative rupture policy pending domain calibration.",
+      policyProvenance: "Each bounded-system mapping declares an illustrative rupture policy pending domain calibration.",
     },
     aix: {
       framework: "ATS-4.0",
@@ -55,7 +59,10 @@ export function getModelManifest(origin = "") {
       calibration: "Transparent synthetic heuristics; not an empirically calibrated domain score.",
     },
     capabilities: [
-      "list-scenarios",
+      "list-reusable-system-templates",
+      "list-bounded-systems-and-protocols",
+      "list-and-compose-scenario-modules",
+      "list-and-schedule-intervention-modules-and-plans",
       "run-seeded-simulation",
       "run-ensembles",
       "compare-experiments",
@@ -70,7 +77,12 @@ export function getModelManifest(origin = "") {
     ],
     endpoints: {
       model: url("/api/v1/model"),
+      systems: url("/api/v1/systems"),
       scenarios: url("/api/v1/scenarios"),
+      laboratory: url("/api/v1/laboratory"),
+      systemTemplates: url("/api/v1/system-templates"),
+      scenarioModules: url("/api/v1/scenario-modules"),
+      interventions: url("/api/v1/interventions"),
       simulate: url("/api/v1/simulate"),
       compare: url("/api/v1/compare"),
       sweep: url("/api/v1/sweep"),
@@ -84,7 +96,13 @@ export function getModelManifest(origin = "") {
       paper: url("/paper.pdf"),
       source: "https://github.com/mindbomber/viability-torus-lab",
     },
+    systemCount: scenarios.length,
+    systemTemplateCount: systemTemplates.length,
+    scenarioModuleCount: scenarioModules.length,
+    interventionDefinitionCount: interventionDefinitions.length,
+    interventionPlanCount: interventionPlans.length,
     scenarioCount: scenarios.length,
+    featuredSystemCount,
     limits: PUBLIC_EXECUTION_LIMITS,
     parameters: PARAMETER_LIMITS,
   };

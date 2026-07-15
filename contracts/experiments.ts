@@ -9,6 +9,7 @@ import {
   type SimulationSummary,
 } from "../engine/simulator.ts";
 import { scenarioById } from "../scenarios/catalog.ts";
+import { composeLaboratoryRun, CompositionError } from "../scenarios/composition.ts";
 import {
   CONTRACT_VERSION,
   LOCAL_EXECUTION_LIMITS,
@@ -123,16 +124,32 @@ export function summarizeRuns(summaries: SimulationSummary[]): EnsembleSummary {
 
 export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EXECUTION_LIMITS): ExperimentResult {
   const spec = parseWith<ParsedExperimentSpec>(experimentSpecSchema, input, "Experiment");
-  const scenario = scenarioById[spec.scenarioId];
-  if (!scenario) throw new ContractError("Experiment references an unknown scenario.", [{ path: "scenarioId", message: `Unknown scenario '${spec.scenarioId}'.` }]);
-  const parameters = parseWith<SimulationParameters>(simulationParametersSchema, { ...scenario.defaults, ...spec.parameters }, "Simulation parameters");
+  const systemId = spec.systemId ?? spec.scenarioId;
+  if (!systemId) throw new ContractError("Experiment references no bounded system.", [{ path: "systemId", message: "systemId is required." }]);
+  let composition;
+  try {
+    composition = composeLaboratoryRun({
+      systemId,
+      protocolId: spec.protocolId,
+      interventionPlanId: spec.interventionPlanId,
+      parameters: spec.parameters,
+      interventions: spec.interventions,
+    });
+  } catch (error) {
+    if (error instanceof CompositionError) throw new ContractError(error.message, [{ path: error.path, message: error.message }]);
+    throw error;
+  }
+  const scenario = scenarioById[systemId];
+  const { template, protocol, interventionPlan } = composition;
+  const parameters = parseWith<SimulationParameters>(simulationParametersSchema, composition.parameters, "Simulation parameters");
+  const interventions = composition.interventions;
   const seeds = spec.seeds ?? [parameters.seed];
-  enforceExecutionLimits(parameters, seeds, spec.interventions, limits);
+  enforceExecutionLimits(parameters, seeds, interventions, limits);
 
   const runs = seeds.map((seed) => {
     const result = simulate(
       { ...parameters, seed },
-      spec.interventions,
+      interventions,
       { rupturePolicy: scenario.rupturePolicy },
     );
     if (!spec.includeFrames) return { seed, summary: result.summary };
@@ -143,9 +160,12 @@ export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EX
 
   const experimentId = deterministicFingerprint({
     modelVersion: MODEL_VERSION,
-    scenario: { id: scenario.id, version: scenario.version },
+    template: { id: template.id, version: template.version },
+    system: { id: scenario.system.id, version: scenario.system.version },
+    protocol: { id: protocol.id, version: protocol.version },
+    interventionPlan: { id: interventionPlan.id, version: interventionPlan.version },
     parameters,
-    interventions: spec.interventions,
+    interventions,
     seeds,
   });
 
@@ -154,7 +174,11 @@ export function runExperiment(input: unknown, limits: ExecutionLimits = LOCAL_EX
     modelVersion: MODEL_VERSION,
     experimentId,
     scenario: { id: scenario.id, version: scenario.version, title: scenario.title },
-    configuration: { parameters, interventions: spec.interventions, seeds },
+    template: { id: template.id, version: template.version, title: template.title },
+    system: { id: scenario.system.id, version: scenario.system.version, title: scenario.system.title },
+    protocol: { id: protocol.id, version: protocol.version, title: protocol.title },
+    interventionPlan: { id: interventionPlan.id, version: interventionPlan.version, title: interventionPlan.title },
+    configuration: { protocolId: protocol.id, interventionPlanId: interventionPlan.id, parameters, interventions, seeds },
     runs,
     ensemble: summarizeRuns(runs.map((run) => run.summary)),
     evidence: {
@@ -208,10 +232,12 @@ export function sweepParameters(input: unknown, limits: ExecutionLimits = LOCAL_
     throw new ContractError("Sweep exceeds the parameter limit.", [{ path: "grid", message: `At most ${limits.maxSweepParameters} parameters may vary in one sweep.` }]);
   }
   const combinations = cartesianGrid(spec.grid as Record<string, number[]>, limits.maxSweepCandidates);
-  const scenario = scenarioById[spec.base.scenarioId];
-  const steps = spec.base.parameters.steps ?? scenario?.defaults.steps ?? 0;
+  const scenario = scenarioById[spec.base.systemId ?? spec.base.scenarioId ?? ""];
+  const protocol = scenario?.protocols.find((item) => item.id === (spec.base.protocolId ?? scenario.defaultProtocolId));
+  const protocolParameters = protocol?.parameters ?? scenario?.defaults;
+  const steps = spec.base.parameters.steps ?? protocolParameters?.steps ?? 0;
   const runCount = spec.base.seeds?.length ?? 1;
-  const dt = spec.base.parameters.dt ?? scenario?.defaults.dt ?? MAX_INTERNAL_DT;
+  const dt = spec.base.parameters.dt ?? protocolParameters?.dt ?? MAX_INTERNAL_DT;
   const totalIntegrationWork =
     combinations.length *
     runCount *

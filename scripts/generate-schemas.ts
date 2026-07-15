@@ -10,10 +10,14 @@ import {
   empiricalResearchRequestSchema,
   externalTelemetrySchema,
   experimentSpecSchema,
+  interventionDefinitionSchema,
+  interventionPlanDefinitionSchema,
+  scenarioModuleDefinitionSchema,
   scenarioDefinitionSchema,
   scenarioProposalSchema,
   scheduledInterventionSchema,
   simulationParametersSchema,
+  systemTemplateDefinitionSchema,
   sweepSpecSchema,
 } from "../contracts/schemas.ts";
 import { CONTRACT_VERSION } from "../contracts/constants.ts";
@@ -24,6 +28,10 @@ const canonicalBase = "https://viability-torus-lab.citizen-of-earth.chatgpt.site
 const definitions = [
   ["simulation-parameters", "Simulation parameters", simulationParametersSchema],
   ["scheduled-intervention", "Scheduled intervention", scheduledInterventionSchema],
+  ["system-template", "Reusable system template", systemTemplateDefinitionSchema],
+  ["scenario-module", "Reusable scenario module", scenarioModuleDefinitionSchema],
+  ["intervention-definition", "Reusable intervention definition", interventionDefinitionSchema],
+  ["intervention-plan", "Composable intervention plan", interventionPlanDefinitionSchema],
   ["experiment", "Experiment specification", experimentSpecSchema],
   ["comparison", "Experiment comparison", comparisonSpecSchema],
   ["parameter-sweep", "Parameter sweep", sweepSpecSchema],

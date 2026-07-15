@@ -11,8 +11,18 @@ import { analyzeEmpiricalRequest, explainEmpiricalObservation, type EmpiricalPro
 import { materializeEmpiricalCsvResource } from "../empirical/local-resource.ts";
 import { aggregateEmpiricalReceipts } from "../empirical/registry.ts";
 import { scenarioById, scenarios } from "../scenarios/catalog.ts";
+import { composeLaboratoryRun } from "../scenarios/composition.ts";
+import { interventionDefinitions, interventionPlans } from "../scenarios/interventions.ts";
+import { scenarioModules } from "../scenarios/protocols.ts";
+import { systemTemplates } from "../scenarios/templates.ts";
 
 const resultSchema = { result: z.unknown() };
+const systemCategorySchema = z.enum(["AI", "Ecology", "Healthcare", "Organizations", "Infrastructure", "Economy", "Society"]);
+const systemListInputSchema = {
+  category: systemCategorySchema.optional(),
+  tier: z.enum(["red", "orange", "yellow"]).optional(),
+  featured: z.boolean().optional(),
+};
 const asToolResult = (result: unknown) => ({
   content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
   structuredContent: { result },
@@ -35,7 +45,7 @@ export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIM
   };
   const server = new McpServer(
     { name: "viability-torus-lab", version: CONTRACT_VERSION },
-    { instructions: "Use get_model_info before experiments when model scope is unclear. List or fetch a scenario before changing parameters. Simulation results are synthetic model evidence. Empirical tools return observed-descriptive, provisional receipts and model attribution, not causal identification or validation of the theory. Never force a torus interpretation when a phase gate fails. Use validate_scenario_proposal before proposing publication; validation never publishes a scenario and human review is required." },
+    { instructions: "Use get_model_info before experiments when model scope is unclear. Compose a reusable system template, a concrete bounded system, a scenario module, and an intervention plan; treat the resulting status as a run assessment. Scenario modules change conditions, intervention modules represent operator actions, and neither is the system itself. Simulation results are synthetic model evidence. Empirical tools return observed-descriptive, provisional receipts and model attribution, not causal identification or validation of the theory. Never force a torus interpretation when a phase gate fails. Use validate_scenario_proposal before proposing publication; validation never publishes a scenario and human review is required." },
   );
 
   server.registerTool("get_model_info", {
@@ -45,21 +55,76 @@ export function createVtlMcpServer(limits: ExecutionLimits = LOCAL_EXECUTION_LIM
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async () => asToolResult(getModelManifest()));
 
+  server.registerTool("list_system_templates", {
+    title: "List reusable system templates",
+    description: "List the structural system classes that supply shared synthetic dynamics without defining a concrete real-world boundary.",
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => asToolResult({ systemTemplates }));
+
+  server.registerTool("list_scenario_modules", {
+    title: "List reusable scenario modules",
+    description: "List modular exogenous condition and stress transforms that can be applied across compatible bounded systems.",
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => asToolResult({ scenarioModules }));
+
+  server.registerTool("list_interventions", {
+    title: "List intervention modules and plans",
+    description: "List reusable corrective mechanisms, timing, costs, tradeoffs, domain translations, and composed intervention plans.",
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => asToolResult({ interventionDefinitions, interventionPlans }));
+
+  server.registerTool("list_systems", {
+    title: "List bounded systems",
+    description: "List published bounded-system definitions and their scenario protocols, optionally filtered by category, derived default watchlist tier, or editorial featured status.",
+    inputSchema: systemListInputSchema,
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ category, tier, featured }) => asToolResult({ systems: scenarios.filter((scenario) =>
+    (!category || scenario.category === category) &&
+    (!tier || scenario.watchlistTier === tier) &&
+    (featured === undefined || scenario.featured === featured)
+  ) }));
+
+  server.registerTool("get_system", {
+    title: "Get bounded system",
+    description: "Return one bounded-system definition, its protocols, and its derived default educational assessment metadata by stable id.",
+    inputSchema: { systemId: z.string() },
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ systemId }) => asToolResult(scenarioById[systemId] ?? { error: `Unknown system '${systemId}'.` }));
+
   server.registerTool("list_scenarios", {
-    title: "List scenarios",
-    description: "List published scenario definitions, optionally filtered by domain category.",
-    inputSchema: { category: z.enum(["AI", "Organizations", "Healthcare", "Ecology"]).optional() },
+    title: "List scenarios (compatibility alias)",
+    description: "Compatibility alias that returns the published bounded systems and their attached scenario protocols.",
+    inputSchema: { category: systemCategorySchema.optional() },
     outputSchema: resultSchema,
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async ({ category }) => asToolResult({ scenarios: category ? scenarios.filter((scenario) => scenario.category === category) : scenarios }));
 
   server.registerTool("get_scenario", {
-    title: "Get scenario",
-    description: "Return one published scenario definition by stable id.",
+    title: "Get scenario (compatibility alias)",
+    description: "Compatibility alias that returns a bounded system and its scenario protocols by stable id.",
     inputSchema: { scenarioId: z.string() },
     outputSchema: resultSchema,
     annotations: { readOnlyHint: true, openWorldHint: false },
   }, async ({ scenarioId }) => asToolResult(scenarioById[scenarioId] ?? { error: `Unknown scenario '${scenarioId}'.` }));
+
+  server.registerTool("compose_laboratory_run", {
+    title: "Compose a laboratory run",
+    description: "Resolve a bounded system, reusable scenario module or protocol, intervention plan, parameter overrides, and custom events into the exact deterministic engine configuration without running it.",
+    inputSchema: experimentSpecSchema,
+    outputSchema: resultSchema,
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async (input) => asToolResult(composeLaboratoryRun({
+    systemId: input.systemId ?? input.scenarioId!,
+    protocolId: input.protocolId,
+    interventionPlanId: input.interventionPlanId,
+    parameters: input.parameters,
+    interventions: input.interventions,
+  })));
 
   server.registerTool("run_simulation", {
     title: "Run simulation",

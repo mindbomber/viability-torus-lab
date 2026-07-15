@@ -22,6 +22,7 @@ test("MCP server advertises and executes the agent experiment tools", async () =
     assert.deepEqual(names.sort(), [
       "analyze_external_telemetry",
       "compare_runs",
+      "compose_laboratory_run",
       "empirical_aggregate_receipts",
       "empirical_analyze_resource",
       "empirical_analyze_table",
@@ -29,19 +30,45 @@ test("MCP server advertises and executes the agent experiment tools", async () =
       "empirical_export_receipt",
       "get_model_info",
       "get_scenario",
+      "get_system",
+      "list_interventions",
+      "list_scenario_modules",
       "list_scenarios",
+      "list_system_templates",
+      "list_systems",
       "reproduce_paper_case",
       "run_simulation",
       "sweep_parameters",
       "validate_scenario_proposal",
     ]);
 
+    const systems = await client.callTool({ name: "list_systems", arguments: { featured: true } });
+    assert.equal(systems.isError, undefined);
+    assert.equal(systems.structuredContent.result.systems.length, 10);
+    assert.ok(systems.structuredContent.result.systems.every((item) => item.system && item.protocols.length >= 3));
+
+    const templates = await client.callTool({ name: "list_system_templates", arguments: {} });
+    assert.equal(templates.structuredContent.result.systemTemplates.length, 8);
+    const modules = await client.callTool({ name: "list_scenario_modules", arguments: {} });
+    assert.equal(modules.structuredContent.result.scenarioModules.length, 5);
+    const interventions = await client.callTool({ name: "list_interventions", arguments: {} });
+    assert.equal(interventions.structuredContent.result.interventionDefinitions.length, 6);
+    assert.equal(interventions.structuredContent.result.interventionPlans.length, 8);
+
+    const composition = await client.callTool({ name: "compose_laboratory_run", arguments: { systemId: "llm-deployment", protocolId: "compound-stress", interventionPlanId: "layered-correction", parameters: { steps: 80 } } });
+    assert.equal(composition.isError, undefined);
+    assert.equal(composition.structuredContent.result.template.id, "capability-correction");
+    assert.equal(composition.structuredContent.result.protocol.moduleId, "compound-stress");
+    assert.equal(composition.structuredContent.result.interventions.length, 5);
+
     const called = await client.callTool({
       name: "run_simulation",
-      arguments: { scenarioId: "llm-deployment", parameters: { steps: 40 }, seeds: [17, 18] },
+      arguments: { systemId: "llm-deployment", protocolId: "compound-stress", interventionPlanId: "correction-surge", parameters: { steps: 40 }, seeds: [17, 18] },
     });
     assert.equal(called.isError, undefined);
     assert.equal(called.structuredContent.result.ensemble.runCount, 2);
+    assert.equal(called.structuredContent.result.protocol.id, "llm-deployment-compound-stress");
+    assert.equal(called.structuredContent.result.interventionPlan.id, "correction-surge");
 
     const reproduction = await client.callTool({
       name: "reproduce_paper_case",

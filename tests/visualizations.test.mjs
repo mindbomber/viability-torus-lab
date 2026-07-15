@@ -4,19 +4,53 @@ import test from "node:test";
 import {
   defaultParameters,
   deterministicExplanation,
+  evaluateRadialBalance,
   explainSimulationFrame,
+  neutralCorrectionFor,
   simulate,
 } from "../engine/simulator.ts";
 import {
   createSignedDifferenceFrames,
+  deriveTorusGeometry,
   displayDebt,
   displayExcursion,
   nearestFrameForUnwrappedPoint,
   phaseAnalysisAvailable,
+  phaseStageFor,
+  radialDirectionFor,
   signedDifferenceMetricScales,
   signedDifferenceScale,
   timeSeriesScales,
 } from "../components/charts/visualizationMath.ts";
+
+test("system-specific phase stages and radial direction map deterministically", () => {
+  const stages = ["Sense", "Review", "Correct", "Verify"];
+  assert.equal(phaseStageFor(0, stages).label, "Sense");
+  assert.equal(phaseStageFor(Math.PI, stages).label, "Correct");
+  assert.equal(phaseStageFor(Math.PI * 2 - 0.001, stages).label, "Verify");
+  assert.equal(radialDirectionFor(-0.02), "Contraction");
+  assert.equal(radialDirectionFor(0.005), "Neutral");
+  assert.equal(radialDirectionFor(0.02), "Expansion");
+});
+
+test("neutral correction closes the deterministic radial expansion gap", () => {
+  const frame = { rho: defaultParameters.rho0, debt: defaultParameters.initialDebt };
+  const neutralCorrection = neutralCorrectionFor(frame, defaultParameters);
+  const balance = evaluateRadialBalance({
+    pressure: defaultParameters.pressure,
+    error: defaultParameters.error,
+    feedback: defaultParameters.feedback,
+    drift: defaultParameters.drift,
+    irreversibleLoss: defaultParameters.irreversibleLoss,
+    correction: neutralCorrection,
+    debt: frame.debt,
+    rho: frame.rho,
+    kappa: defaultParameters.kappa,
+    rho0: defaultParameters.rho0,
+    chi: defaultParameters.chi,
+  });
+  assert.ok(Math.abs(balance.radialRate) < 1e-12);
+});
 
 test("comparison frames preserve signed A minus B values and an exact zero baseline", () => {
   const left = [{ alignment: 0.7, debt: 0.2, rho: 0.8 }];
@@ -52,6 +86,61 @@ test("off-scale excursion keeps its real value while clamping display geometry",
     offScale: true,
   });
   assert.equal(displayDebt(149.69), 2);
+});
+
+test("torus geometry separates excursion, repayable debt warp, persistent loss scars, and collapse", () => {
+  const parameters = { ...defaultParameters, irreversibleLoss: 0, steps: 4 };
+  const { frames } = simulate(parameters);
+  const frame = frames[0];
+  const healthy = deriveTorusGeometry(frames, 0, parameters);
+  assert.equal(healthy.regime, "healthy");
+  assert.equal(healthy.cumulativeLoss, 0);
+
+  const indebtedFrame = {
+    ...frame,
+    debt: 1.2,
+    debtVelocity: 0.08,
+    debtAdjustedMargin: -0.2,
+    status: "Debt accumulating",
+  };
+  const indebted = deriveTorusGeometry([indebtedFrame], 0, parameters);
+  assert.ok(indebted.debtWarp > healthy.debtWarp);
+  assert.ok(indebted.tubeScale < healthy.tubeScale);
+  assert.equal(indebted.debtDirection, "rising");
+
+  const repaidFrame = {
+    ...indebtedFrame,
+    debt: 0.08,
+    debtVelocity: -0.08,
+    debtAdjustedMargin: 0.1,
+    status: "Recovering",
+  };
+  const repaid = deriveTorusGeometry([indebtedFrame, repaidFrame], 1, parameters);
+  assert.ok(repaid.debtWarp < indebted.debtWarp);
+  assert.equal(repaid.debtDirection, "repaying");
+
+  const scarredFrame = {
+    ...repaidFrame,
+    cumulativeIrreversibleLoss: 0.8,
+    irreversibleLoss: 0,
+    status: "Stable",
+  };
+  const scarred = deriveTorusGeometry([indebtedFrame, scarredFrame], 1, parameters);
+  assert.equal(scarred.regime, "hysteretic");
+  assert.ok(scarred.lossScar > healthy.lossScar);
+  assert.ok(scarred.tubeScale < healthy.tubeScale);
+  assert.equal(scarred.memoryPersists, true);
+  assert.match(scarred.summary, /loss scar does not reverse within this run/i);
+
+  const collapsed = deriveTorusGeometry([{
+    ...scarredFrame,
+    viabilityState: "Irreversible rupture",
+    status: "Ruptured",
+    ruptureProgress: 0.5,
+  }], 0, parameters);
+  assert.equal(collapsed.regime, "collapse");
+  assert.equal(collapsed.recurrenceIntegrity, 0);
+  assert.equal(collapsed.recurrenceLabel, "Lost");
 });
 
 test("unwrapped selection uses theta, circular phi distance, and latest-match tie breaking", () => {
@@ -135,11 +224,69 @@ test("structured explanation connects active parameters to the current stable fr
   const explanation = explainSimulationFrame(frames.slice(0, 1), summary, defaultParameters, { complete: false });
   assert.equal(explanation.statusLabel, "Stable");
   assert.equal(explanation.trajectory.label, "Holding");
+  assert.equal(explanation.trajectory.radialDirection, "Neutral");
+  assert.ok(explanation.trajectory.neutralCorrection >= 0);
+  assert.match(explanation.trajectory.neutralDetail, /neutral threshold/i);
   assert.match(explanation.classification, /do not trigger a higher-risk status rule/i);
   assert.match(explanation.balanceSummary, /correction covers immediate divergence/i);
   assert.match(explanation.outcome, /final outcome is not yet shown/i);
   assert.equal(explanation.activeControls.find((control) => control.symbol === "π")?.value, defaultParameters.pressure);
   assert.equal(explanation.balance.find((item) => item.symbol === "C−D−χΔ")?.value, frames[0].debtAdjustedMargin);
+});
+
+test("five-source attribution separates structure, scenario, overrides, interventions, and memory", () => {
+  const systemBaseline = { ...defaultParameters, steps: 24, kappa: 0.22, chi: 0.18 };
+  const scenarioParameters = { ...systemBaseline, pressure: systemBaseline.pressure + 0.28, initialDebt: systemBaseline.initialDebt + 0.12 };
+  const configuredParameters = { ...scenarioParameters, feedback: 0.7 };
+  const intervention = {
+    id: "correction-start",
+    label: "Increase correction",
+    step: 2,
+    cost: 1,
+    phase: "start",
+    effects: { correction: 0.82 },
+  };
+  const result = simulate(configuredParameters, [intervention]);
+  const attribution = {
+    system: {
+      templateTitle: "Capability and correction",
+      systemTitle: "Language model service",
+      structureSummary: "An optimizing service bounded by verification, correction, and rollback capacity.",
+      baselineParameters: systemBaseline,
+      structuralParameterKeys: ["kappa", "chi"],
+    },
+    scenario: { title: "Pressure surge", kind: "stress", parameters: scenarioParameters },
+    configuredParameters,
+    interventionPlan: { title: "Correction surge", strategy: "corrective" },
+  };
+
+  const before = explainSimulationFrame(result.frames.slice(0, 1), result.summary, configuredParameters, {
+    complete: false,
+    interventions: [intervention],
+    attribution,
+  });
+  assert.deepEqual(before.sources.map((source) => source.title), [
+    "System structure",
+    "Scenario pressure",
+    "User overrides",
+    "Intervention activity",
+    "System memory",
+  ]);
+  assert.match(before.sources[0].state, /capability and correction/i);
+  assert.match(before.sources[1].detail, /π 1\.650→1\.930/i);
+  assert.match(before.sources[2].detail, /γ 0\.620→0\.700/i);
+  assert.match(before.sources[3].state, /next action at step 2/i);
+  assert.match(before.attributionBoundary, /not empirical causal identification/i);
+
+  const activeParameters = { ...configuredParameters, correction: 0.82 };
+  const after = explainSimulationFrame(result.frames.slice(0, 3), result.summary, activeParameters, {
+    complete: false,
+    interventions: [intervention],
+    attribution,
+  });
+  assert.match(after.sources[3].state, /1 modeled action active/i);
+  assert.match(after.sources[3].detail, /C 0\.460→0\.820/i);
+  assert.match(after.sources[4].detail, /χΔ=/i);
 });
 
 test("structured explanation follows worsening, boundary, and recovery states without future leakage", () => {

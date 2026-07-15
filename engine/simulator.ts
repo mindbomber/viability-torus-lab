@@ -95,6 +95,13 @@ export type ScheduledIntervention = {
   step: number;
   effects: Partial<SimulationParameters>;
   cost: number;
+  /** Reusable module provenance. Legacy callers may omit these fields. */
+  definitionId?: string;
+  planId?: string;
+  intensity?: number;
+  durationSteps?: number;
+  phase?: "start" | "end";
+  mechanism?: string;
 };
 
 export type PhaseDiagnostics = {
@@ -159,10 +166,41 @@ export type ExternalTelemetryAnalysis = {
 
 export type SimulationExplanationTone = "stable" | "warning" | "danger" | "recovering" | "neutral";
 
+export type SimulationAttributionContext = {
+  system: {
+    templateTitle: string;
+    systemTitle: string;
+    structureSummary: string;
+    baselineParameters: SimulationParameters;
+    structuralParameterKeys?: (keyof SimulationParameters)[];
+  };
+  scenario: {
+    title: string;
+    kind: string;
+    parameters: SimulationParameters;
+  };
+  configuredParameters: SimulationParameters;
+  interventionPlan: {
+    title: string;
+    strategy: string;
+  };
+};
+
+export type SimulationExplanationSource = {
+  id: "system-structure" | "scenario-pressure" | "user-overrides" | "intervention-activity" | "system-memory";
+  title: string;
+  state: string;
+  tone: SimulationExplanationTone;
+  summary: string;
+  detail: string;
+};
+
 export type SimulationExplanation = {
   statusLabel: string;
   tone: SimulationExplanationTone;
   classification: string;
+  sources: SimulationExplanationSource[];
+  attributionBoundary: string;
   balanceSummary: string;
   balance: {
     label: string;
@@ -179,6 +217,10 @@ export type SimulationExplanation = {
     label: "Improving" | "Worsening" | "Holding";
     tone: SimulationExplanationTone;
     detail: string;
+    radialDirection: "Contraction" | "Neutral" | "Expansion";
+    neutralCorrection: number;
+    neutralGap: number;
+    neutralDetail: string;
   };
   threshold: {
     label: string;
@@ -352,6 +394,32 @@ export function evaluateRadialBalance(input: RadialBalanceInput) {
     debtAdjustedMargin: correctionMargin - debtPressure,
     radialRate,
   };
+}
+
+/**
+ * Minimum non-negative correction capacity needed to prevent deterministic
+ * radial expansion at the supplied frame. A negative algebraic threshold
+ * means restoration already outweighs divergence and debt pressure, so the
+ * physically displayed correction threshold is zero.
+ */
+export function neutralCorrectionFor(
+  frame: Pick<SimulationFrame, "rho" | "debt">,
+  parameters: SimulationParameters,
+) {
+  const balance = evaluateRadialBalance({
+    pressure: parameters.pressure,
+    error: parameters.error,
+    feedback: parameters.feedback,
+    drift: parameters.drift,
+    irreversibleLoss: parameters.irreversibleLoss,
+    correction: 0,
+    debt: frame.debt,
+    rho: frame.rho,
+    kappa: parameters.kappa,
+    rho0: parameters.rho0,
+    chi: parameters.chi,
+  });
+  return Math.max(0, balance.restoration + balance.divergence + balance.debtPressure);
 }
 
 function syntheticExternalMismatch(phi: number) {
@@ -1341,6 +1409,213 @@ function classificationExplanation(
   }
 }
 
+const explanationParameterKeys: (keyof SimulationParameters)[] = [
+  "pressure", "error", "feedback", "correction", "drift", "irreversibleLoss", "initialDebt",
+  "kappa", "chi", "alpha", "beta", "rho0", "rhoCrit", "omegaTheta", "omegaPhi",
+  "couplingA", "couplingB", "seed", "steps", "dt",
+];
+
+const explanationParameterSymbols: Record<keyof SimulationParameters, string> = {
+  pressure: "π",
+  error: "ε",
+  feedback: "γ",
+  correction: "C",
+  drift: "Φ",
+  irreversibleLoss: "Λ",
+  initialDebt: "Δ₀",
+  kappa: "κ",
+  chi: "χ",
+  omegaTheta: "ωθ",
+  omegaPhi: "ωφ",
+  couplingA: "a",
+  couplingB: "b",
+  rho0: "ρ₀",
+  rhoCrit: "ρcrit",
+  alpha: "α",
+  beta: "β",
+  seed: "seed",
+  steps: "steps",
+  dt: "dt",
+};
+
+type ExplanationParameterChange = {
+  key: keyof SimulationParameters;
+  from: number;
+  to: number;
+};
+
+function explanationParameterChanges(
+  from: SimulationParameters,
+  to: SimulationParameters,
+): ExplanationParameterChange[] {
+  return explanationParameterKeys
+    .filter((key) => Math.abs(from[key] - to[key]) > 1e-9)
+    .map((key) => ({ key, from: from[key], to: to[key] }));
+}
+
+function formatExplanationChanges(changes: ExplanationParameterChange[], limit = 4) {
+  if (changes.length === 0) return "No parameter changes.";
+  const visible = changes.slice(0, limit).map(({ key, from, to }) => (
+    `${explanationParameterSymbols[key]} ${from.toFixed(3)}→${to.toFixed(3)}`
+  ));
+  const remainder = changes.length - visible.length;
+  return `${visible.join(" · ")}${remainder > 0 ? ` · +${remainder} more` : ""}`;
+}
+
+function declaredDebtAdjustedMargin(parameters: SimulationParameters) {
+  const divergence = parameters.pressure * parameters.error * (1 - parameters.feedback)
+    + parameters.drift
+    + parameters.irreversibleLoss;
+  return parameters.correction - divergence - parameters.chi * parameters.initialDebt;
+}
+
+function shiftTone(shift: number): SimulationExplanationTone {
+  if (shift > 0.005) return "stable";
+  if (shift < -0.005) return "danger";
+  return "neutral";
+}
+
+function shiftState(shift: number, neutral: string) {
+  if (shift > 0.005) return "Improves the declared margin";
+  if (shift < -0.005) return "Narrows the declared margin";
+  return neutral;
+}
+
+function buildExplanationSources(input: {
+  frame: SimulationFrame;
+  initial: SimulationFrame;
+  parameters: SimulationParameters;
+  interventions: ScheduledIntervention[];
+  context?: SimulationAttributionContext;
+}): SimulationExplanationSource[] {
+  const { frame, initial, parameters, interventions, context } = input;
+  const systemBaseline = context?.system.baselineParameters ?? context?.scenario.parameters ?? context?.configuredParameters ?? parameters;
+  const scenarioParameters = context?.scenario.parameters ?? context?.configuredParameters ?? parameters;
+  const configuredParameters = context?.configuredParameters ?? parameters;
+  const structuralKeys = context?.system.structuralParameterKeys?.length
+    ? context.system.structuralParameterKeys
+    : (["kappa", "chi", "rhoCrit"] as (keyof SimulationParameters)[]);
+  const structuralValues = structuralKeys
+    .slice(0, 5)
+    .map((key) => `${explanationParameterSymbols[key]}=${systemBaseline[key].toFixed(3)}`)
+    .join(" · ");
+  const baselineMargin = declaredDebtAdjustedMargin(systemBaseline);
+
+  const scenarioChanges = explanationParameterChanges(systemBaseline, scenarioParameters);
+  const scenarioMargin = declaredDebtAdjustedMargin(scenarioParameters);
+  const scenarioShift = scenarioMargin - baselineMargin;
+  const scenarioTitle = context?.scenario.title ?? "Configured conditions";
+  const scenarioKind = context?.scenario.kind.replaceAll("-", " ") ?? "scenario";
+
+  const overrideChanges = explanationParameterChanges(scenarioParameters, configuredParameters);
+  const configuredMargin = declaredDebtAdjustedMargin(configuredParameters);
+  const overrideShift = configuredMargin - scenarioMargin;
+
+  const occurred = interventions.filter((event) => event.step <= frame.step);
+  const upcoming = interventions.find((event) => event.step > frame.step);
+  const activeStarts = occurred.filter((event) => event.phase !== "end" && !occurred.some((candidate) => (
+    candidate.phase === "end" && candidate.id === `${event.id}-end`
+  )));
+  const latestEvent = occurred.at(-1);
+  const interventionChanges = explanationParameterChanges(configuredParameters, parameters);
+  const activeMargin = declaredDebtAdjustedMargin(parameters);
+  const interventionShift = activeMargin - configuredMargin;
+  let interventionState = "No intervention active";
+  let interventionSummary = interventions.length
+    ? `${context?.interventionPlan.title ?? "The selected plan"} has not changed the parameters at this frame.`
+    : "No intervention is scheduled, so the live parameters still reflect only the system, scenario, and user configuration.";
+  if (activeStarts.length > 0) {
+    interventionState = `${activeStarts.length} modeled action${activeStarts.length === 1 ? "" : "s"} active`;
+    interventionSummary = `${latestEvent?.label ?? "An intervention"} most recently changed the run at step ${latestEvent?.step ?? frame.step}. The total active intervention effect is separated from the starting sliders.`;
+  } else if (latestEvent?.phase === "end") {
+    interventionState = "Temporary action has ended";
+    interventionSummary = `${latestEvent.label} at step ${latestEvent.step}; its temporary parameter effect is no longer active.`;
+  } else if (upcoming) {
+    interventionState = `Next action at step ${upcoming.step}`;
+    interventionSummary = `${context?.interventionPlan.title ?? "The selected plan"} is scheduled, but no intervention has taken effect yet. Next: ${upcoming.label}.`;
+  }
+
+  const debtChange = frame.debt - initial.debt;
+  const debtPressure = parameters.chi * frame.debt;
+  let memoryState: string;
+  let memoryTone: SimulationExplanationTone;
+  let memorySummary: string;
+  if (frame.viabilityState === "Irreversible rupture") {
+    memoryState = "Terminal history is latched";
+    memoryTone = "danger";
+    memorySummary = "The modeled terminal policy already fired, so later improvement cannot erase the recorded irreversible rupture.";
+  } else if (frame.step === 0 && frame.debt > 0.3) {
+    memoryState = "Starting debt is already present";
+    memoryTone = "warning";
+    memorySummary = "The run begins with declared accumulated debt from conditions before playback; it immediately reduces the debt-adjusted margin.";
+  } else if (frame.debtVelocity > 0.005) {
+    memoryState = "Debt is accumulating";
+    memoryTone = "danger";
+    memorySummary = `Past divergence is still being carried forward: debt is rising at ${signedExplanationValue(frame.debtVelocity)} per time unit.`;
+  } else if (frame.debtVelocity < -0.005) {
+    memoryState = "Debt is being repaid";
+    memoryTone = "recovering";
+    memorySummary = `Debt is contracting at ${signedExplanationValue(frame.debtVelocity)} per time unit, but its remaining pressure still affects the live margin.`;
+  } else if (debtChange > 0.01 || frame.debt > 0.3) {
+    memoryState = "Earlier debt still persists";
+    memoryTone = frame.debtAdjustedMargin < 0 ? "warning" : "neutral";
+    memorySummary = frame.correctionMargin >= 0 && frame.debtAdjustedMargin < 0
+      ? "Correction covers current divergence, but carried debt reverses the effective margin. Present conditions alone therefore do not explain the status."
+      : "Accumulated debt remains part of the current state even though its level is not changing quickly at this frame.";
+  } else {
+    memoryState = "Little carried debt";
+    memoryTone = "stable";
+    memorySummary = "Debt memory is currently small, so the live balance is driven mainly by present divergence and correction.";
+  }
+
+  return [
+    {
+      id: "system-structure",
+      title: "System structure",
+      state: context ? `${context.system.templateTitle} → ${context.system.systemTitle}` : "Configured system baseline",
+      tone: "neutral",
+      summary: context?.system.structureSummary ?? "The configured baseline establishes restoration, debt sensitivity, recurrence, and the viability boundary before other changes are applied.",
+      detail: `Pre-scenario C−D−χΔ=${signedExplanationValue(baselineMargin)} · ${structuralValues}`,
+    },
+    {
+      id: "scenario-pressure",
+      title: "Scenario pressure",
+      state: shiftState(scenarioShift, scenarioChanges.length ? "Changes other dynamics" : "Adds no common transform"),
+      tone: shiftTone(scenarioShift),
+      summary: scenarioChanges.length
+        ? `${scenarioTitle} (${scenarioKind}) changes ${scenarioChanges.length} declared input${scenarioChanges.length === 1 ? "" : "s"} before playback begins.`
+        : `${scenarioTitle} uses the bounded system's declared operating baseline without an additional common transform.`,
+      detail: `${formatExplanationChanges(scenarioChanges)} · margin ${signedExplanationValue(baselineMargin)}→${signedExplanationValue(scenarioMargin)}`,
+    },
+    {
+      id: "user-overrides",
+      title: "User overrides",
+      state: overrideChanges.length ? `${overrideChanges.length} configured change${overrideChanges.length === 1 ? "" : "s"}` : "Sliders match the protocol",
+      tone: shiftTone(overrideShift),
+      summary: overrideChanges.length
+        ? "These slider or run-control changes were made after the scenario loaded and are part of this run's starting configuration."
+        : "No user override is contributing to the current result; the configured values match the selected scenario protocol.",
+      detail: `${formatExplanationChanges(overrideChanges)} · margin ${signedExplanationValue(scenarioMargin)}→${signedExplanationValue(configuredMargin)}`,
+    },
+    {
+      id: "intervention-activity",
+      title: "Intervention activity",
+      state: interventionState,
+      tone: activeStarts.length ? shiftTone(interventionShift) : "neutral",
+      summary: interventionSummary,
+      detail: `${interventionChanges.length ? formatExplanationChanges(interventionChanges) : "No active parameter effect."} · live C=${frame.correction.toFixed(3)}`,
+    },
+    {
+      id: "system-memory",
+      title: "System memory",
+      state: memoryState,
+      tone: memoryTone,
+      summary: memorySummary,
+      detail: `Δ=${frame.debt.toFixed(3)} (${signedExplanationValue(debtChange)} from start) · χΔ=${debtPressure.toFixed(3)} · cumulative Λ=${frame.cumulativeIrreversibleLoss.toFixed(3)}`,
+    },
+  ];
+}
+
 export function explainSimulationFrame(
   frames: SimulationFrame[],
   summary: SimulationSummary,
@@ -1349,6 +1624,7 @@ export function explainSimulationFrame(
     complete?: boolean;
     interventions?: ScheduledIntervention[];
     rupturePolicy?: Partial<RupturePolicy>;
+    attribution?: SimulationAttributionContext;
   } = {},
 ): SimulationExplanation {
   if (frames.length === 0) throw new RangeError("At least one frame is required for an explanation.");
@@ -1361,6 +1637,25 @@ export function explainSimulationFrame(
   const outsideStreak = outsideStreakAt(frames, parameters.rhoCrit);
   const policy = rupturePolicyFor(parameters, options.rupturePolicy);
   const radialRatio = frame.rho / parameters.rhoCrit;
+  const sources = buildExplanationSources({
+    frame,
+    initial,
+    parameters,
+    interventions: options.interventions ?? [],
+    context: options.attribution,
+  });
+  const neutralCorrection = neutralCorrectionFor(frame, parameters);
+  const neutralGap = neutralCorrection - frame.correction;
+  const radialDirection: SimulationExplanation["trajectory"]["radialDirection"] = frame.radialVelocity > 0.01
+    ? "Expansion"
+    : frame.radialVelocity < -0.01
+      ? "Contraction"
+      : "Neutral";
+  const neutralDetail = neutralGap > 0.005
+    ? `Current correction C=${frame.correction.toFixed(3)} is ${neutralGap.toFixed(3)} below the model's neutral threshold C*=${neutralCorrection.toFixed(3)}. Raising C by that gap, or equivalently lowering modeled divergence or debt pressure, would close the deterministic expansion gap at this frame.`
+    : neutralGap < -0.005
+      ? `Current correction C=${frame.correction.toFixed(3)} is ${Math.abs(neutralGap).toFixed(3)} above the model's neutral threshold C*=${neutralCorrection.toFixed(3)}, leaving a deterministic contraction margin at this frame.`
+      : `Current correction C=${frame.correction.toFixed(3)} is approximately at the model's neutral threshold C*=${neutralCorrection.toFixed(3)} at this frame.`;
 
   const balanceSummary = frame.correctionMargin < 0
     ? `Divergence exceeds correction by ${Math.abs(frame.correctionMargin).toFixed(3)}; debt pressure widens the effective deficit to ${Math.abs(frame.debtAdjustedMargin).toFixed(3)}.`
@@ -1374,6 +1669,10 @@ export function explainSimulationFrame(
       label: "Holding",
       tone: "neutral",
       detail: "Playback is at the declared initial state; dynamic motion begins on the next integration step.",
+      radialDirection,
+      neutralCorrection,
+      neutralGap,
+      neutralDetail,
     };
   } else {
     const recent = frames[Math.max(0, frames.length - 13)];
@@ -1385,6 +1684,10 @@ export function explainSimulationFrame(
       label: improving ? "Improving" : worsening ? "Worsening" : "Holding",
       tone: improving ? "recovering" : worsening ? "danger" : "neutral",
       detail: `dρ/dt=${signedExplanationValue(frame.radialVelocity)} and dΔ/dt=${signedExplanationValue(frame.debtVelocity)}; over the recent window, ρ changed ${signedExplanationValue(rhoChange)} and debt changed ${signedExplanationValue(debtChange)}.`,
+      radialDirection,
+      neutralCorrection,
+      neutralGap,
+      neutralDetail,
     };
   }
 
@@ -1472,6 +1775,8 @@ export function explainSimulationFrame(
     statusLabel: currentLabel,
     tone: explanationTone(frame),
     classification: classificationExplanation(frame, parameters, outsideStreak),
+    sources,
+    attributionBoundary: "These are deterministic contributions inside the configured educational model, not empirical causal identification or proof that the domain mapping is correct.",
     balanceSummary,
     balance: [
       { label: "Pressure × error × feedback gap", symbol: "π·ε·(1−γ)", value: optimizationPressure, tone: "negative" },

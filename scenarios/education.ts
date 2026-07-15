@@ -1,4 +1,4 @@
-import type { ScenarioDefinition } from "../contracts/types.ts";
+import type { ComposableParameterKey, ScenarioDefinition } from "../contracts/types.ts";
 import type { SimulationParameters } from "../engine/simulator.ts";
 
 export type ParameterEducation = {
@@ -8,7 +8,15 @@ export type ParameterEducation = {
   realWorldEquivalent: string;
   scale: string;
   predictedEffect: string;
+  observationProxy?: string;
+  proxyNormalization?: string;
+  updateCadence?: string;
 };
+
+const composableParameterKeys = new Set<keyof SimulationParameters>([
+  "pressure", "error", "feedback", "correction", "drift", "irreversibleLoss", "initialDebt",
+  "kappa", "chi", "omegaTheta", "omegaPhi", "couplingA", "couplingB", "rho0", "rhoCrit", "alpha", "beta",
+]);
 
 export function parameterEducationFor(
   scenario: ScenarioDefinition,
@@ -42,10 +50,18 @@ export function parameterEducationFor(
   const primaryKeys = new Set<keyof SimulationParameters>([
     "pressure", "feedback", "correction", "error", "initialDebt", "drift", "irreversibleLoss",
   ]);
-  const withValues = rows.map((row) => ({
-    ...row,
-    modelRole: `${row.modelRole} Current value: ${parameters[row.key]}.`,
-  }));
+  const withValues = rows.map((row) => {
+    const proxy = composableParameterKeys.has(row.key)
+      ? scenario.currentStateEstimate?.parameterProxies[row.key as ComposableParameterKey]
+      : undefined;
+    return {
+      ...row,
+      modelRole: `${row.modelRole} Current value: ${parameters[row.key]}.`,
+      observationProxy: proxy?.observable,
+      proxyNormalization: proxy?.normalization,
+      updateCadence: proxy?.updateCadence,
+    };
+  });
   return {
     primary: withValues.filter((row) => primaryKeys.has(row.key)),
     advanced: withValues.filter((row) => !primaryKeys.has(row.key)),
