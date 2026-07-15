@@ -293,7 +293,7 @@ test("the global run control never advances a hidden simulation behind another m
   await expect.poll(async () => Number(await timeline.inputValue())).toBeGreaterThan(0);
   const beforeNavigation = Number(await timeline.inputValue());
   await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
-  await expect(page.getByRole("heading", { name: /Choose a type of system/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Choose how a system maintains viability/i })).toBeVisible();
   await page.waitForTimeout(500);
   await page.locator(".sidebar nav button").filter({ hasText: "Home" }).click();
   await expect(page.getByRole("heading", { name: "Production LLM Answering Service" })).toBeVisible();
@@ -327,7 +327,7 @@ test("comparison canvas preserves a signed zero baseline and responds to B", asy
 
 test("comparison outcomes do not call a nonterminal boundary excursion ruptured", async ({ page }) => {
   const consoleErrors = await openDashboard(page);
-  await page.getByLabel("Select a type of system").selectOption("regenerative-stock");
+  await page.getByLabel("Select a maintenance pattern").selectOption("regeneration-depletion");
   await page.locator(".laboratory-selectors select").nth(1).selectOption("groundwater-depletion");
   await page.getByLabel("Select a scenario").selectOption({ label: "Pressure surge" });
   await page.locator(".top-actions button").filter({ hasText: "Compare" }).click();
@@ -488,17 +488,17 @@ test("experiments workspace verifies the paper and exposes all research studies"
 test("systems catalog explains its default outlook and recalculates after scenario changes", async ({ page }, testInfo) => {
   const consoleErrors = await openDashboard(page);
   await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
-  await expect(page.getByRole("heading", { name: /Choose a type of system/i })).toBeVisible();
-  await expect(page.getByText("32 real-world examples", { exact: true })).toBeVisible();
-  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(32);
+  await expect(page.getByRole("heading", { name: /Choose how a system maintains viability/i })).toBeVisible();
+  await expect(page.getByText("21 bounded systems", { exact: true })).toBeVisible();
+  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(21);
   await page.screenshot({ path: testInfo.outputPath("composable-systems-library.png") });
 
-  await page.getByRole("button", { name: /Red watchlist · 4/i }).click();
-  await expect(page.getByText("Showing 4 systems")).toBeVisible();
-  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(4);
+  await page.getByRole("button", { name: /Red watchlist · 3/i }).click();
+  await expect(page.getByText("Showing 3 systems")).toBeVisible();
+  await expect(page.locator(".library-grid .scenario-card")).toHaveCount(3);
 
-  await page.getByRole("button", { name: /Climate Adaptation Authority/i }).click();
-  await expect(page.getByRole("heading", { name: "Regional Climate Adaptation & Land-System Authority" })).toBeVisible();
+  await page.getByRole("button", { name: /Antibiotic Stewardship Network/i }).click();
+  await expect(page.getByRole("heading", { name: "Regional Hospital Antibiotic Stewardship Network" })).toBeVisible();
   const systemDefinition = page.locator(".system-definition-panel");
   await expect(systemDefinition).not.toHaveAttribute("open", "");
   await expect(systemDefinition.locator(":scope > summary")).toContainText("See exactly what this simulation represents");
@@ -507,8 +507,8 @@ test("systems catalog explains its default outlook and recalculates after scenar
   await systemDefinition.locator(":scope > summary").click();
   await expect(systemDefinition).toHaveAttribute("open", "");
   await expect(systemDefinition.locator(".system-definition-body")).toBeVisible();
-  await expect(systemDefinition).toContainText("System type");
-  await expect(systemDefinition).toContainText("Selected system");
+  await expect(systemDefinition).toContainText("Maintenance pattern");
+  await expect(systemDefinition).toContainText("Bounded system");
   await expect(systemDefinition).toContainText("Scenario conditions");
   await expect(systemDefinition).toContainText("Changes to test");
   await expect(systemDefinition).toContainText("Run result");
@@ -528,14 +528,14 @@ test("systems catalog explains its default outlook and recalculates after scenar
 
   const translations = page.locator(".parameter-translation");
   await expect(translations.getByRole("heading", { name: "What each parameter means in this system" })).toBeVisible();
-  await expect(translations).toContainText("Emissions, extraction & land-use pressure");
+  await expect(translations).toContainText("Antibiotic selection pressure");
   await expect(translations).toContainText("Candidate observable");
   await expect(translations.locator(".translation-grid:not(.advanced) .translation-card")).toHaveCount(7);
   await expect(translations.locator(".translation-grid.advanced")).not.toBeVisible();
   await translations.locator("summary").click();
   await expect(translations.locator(".translation-grid.advanced")).toBeVisible();
   await expect(translations.locator(".translation-grid.advanced .translation-card")).toHaveCount(13);
-  await expect(translations).toContainText("The scenario-defined recoverability limit for climate and biosphere overshoot");
+  await expect(translations).toContainText("The scenario-defined recoverability limit for treatment-failure and transmission risk");
   await translations.screenshot({ path: testInfo.outputPath("parameter-real-world-translation.png") });
 
   await page.getByLabel("Select a scenario").selectOption({ label: "Reduced-stress context" });
@@ -547,7 +547,7 @@ test("systems catalog explains its default outlook and recalculates after scenar
   const evidence = page.locator(".scenario-evidence");
   await evidence.locator("summary").click();
   await expect(evidence.getByRole("heading", { name: "What each equation variable means here" })).toBeVisible();
-  await expect(evidence.getByText("Climate and biosphere overshoot", { exact: true })).toBeVisible();
+  await expect(evidence.getByText("Treatment-failure and transmission risk", { exact: true })).toBeVisible();
   await expect(evidence.getByRole("heading", { name: "AIx meanings in this scenario" })).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
@@ -564,9 +564,9 @@ test("mobile dashboard renders the visualization fallback without clipping the c
   await mobileMenu.click();
   await expect(page.locator(".sidebar")).toHaveClass(/open/);
   await page.locator(".sidebar nav button").filter({ hasText: "Systems" }).click();
-  await expect(page.getByRole("heading", { name: /Choose a type of system/i })).toBeVisible();
-  await page.getByRole("button", { name: /Featured · 10/i }).click();
-  await expect(page.getByText("Showing 10 systems")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Choose how a system maintains viability/i })).toBeVisible();
+  await page.getByRole("button", { name: /Featured · 6/i }).click();
+  await expect(page.getByText("Showing 6 systems")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await mobileMenu.click();
   await expect(page.locator(".sidebar")).toHaveClass(/open/);

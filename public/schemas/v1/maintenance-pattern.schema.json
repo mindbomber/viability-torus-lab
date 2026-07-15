@@ -255,6 +255,6 @@
     "provenance"
   ],
   "additionalProperties": false,
-  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/system-template.schema.json",
-  "title": "Maintenance pattern (v1 compatibility name)"
+  "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/maintenance-pattern.schema.json",
+  "title": "Maintenance pattern"
 }

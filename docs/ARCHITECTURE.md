@@ -4,9 +4,9 @@
 
 The site is a scientific dashboard delivered through the vinext Sites runtime. It remains local-first for user state: there are no accounts, uploads, or cloud records. A saved preset uses browser storage, while shared runs serialize a validated subset of scenario, seed, and parameters into the URL. Stateless HTTP and MCP routes expose bounded, read-only computation without persisting requests or results.
 
-The UI is organized into product views inside `app/page.tsx`. The laboratory has five explicit layers: `SystemTemplateDefinition` supplies reusable structural dynamics; `BoundedSystemDefinition` names the concrete boundary and accountable operator; `ScenarioModuleDefinition` supplies reusable exogenous conditions; `InterventionPlanDefinition` compiles reusable corrective mechanisms into timed actions; and `RunAssessment` records the resulting dynamic explanation, watchlist assessment, frame, and summary. The live torus, charts, status panel, explanations, comparisons, tables, and exports derive from one authoritative frame sequence.
+The UI is organized into product views inside `app/page.tsx`. The laboratory has five explicit layers: `MaintenancePatternDefinition` supplies recurrent maintenance dynamics; `BoundedSystemDefinition` separately names the domain, dynamic traits, concrete boundary, and accountable operator; `ScenarioModuleDefinition` supplies reusable exogenous conditions; `InterventionPlanDefinition` compiles reusable corrective mechanisms into timed actions; and `RunAssessment` records the resulting dynamic explanation, watchlist assessment, frame, and summary. The live torus, charts, status panel, explanations, comparisons, tables, and exports derive from one authoritative frame sequence.
 
-`scenarios/composition.ts` is the single composition boundary. It resolves a template and bounded system, applies one scenario module to that system's independently selected defaults, applies explicit parameter overrides, compiles one intervention plan, appends any validated custom intervention events, and returns the exact engine inputs. Scenarios never imply an operator action, interventions never redefine the system, and assessment is always an output.
+`scenarios/composition.ts` is the single composition boundary. It resolves a maintenance pattern and bounded system, applies one scenario module to that system's independently selected defaults, applies explicit parameter overrides, compiles one intervention plan, appends any validated custom intervention events, and returns the exact engine inputs. Scenarios never imply an operator action, interventions never redefine the system, and assessment is always an output.
 
 ## Simulation update order
 
@@ -29,7 +29,7 @@ Frame zero is the declared initial state; the first integration occurs at frame 
 
 Contract schemas are generated into `public/schemas/v1/`. Breaking changes require an explicit contract/API version decision; model-equation changes require a model-version decision and deterministic reference updates.
 
-The composable-laboratory release is additive at contract v1. Published records retain `system`, `defaultProtocolId`, `protocols`, and `featured`; experiment requests accept preferred `systemId`, a concrete protocol id or reusable scenario-module id in `protocolId`, and `interventionPlanId`; results echo the selected template, system, resolved protocol, plan, and compiled events. The legacy `scenarioId`, `/api/v1/scenarios`, CLI `scenarios`, and MCP scenario tools remain compatibility aliases. The v1 proposal schema still parses legacy drafts, but proposal validation reports missing template, bounded-system, protocol, module, or intervention references as publication-blocking errors.
+The maintenance-pattern catalog revision retains the v1 transport and compatibility fields while changing the published registry. The seven patterns and 21 published systems carry registry version `2.0.0`. New records expose `maintenancePatternId`, `domain`, and `dynamicTraits`; `modelFamily`, `templateId`, `template`, `/api/v1/system-templates`, CLI `templates`, and MCP `list_system_templates` remain compatibility aliases. Experiment requests still prefer `systemId`, a concrete protocol id or reusable scenario-module id in `protocolId`, and `interventionPlanId`. Removed broad examples are no longer resolvable as published systems; saved studies should migrate to one of the 21 bounded system ids before rerunning.
 
 ## Viability and phase diagnostics
 
@@ -60,7 +60,7 @@ When identifiable, the phase regime is either recurrent winding or rational phas
 
 The five registries have separate responsibilities:
 
-- `scenarios/templates.ts` defines eight reusable structural archetypes, their base dynamics, structural assumptions, learning questions, and rupture policy.
+- `scenarios/templates.ts` defines seven maintenance patterns, their base dynamics, characteristic traits, structural assumptions, learning questions, and rupture policy.
 - `scenarios/systems.ts` supplies the concrete operator, boundary, objective, population, horizon, aggregation rule, and independently selected default parameters for each bounded system.
 - `scenarios/protocols.ts` defines common exogenous condition modules and resolves their canonical transforms into system-specific protocols.
 - `scenarios/interventions.ts` defines corrective mechanisms, real-world translations, compatibility, timing semantics, and reusable plans.
@@ -68,7 +68,7 @@ The five registries have separate responsibilities:
 
 `scenarios/catalog.ts` publishes the resolved combinations. Broad conditions such as drought, engagement pressure, delayed restoration, or demand shocks belong to scenario modules rather than standing in for the system itself. Agent-created definitions remain draft proposal files until reviewed. To publish a system and its resolved protocols:
 
-1. Choose or define the structural system template independently of a desired watchlist outcome.
+1. Choose or define the recurrent maintenance pattern independently of domain and desired watchlist outcome.
 2. Define the bounded system, accountable operator, objective, population, horizon, aggregation rule, and viable region.
 3. Define both recurrent phases, their observation sources, and the independence claim.
 4. Resolve at least one compatible scenario module with conditions, stressors, learning objective, parameter rationale, and complete parameters.
@@ -106,7 +106,7 @@ The interface keeps the full causal sequence separate: the bounded system, dated
 
 ### Watchlist v2 migration note
 
-`educational-watchlist-v2` adds the mean share of Warning/Fragile frames to every common protocol receipt and uses prolonged baseline strain as an Orange criterion. Boundary crossing and terminal rupture remain the Red criteria. The public `watchlistTier` field and API contract version remain unchanged because the field still carries the same Red/Orange/Yellow outcome and all 32 cached tiers are unchanged; consumers that display protocol receipts should add the new status-persistence metric and protocol-version label.
+`educational-watchlist-v2` adds the mean share of Warning/Fragile frames to every common protocol receipt and uses prolonged baseline strain as an Orange criterion. Boundary crossing and terminal rupture remain the Red criteria. The public `watchlistTier` field retains the same Red/Orange/Yellow semantics; the 21 published systems cache their independently derived default result.
 
 ## Browser-local Empirical Lab
 
@@ -162,4 +162,4 @@ The default public application has no account, persistence, enabled empirical up
 
 ## Known limitations
 
-The model is synthetic and scenario thresholds are illustrative. The custom-system builder generates a template-based definition rather than arbitrary equations. Presets are device-local. There is no account system, collaborative experiment history, durable job queue, automated parameter fitting, inferential meta-analysis, or automatic scenario marketplace. The Evidence Registry compares redacted receipts locally but does not create a shared evidence database. The opt-in researcher API uses a deployment bearer token rather than user identities and does not persist submitted data or results. Public ensembles and sweeps remain bounded synchronous computations.
+The model is synthetic and scenario thresholds are illustrative. The custom-system builder generates a maintenance-pattern-based definition rather than arbitrary equations. Presets are device-local. There is no account system, collaborative experiment history, durable job queue, automated parameter fitting, inferential meta-analysis, or automatic scenario marketplace. The Evidence Registry compares redacted receipts locally but does not create a shared evidence database. The opt-in researcher API uses a deployment bearer token rather than user identities and does not persist submitted data or results. Public ensembles and sweeps remain bounded synchronous computations.

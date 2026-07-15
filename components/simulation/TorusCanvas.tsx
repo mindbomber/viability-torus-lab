@@ -59,8 +59,10 @@ export function TorusCanvas({
   const [view2d, setView2d] = useState(false);
   const [motionPaused, setMotionPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [inViewport, setInViewport] = useState(true);
   const drag = useRef<{ x: number; y: number; pan: boolean } | null>(null);
   const spinRef = useRef(0);
+  const lastDrawRef = useRef(0);
   const trajectoryPoints = useRef<{ index: number; x: number; y: number }[]>([]);
 
   const frame = frames[Math.min(frameIndex, frames.length - 1)] ?? frames[0];
@@ -87,15 +89,24 @@ export function TorusCanvas({
   }, []);
 
   useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      setInViewport(entries[0]?.isIntersecting ?? true);
+    }, { rootMargin: "160px" });
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
-    if (!canvas || !wrap || !frame) return;
+    if (!canvas || !wrap || !frame || !inViewport) return;
     let animation = 0;
-    let previous = performance.now();
 
     const draw = (now: number) => {
       const rect = wrap.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, playing ? 1.25 : 2);
       if (canvas.width !== Math.floor(rect.width * dpr) || canvas.height !== Math.floor(rect.height * dpr)) {
         canvas.width = Math.floor(rect.width * dpr);
         canvas.height = Math.floor(rect.height * dpr);
@@ -109,8 +120,8 @@ export function TorusCanvas({
       const height = rect.height;
       ctx.clearRect(0, 0, width, height);
 
-      const dt = Math.min(40, now - previous);
-      previous = now;
+      const dt = lastDrawRef.current ? Math.min(80, now - lastDrawRef.current) : 0;
+      lastDrawRef.current = now;
       if (playing && !motionPaused && !view2d) spinRef.current += dt * 0.000045;
 
       const bg = ctx.createRadialGradient(width * 0.53, height * 0.48, 10, width * 0.5, height * 0.5, width * 0.6);
@@ -141,17 +152,21 @@ export function TorusCanvas({
           return { x: centerX + x1 * scale * perspective, y: centerY + y2 * scale * perspective, z: z2 };
         };
 
-        drawTorus(ctx, project, frame, params, geometry, wireframe, showTube, compact, now, reducedMotion);
+        drawTorus(ctx, project, frame, params, geometry, wireframe, showTube, compact, now, reducedMotion, playing);
         trajectoryPoints.current = showTrajectory && frame.viabilityState !== "Irreversible rupture"
           ? drawTrajectory(ctx, project, frames, frameIndex, params, geometry, compact)
           : [];
         if (frame.viabilityState !== "Irreversible rupture") drawCurrentMarker(ctx, project, frame, params, geometry, compact);
       }
-      animation = requestAnimationFrame(draw);
     };
-    animation = requestAnimationFrame(draw);
+    const loop = (now: number) => {
+      const due = !playing || !lastDrawRef.current || now - lastDrawRef.current >= 1000 / 24;
+      if (due) draw(now);
+      if (playing) animation = requestAnimationFrame(loop);
+    };
+    animation = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animation);
-  }, [compact, frame, frameIndex, frames, geometry, motionPaused, pan, params, pitch, playing, reducedMotion, showTrajectory, showTube, view2d, wireframe, yaw, zoom]);
+  }, [compact, frame, frameIndex, frames, geometry, inViewport, motionPaused, pan, params, pitch, playing, reducedMotion, showTrajectory, showTube, view2d, wireframe, yaw, zoom]);
 
   const resetView = () => {
     setYaw(-0.58);
@@ -284,9 +299,10 @@ function drawTorus(
   compact: boolean,
   now: number,
   reducedMotion: boolean,
+  interactive: boolean,
 ) {
-  const uCount = compact ? 28 : 42;
-  const vCount = compact ? 13 : 19;
+  const uCount = compact ? 28 : interactive ? 28 : 42;
+  const vCount = compact ? 13 : interactive ? 13 : 19;
   const severity = Math.min(1.25, frame.rho / params.rhoCrit);
   const terminal = frame.viabilityState === "Irreversible rupture";
   const ruptureProgress = terminal ? Math.max(0.32, frame.ruptureProgress) : 0;
@@ -308,7 +324,7 @@ function drawTorus(
   }
   quads.sort((a, b) => a.depth - b.depth);
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = interactive ? "source-over" : "lighter";
   for (const quad of quads) {
     const fragmentNoise = ruptureHash(quad.u * 101 + quad.v * 313);
     if (terminal && fragmentNoise < 0.12 + ruptureProgress * 0.7) continue;
@@ -334,11 +350,12 @@ function drawTorus(
     ctx.strokeStyle = "rgba(117, 110, 255, .42)";
     ctx.lineWidth = (compact ? 7 : 12) * geometry.tubeScale;
     ctx.shadowColor = "rgba(102, 76, 255, .45)";
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = interactive ? 7 : 16;
     for (let band = -1; band <= 1; band += 2) {
       ctx.beginPath();
-      for (let i = 0; i <= 100; i += 1) {
-        const phi = (i / 100) * TAU;
+      const bandSegments = interactive ? 64 : 100;
+      for (let i = 0; i <= bandSegments; i += 1) {
+        const phi = (i / bandSegments) * TAU;
         const point = project(rotatePoint(Math.PI / 2 + band * 0.42, phi, 0.08, geometry));
         if (i) ctx.lineTo(point.x, point.y);
         else ctx.moveTo(point.x, point.y);
@@ -348,7 +365,7 @@ function drawTorus(
   }
   if (!terminal) drawIrreversibleScars(ctx, project, geometry, compact);
   if (terminal) {
-    drawRuptureParticles(ctx, project, frame, params, geometry, compact, now, reducedMotion);
+    drawRuptureParticles(ctx, project, frame, params, geometry, compact, now, reducedMotion, interactive);
   } else {
     ctx.strokeStyle = "rgba(255, 77, 62, .72)";
     ctx.lineWidth = compact ? 3 : 5;
@@ -408,14 +425,15 @@ function drawRuptureParticles(
   compact: boolean,
   now: number,
   reducedMotion: boolean,
+  interactive: boolean,
 ) {
-  const particleCount = compact ? 280 : 620;
+  const particleCount = compact ? 280 : interactive ? 240 : 620;
   const progress = Math.max(0.32, frame.ruptureProgress);
   const time = reducedMotion ? 0 : now * 0.00016;
   const severity = Math.min(1.4, frame.rho / Math.max(params.rhoCrit, Number.EPSILON));
 
   ctx.save();
-  ctx.globalCompositeOperation = "lighter";
+  ctx.globalCompositeOperation = interactive ? "source-over" : "lighter";
   for (let index = 0; index < particleCount; index += 1) {
     const phi = ruptureHash(index * 17 + 5) * TAU;
     const theta = ruptureHash(index * 29 + 11) * TAU;
@@ -440,7 +458,7 @@ function drawRuptureParticles(
     const radius = (compact ? 0.7 : 0.9) + ruptureHash(index * 53 + 31) * (compact ? 1.35 : 2.15);
     ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
     ctx.shadowColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-    ctx.shadowBlur = hot ? 7 : 4;
+    ctx.shadowBlur = interactive ? 0 : hot ? 7 : 4;
     ctx.beginPath();
     ctx.arc(point.x, point.y, radius, 0, TAU);
     ctx.fill();

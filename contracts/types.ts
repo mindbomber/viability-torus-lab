@@ -34,15 +34,27 @@ export type CalibrationLevel =
   | "empirically-calibrated"
   | "externally-validated";
 
-export type ModelFamily =
-  | "regenerative-stock"
-  | "threshold-regime-shift"
-  | "resistance-contagion"
-  | "trust-legitimacy"
-  | "capability-correction"
-  | "network-cascade"
-  | "financial-leverage"
-  | "human-capacity";
+export type MaintenancePatternId =
+  | "regeneration-depletion"
+  | "flow-backlog"
+  | "detection-correction"
+  | "maintenance-renewal"
+  | "propagation-containment"
+  | "trust-redress"
+  | "reserves-solvency";
+
+/** Compatibility name retained for v1 machine clients. */
+export type ModelFamily = MaintenancePatternId;
+
+export type DynamicTrait =
+  | "delayed-feedback"
+  | "capacity-saturation"
+  | "threshold-crossing"
+  | "hysteresis"
+  | "network-propagation"
+  | "irreversible-loss"
+  | "phase-coupling"
+  | "multi-timescale";
 
 export type PhaseSource =
   | "operational-stage"
@@ -121,22 +133,28 @@ export type SystemTemplateDefinition = {
   stateArchetype: string;
   structuralAssumptions: string[];
   learningQuestions: string[];
+  typicalDynamicTraits: DynamicTrait[];
   baseDynamics: Partial<SimulationParameters>;
   rupturePolicy: {
     cumulativeLossThreshold: number;
     debtThreshold: number;
     persistenceSteps: number;
   };
-  provenance: "illustrative-system-template";
+  provenance: "illustrative-maintenance-pattern";
 };
+
+export type MaintenancePatternDefinition = SystemTemplateDefinition;
 
 export type BoundedSystemDefinition = {
   id: string;
   version: string;
   templateId: ModelFamily;
+  maintenancePatternId: MaintenancePatternId;
   title: string;
   shortTitle: string;
   category: ScenarioCategory;
+  domain: ScenarioCategory;
+  dynamicTraits: DynamicTrait[];
   operator: string;
   boundary: string;
   objective: string;
@@ -255,6 +273,8 @@ export type InterventionPlanDefinition = {
 };
 
 export type LaboratoryComposition = {
+  maintenancePattern: MaintenancePatternDefinition;
+  /** @deprecated Prefer maintenancePattern; retained for v1 clients. */
   template: SystemTemplateDefinition;
   system: BoundedSystemDefinition;
   protocol: ScenarioProtocolDefinition;
@@ -273,6 +293,7 @@ export type ScenarioDefinition = {
   watchlistTier: WatchlistTier;
   featured: boolean;
   modelFamily: ModelFamily;
+  maintenancePatternId: MaintenancePatternId;
   calibration: CalibrationLevel;
   difficulty: "Introductory" | "Intermediate" | "Advanced";
   icon: string;
@@ -364,6 +385,8 @@ export type ExperimentResult = {
   modelVersion: string;
   experimentId: string;
   scenario: { id: string; version: string; title: string };
+  maintenancePattern: { id: string; version: string; title: string };
+  /** @deprecated Prefer maintenancePattern; retained for v1 clients. */
   template: { id: string; version: string; title: string };
   system: { id: string; version: string; title: string };
   protocol: { id: string; version: string; title: string };

@@ -19,7 +19,7 @@ test("common outcome protocols independently reproduce all published watchlist t
 });
 
 test("orange and yellow defaults have meaningfully different stress outcomes", () => {
-  const orange = scenarios.find((scenario) => scenario.id === "ai-agent-ecosystems");
+  const orange = scenarios.find((scenario) => scenario.id === "llm-deployment");
   const yellow = scenarios.find((scenario) => scenario.id === "data-governance");
   assert.ok(orange && yellow);
   const orangeAssessment = assessWatchlistConfiguration(orange.defaults);
@@ -32,19 +32,19 @@ test("orange and yellow defaults have meaningfully different stress outcomes", (
 });
 
 test("a visible early-correction protocol can improve red and orange current tiers", () => {
-  for (const id of ["climate-biosphere", "ai-agent-ecosystems"]) {
+  for (const id of ["antimicrobial-resistance", "llm-deployment"]) {
     const scenario = scenarios.find((item) => item.id === id);
     assert.ok(scenario);
     const recovery = scenario.protocols.find((protocol) => protocol.id.endsWith("early-correction"));
     assert.ok(recovery);
     const changed = assessWatchlistConfiguration(recovery.parameters);
     assert.notEqual(changed.tier, scenario.watchlistTier);
-    assert.equal(changed.tier, id === "climate-biosphere" ? "orange" : "yellow");
+    assert.equal(changed.tier, id === "antimicrobial-resistance" ? "orange" : "yellow");
   }
 });
 
 test("watchlist assessment is deterministic and uses a tier-independent canonical policy", () => {
-  const scenario = scenarios.find((item) => item.id === "climate-biosphere");
+  const scenario = scenarios.find((item) => item.id === "antimicrobial-resistance");
   assert.ok(scenario);
   assert.deepEqual(
     assessWatchlistConfiguration(scenario.defaults),
@@ -65,14 +65,14 @@ test("sustained Warning or Fragile baseline status is visible in the orange outl
 });
 
 test("parameter education covers every engine parameter with scenario-specific equivalents", () => {
-  const scenario = scenarios.find((item) => item.id === "climate-biosphere");
+  const scenario = scenarios.find((item) => item.id === "groundwater-depletion");
   assert.ok(scenario);
   const education = parameterEducationFor(scenario, scenario.defaults);
   const rows = [...education.primary, ...education.advanced];
   assert.equal(rows.length, Object.keys(scenario.defaults).length);
   assert.equal(new Set(rows.map((row) => row.key)).size, Object.keys(scenario.defaults).length);
-  assert.equal(education.primary.find((row) => row.key === "pressure")?.realWorldEquivalent, "Emissions, extraction & land-use pressure");
-  assert.match(education.primary.find((row) => row.key === "pressure")?.observationProxy ?? "", /emissions/i);
+  assert.equal(education.primary.find((row) => row.key === "pressure")?.realWorldEquivalent, "Agricultural, industrial & urban withdrawal");
+  assert.match(education.primary.find((row) => row.key === "pressure")?.observationProxy ?? "", /withdrawal/i);
   assert.ok(rows.filter((row) => !["seed", "steps", "dt"].includes(row.key)).every((row) => row.observationProxy && row.proxyNormalization && row.updateCadence));
   assert.ok(rows.every((row) => row.modelRole && row.scale && row.predictedEffect));
 });

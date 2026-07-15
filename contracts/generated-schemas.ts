@@ -14,8 +14,13 @@ export const GENERATED_SCHEMA_INDEX = {
       "url": "/schemas/v1/scheduled-intervention.schema.json"
     },
     {
+      "name": "maintenance-pattern",
+      "title": "Maintenance pattern",
+      "url": "/schemas/v1/maintenance-pattern.schema.json"
+    },
+    {
       "name": "system-template",
-      "title": "Reusable system template",
+      "title": "Maintenance pattern (v1 compatibility name)",
       "url": "/schemas/v1/system-template.schema.json"
     },
     {
@@ -416,21 +421,20 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
     "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/scheduled-intervention.schema.json",
     "title": "Scheduled intervention"
   },
-  "system-template.schema.json": {
+  "maintenance-pattern.schema.json": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "properties": {
       "id": {
         "type": "string",
         "enum": [
-          "regenerative-stock",
-          "threshold-regime-shift",
-          "resistance-contagion",
-          "trust-legitimacy",
-          "capability-correction",
-          "network-cascade",
-          "financial-leverage",
-          "human-capacity"
+          "regeneration-depletion",
+          "flow-backlog",
+          "detection-correction",
+          "maintenance-renewal",
+          "propagation-containment",
+          "trust-redress",
+          "reserves-solvency"
         ]
       },
       "version": {
@@ -450,14 +454,13 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "modelFamily": {
         "type": "string",
         "enum": [
-          "regenerative-stock",
-          "threshold-regime-shift",
-          "resistance-contagion",
-          "trust-legitimacy",
-          "capability-correction",
-          "network-cascade",
-          "financial-leverage",
-          "human-capacity"
+          "regeneration-depletion",
+          "flow-backlog",
+          "detection-correction",
+          "maintenance-renewal",
+          "propagation-containment",
+          "trust-redress",
+          "reserves-solvency"
         ]
       },
       "stateArchetype": {
@@ -483,6 +486,24 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "type": "string",
           "minLength": 10,
           "maxLength": 500
+        }
+      },
+      "typicalDynamicTraits": {
+        "minItems": 1,
+        "maxItems": 8,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "delayed-feedback",
+            "capacity-saturation",
+            "threshold-crossing",
+            "hysteresis",
+            "network-propagation",
+            "irreversible-loss",
+            "phase-coupling",
+            "multi-timescale"
+          ]
         }
       },
       "baseDynamics": {
@@ -639,7 +660,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       },
       "provenance": {
         "type": "string",
-        "const": "illustrative-system-template"
+        "const": "illustrative-maintenance-pattern"
       }
     },
     "required": [
@@ -651,13 +672,274 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "stateArchetype",
       "structuralAssumptions",
       "learningQuestions",
+      "typicalDynamicTraits",
+      "baseDynamics",
+      "rupturePolicy",
+      "provenance"
+    ],
+    "additionalProperties": false,
+    "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/maintenance-pattern.schema.json",
+    "title": "Maintenance pattern"
+  },
+  "system-template.schema.json": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "enum": [
+          "regeneration-depletion",
+          "flow-backlog",
+          "detection-correction",
+          "maintenance-renewal",
+          "propagation-containment",
+          "trust-redress",
+          "reserves-solvency"
+        ]
+      },
+      "version": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "title": {
+        "type": "string",
+        "minLength": 4,
+        "maxLength": 160
+      },
+      "summary": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "modelFamily": {
+        "type": "string",
+        "enum": [
+          "regeneration-depletion",
+          "flow-backlog",
+          "detection-correction",
+          "maintenance-renewal",
+          "propagation-containment",
+          "trust-redress",
+          "reserves-solvency"
+        ]
+      },
+      "stateArchetype": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 1000
+      },
+      "structuralAssumptions": {
+        "minItems": 1,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        }
+      },
+      "learningQuestions": {
+        "minItems": 1,
+        "maxItems": 20,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        }
+      },
+      "typicalDynamicTraits": {
+        "minItems": 1,
+        "maxItems": 8,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "delayed-feedback",
+            "capacity-saturation",
+            "threshold-crossing",
+            "hysteresis",
+            "network-propagation",
+            "irreversible-loss",
+            "phase-coupling",
+            "multi-timescale"
+          ]
+        }
+      },
+      "baseDynamics": {
+        "type": "object",
+        "properties": {
+          "pressure": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "Optimization or deployment pressure."
+          },
+          "error": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Constraint misunderstanding or error rate."
+          },
+          "feedback": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Feedback fidelity."
+          },
+          "correction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Correction capacity."
+          },
+          "drift": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.5,
+            "description": "Environmental drift."
+          },
+          "irreversibleLoss": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.5,
+            "description": "Irreversible loss rate."
+          },
+          "initialDebt": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Initial alignment debt."
+          },
+          "kappa": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Radial restoring coefficient."
+          },
+          "chi": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt-to-excursion coupling."
+          },
+          "omegaTheta": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "description": "Minor-cycle angular frequency."
+          },
+          "omegaPhi": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "description": "Major-cycle angular frequency."
+          },
+          "couplingA": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Major-to-minor phase coupling."
+          },
+          "couplingB": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1,
+            "description": "Minor-to-major phase coupling."
+          },
+          "rho0": {
+            "type": "number",
+            "minimum": 0.03,
+            "maximum": 5,
+            "description": "Reference radial excursion."
+          },
+          "rhoCrit": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10,
+            "description": "Critical radial viability boundary."
+          },
+          "alpha": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt accumulation coefficient."
+          },
+          "beta": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Debt repayment coefficient."
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Unsigned deterministic seed."
+          },
+          "steps": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Integration steps."
+          },
+          "dt": {
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 10,
+            "description": "Integration time step."
+          }
+        },
+        "additionalProperties": false
+      },
+      "rupturePolicy": {
+        "type": "object",
+        "properties": {
+          "cumulativeLossThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "debtThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "persistenceSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "cumulativeLossThreshold",
+          "debtThreshold",
+          "persistenceSteps"
+        ],
+        "additionalProperties": false
+      },
+      "provenance": {
+        "type": "string",
+        "const": "illustrative-maintenance-pattern"
+      }
+    },
+    "required": [
+      "id",
+      "version",
+      "title",
+      "summary",
+      "modelFamily",
+      "stateArchetype",
+      "structuralAssumptions",
+      "learningQuestions",
+      "typicalDynamicTraits",
       "baseDynamics",
       "rupturePolicy",
       "provenance"
     ],
     "additionalProperties": false,
     "$id": "https://viability-torus-lab.citizen-of-earth.chatgpt.site/schemas/v1/system-template.schema.json",
-    "title": "Reusable system template"
+    "title": "Maintenance pattern (v1 compatibility name)"
   },
   "scenario-module.schema.json": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -775,14 +1057,13 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "items": {
               "type": "string",
               "enum": [
-                "regenerative-stock",
-                "threshold-regime-shift",
-                "resistance-contagion",
-                "trust-legitimacy",
-                "capability-correction",
-                "network-cascade",
-                "financial-leverage",
-                "human-capacity"
+                "regeneration-depletion",
+                "flow-backlog",
+                "detection-correction",
+                "maintenance-renewal",
+                "propagation-containment",
+                "trust-redress",
+                "reserves-solvency"
               ]
             }
           }
@@ -915,14 +1196,13 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "items": {
               "type": "string",
               "enum": [
-                "regenerative-stock",
-                "threshold-regime-shift",
-                "resistance-contagion",
-                "trust-legitimacy",
-                "capability-correction",
-                "network-cascade",
-                "financial-leverage",
-                "human-capacity"
+                "regeneration-depletion",
+                "flow-backlog",
+                "detection-correction",
+                "maintenance-renewal",
+                "propagation-containment",
+                "trust-redress",
+                "reserves-solvency"
               ]
             }
           }
@@ -1155,14 +1435,13 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "items": {
               "type": "string",
               "enum": [
-                "regenerative-stock",
-                "threshold-regime-shift",
-                "resistance-contagion",
-                "trust-legitimacy",
-                "capability-correction",
-                "network-cascade",
-                "financial-leverage",
-                "human-capacity"
+                "regeneration-depletion",
+                "flow-backlog",
+                "detection-correction",
+                "maintenance-renewal",
+                "propagation-containment",
+                "trust-redress",
+                "reserves-solvency"
               ]
             }
           }
@@ -2949,17 +3228,28 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
         "type": "boolean"
       },
       "modelFamily": {
-        "default": "capability-correction",
+        "default": "detection-correction",
         "type": "string",
         "enum": [
-          "regenerative-stock",
-          "threshold-regime-shift",
-          "resistance-contagion",
-          "trust-legitimacy",
-          "capability-correction",
-          "network-cascade",
-          "financial-leverage",
-          "human-capacity"
+          "regeneration-depletion",
+          "flow-backlog",
+          "detection-correction",
+          "maintenance-renewal",
+          "propagation-containment",
+          "trust-redress",
+          "reserves-solvency"
+        ]
+      },
+      "maintenancePatternId": {
+        "type": "string",
+        "enum": [
+          "regeneration-depletion",
+          "flow-backlog",
+          "detection-correction",
+          "maintenance-renewal",
+          "propagation-containment",
+          "trust-redress",
+          "reserves-solvency"
         ]
       },
       "calibration": {
@@ -3833,17 +4123,28 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "pattern": "^\\d+\\.\\d+\\.\\d+$"
           },
           "templateId": {
-            "default": "capability-correction",
+            "default": "detection-correction",
             "type": "string",
             "enum": [
-              "regenerative-stock",
-              "threshold-regime-shift",
-              "resistance-contagion",
-              "trust-legitimacy",
-              "capability-correction",
-              "network-cascade",
-              "financial-leverage",
-              "human-capacity"
+              "regeneration-depletion",
+              "flow-backlog",
+              "detection-correction",
+              "maintenance-renewal",
+              "propagation-containment",
+              "trust-redress",
+              "reserves-solvency"
+            ]
+          },
+          "maintenancePatternId": {
+            "type": "string",
+            "enum": [
+              "regeneration-depletion",
+              "flow-backlog",
+              "detection-correction",
+              "maintenance-renewal",
+              "propagation-containment",
+              "trust-redress",
+              "reserves-solvency"
             ]
           },
           "title": {
@@ -3867,6 +4168,36 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "Economy",
               "Society"
             ]
+          },
+          "domain": {
+            "type": "string",
+            "enum": [
+              "AI",
+              "Ecology",
+              "Healthcare",
+              "Organizations",
+              "Infrastructure",
+              "Economy",
+              "Society"
+            ]
+          },
+          "dynamicTraits": {
+            "minItems": 1,
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "delayed-feedback",
+                "capacity-saturation",
+                "threshold-crossing",
+                "hysteresis",
+                "network-propagation",
+                "irreversible-loss",
+                "phase-coupling",
+                "multi-timescale"
+              ]
+            }
           },
           "operator": {
             "type": "string",
@@ -4097,9 +4428,12 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "id",
           "version",
           "templateId",
+          "maintenancePatternId",
           "title",
           "shortTitle",
           "category",
+          "domain",
+          "dynamicTraits",
           "operator",
           "boundary",
           "objective",
@@ -4134,17 +4468,16 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
             },
             "templateId": {
-              "default": "capability-correction",
+              "default": "detection-correction",
               "type": "string",
               "enum": [
-                "regenerative-stock",
-                "threshold-regime-shift",
-                "resistance-contagion",
-                "trust-legitimacy",
-                "capability-correction",
-                "network-cascade",
-                "financial-leverage",
-                "human-capacity"
+                "regeneration-depletion",
+                "flow-backlog",
+                "detection-correction",
+                "maintenance-renewal",
+                "propagation-containment",
+                "trust-redress",
+                "reserves-solvency"
               ]
             },
             "moduleId": {
@@ -5201,6 +5534,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
       "watchlistTier",
       "featured",
       "modelFamily",
+      "maintenancePatternId",
       "calibration",
       "difficulty",
       "icon",
@@ -5330,17 +5664,28 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
             "type": "boolean"
           },
           "modelFamily": {
-            "default": "capability-correction",
+            "default": "detection-correction",
             "type": "string",
             "enum": [
-              "regenerative-stock",
-              "threshold-regime-shift",
-              "resistance-contagion",
-              "trust-legitimacy",
-              "capability-correction",
-              "network-cascade",
-              "financial-leverage",
-              "human-capacity"
+              "regeneration-depletion",
+              "flow-backlog",
+              "detection-correction",
+              "maintenance-renewal",
+              "propagation-containment",
+              "trust-redress",
+              "reserves-solvency"
+            ]
+          },
+          "maintenancePatternId": {
+            "type": "string",
+            "enum": [
+              "regeneration-depletion",
+              "flow-backlog",
+              "detection-correction",
+              "maintenance-renewal",
+              "propagation-containment",
+              "trust-redress",
+              "reserves-solvency"
             ]
           },
           "calibration": {
@@ -6214,17 +6559,28 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                 "pattern": "^\\d+\\.\\d+\\.\\d+$"
               },
               "templateId": {
-                "default": "capability-correction",
+                "default": "detection-correction",
                 "type": "string",
                 "enum": [
-                  "regenerative-stock",
-                  "threshold-regime-shift",
-                  "resistance-contagion",
-                  "trust-legitimacy",
-                  "capability-correction",
-                  "network-cascade",
-                  "financial-leverage",
-                  "human-capacity"
+                  "regeneration-depletion",
+                  "flow-backlog",
+                  "detection-correction",
+                  "maintenance-renewal",
+                  "propagation-containment",
+                  "trust-redress",
+                  "reserves-solvency"
+                ]
+              },
+              "maintenancePatternId": {
+                "type": "string",
+                "enum": [
+                  "regeneration-depletion",
+                  "flow-backlog",
+                  "detection-correction",
+                  "maintenance-renewal",
+                  "propagation-containment",
+                  "trust-redress",
+                  "reserves-solvency"
                 ]
               },
               "title": {
@@ -6248,6 +6604,36 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                   "Economy",
                   "Society"
                 ]
+              },
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "AI",
+                  "Ecology",
+                  "Healthcare",
+                  "Organizations",
+                  "Infrastructure",
+                  "Economy",
+                  "Society"
+                ]
+              },
+              "dynamicTraits": {
+                "minItems": 1,
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "delayed-feedback",
+                    "capacity-saturation",
+                    "threshold-crossing",
+                    "hysteresis",
+                    "network-propagation",
+                    "irreversible-loss",
+                    "phase-coupling",
+                    "multi-timescale"
+                  ]
+                }
               },
               "operator": {
                 "type": "string",
@@ -6478,9 +6864,12 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
               "id",
               "version",
               "templateId",
+              "maintenancePatternId",
               "title",
               "shortTitle",
               "category",
+              "domain",
+              "dynamicTraits",
               "operator",
               "boundary",
               "objective",
@@ -6515,17 +6904,16 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
                   "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
                 },
                 "templateId": {
-                  "default": "capability-correction",
+                  "default": "detection-correction",
                   "type": "string",
                   "enum": [
-                    "regenerative-stock",
-                    "threshold-regime-shift",
-                    "resistance-contagion",
-                    "trust-legitimacy",
-                    "capability-correction",
-                    "network-cascade",
-                    "financial-leverage",
-                    "human-capacity"
+                    "regeneration-depletion",
+                    "flow-backlog",
+                    "detection-correction",
+                    "maintenance-renewal",
+                    "propagation-containment",
+                    "trust-redress",
+                    "reserves-solvency"
                   ]
                 },
                 "moduleId": {
@@ -7582,6 +7970,7 @@ export const GENERATED_JSON_SCHEMAS: Record<string, unknown> = {
           "watchlistTier",
           "featured",
           "modelFamily",
+          "maintenancePatternId",
           "calibration",
           "difficulty",
           "icon",

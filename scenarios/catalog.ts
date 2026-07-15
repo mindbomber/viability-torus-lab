@@ -1,6 +1,7 @@
 import { defaultParameters, type SimulationParameters } from "../engine/simulator.ts";
 import type {
   BoundedSystemDefinition,
+  DynamicTrait,
   ModelFamily,
   PhaseSource,
   ScenarioCategory,
@@ -33,7 +34,7 @@ type MeaningSeed = {
 type ScenarioSeed = {
   id: string;
   category: ScenarioCategory;
-  family: ModelFamily;
+  family: ModelFamily | "regenerative-stock" | "threshold-regime-shift" | "resistance-contagion" | "trust-legitimacy" | "capability-correction" | "network-cascade" | "financial-leverage" | "human-capacity";
   minor: string[];
   major: string[];
   meanings: MeaningSeed;
@@ -50,6 +51,7 @@ type ScenarioSeed = {
 
 const standardInterventionIds = ["increase-correction", "improve-feedback", "reduce-pressure", "add-audit", "pause-optimization", "repay-debt"];
 const standardWarnings = ["Correction margin is narrowing", "Radial excursion exceeds the early-warning band", "Alignment debt is accumulating"];
+const publishedSystemVersion = "2.0.0";
 
 const normalizedRanges: ScenarioDefinition["ranges"] = {
   pressure: { min: 0, max: 2, step: 0.01 },
@@ -61,25 +63,87 @@ const normalizedRanges: ScenarioDefinition["ranges"] = {
   initialDebt: { min: 0, max: 2, step: 0.01 },
 };
 
-const familyAixLabels: Record<ModelFamily, ScenarioDefinition["aixLabels"]> = {
-  "regenerative-stock": { physical: "Resource stock and physical feasibility", biological: "Ecological and human-health viability", constructed: "Production or service delivery", feedback: "Monitoring and enforcement integrity" },
-  "threshold-regime-shift": { physical: "Physical boundary and regime stability", biological: "Ecological and human viability", constructed: "Adaptation and service coherence", feedback: "Early-warning and monitoring integrity" },
-  "resistance-contagion": { physical: "Transmission and state evidence", biological: "Health, cognition, and social viability", constructed: "Containment and response performance", feedback: "Surveillance, grounding, and audit integrity" },
-  "trust-legitimacy": { physical: "Service feasibility and objective evidence", biological: "Dignity, wellbeing, and social viability", constructed: "Procedural and institutional coherence", feedback: "Transparency, appeals, and public feedback" },
-  "capability-correction": { physical: "Factual and technical validity", biological: "Safety and human impact", constructed: "Task or platform performance", feedback: "Verifier, grounding, and audit integrity" },
-  "network-cascade": { physical: "Physical condition and capacity", biological: "Public safety and access", constructed: "Service continuity", feedback: "Inspection, telemetry, and incident reporting" },
-  "financial-leverage": { physical: "Real resource and cash-flow feasibility", biological: "Household and social impact", constructed: "Market and contract functioning", feedback: "Balance-sheet and risk transparency" },
-  "human-capacity": { physical: "Material service capacity", biological: "Health, learning, dignity, and wellbeing", constructed: "Institutional and operational coherence", feedback: "Human feedback and outcome visibility" },
+const publishedSystemIds = [
+  "groundwater-depletion", "soil-fertility", "fishery-management",
+  "semiconductor-supply-chain", "hospital-throughput", "education-quality",
+  "llm-deployment", "coding-agent", "research-integrity",
+  "aging-infrastructure", "public-transit", "healthcare-workforce",
+  "antimicrobial-resistance", "public-health-preparedness", "information-integrity",
+  "institutional-trust", "data-governance", "engagement-recommender",
+  "sovereign-debt", "disaster-insurance", "housing-affordability",
+] as const;
+
+const maintenancePatternForSystem: Record<(typeof publishedSystemIds)[number], ModelFamily> = {
+  "groundwater-depletion": "regeneration-depletion",
+  "soil-fertility": "regeneration-depletion",
+  "fishery-management": "regeneration-depletion",
+  "semiconductor-supply-chain": "flow-backlog",
+  "hospital-throughput": "flow-backlog",
+  "education-quality": "flow-backlog",
+  "llm-deployment": "detection-correction",
+  "coding-agent": "detection-correction",
+  "research-integrity": "detection-correction",
+  "aging-infrastructure": "maintenance-renewal",
+  "public-transit": "maintenance-renewal",
+  "healthcare-workforce": "maintenance-renewal",
+  "antimicrobial-resistance": "propagation-containment",
+  "public-health-preparedness": "propagation-containment",
+  "information-integrity": "propagation-containment",
+  "institutional-trust": "trust-redress",
+  "data-governance": "trust-redress",
+  "engagement-recommender": "trust-redress",
+  "sovereign-debt": "reserves-solvency",
+  "disaster-insurance": "reserves-solvency",
+  "housing-affordability": "reserves-solvency",
 };
 
-const phaseSourceFor = (seed: ScenarioSeed): PhaseSource => seed.majorSource ?? (
-  seed.family === "financial-leverage" ? "market-cycle" :
+const dynamicTraitsForSystem: Record<(typeof publishedSystemIds)[number], DynamicTrait[]> = {
+  "groundwater-depletion": ["delayed-feedback", "threshold-crossing", "hysteresis", "irreversible-loss", "multi-timescale"],
+  "soil-fertility": ["delayed-feedback", "hysteresis", "irreversible-loss", "multi-timescale"],
+  "fishery-management": ["delayed-feedback", "threshold-crossing", "network-propagation", "irreversible-loss", "multi-timescale"],
+  "semiconductor-supply-chain": ["capacity-saturation", "network-propagation", "delayed-feedback", "multi-timescale"],
+  "hospital-throughput": ["capacity-saturation", "delayed-feedback", "phase-coupling", "multi-timescale"],
+  "education-quality": ["capacity-saturation", "delayed-feedback", "hysteresis", "multi-timescale"],
+  "llm-deployment": ["delayed-feedback", "capacity-saturation", "phase-coupling", "irreversible-loss"],
+  "coding-agent": ["delayed-feedback", "phase-coupling", "irreversible-loss"],
+  "research-integrity": ["delayed-feedback", "hysteresis", "phase-coupling", "multi-timescale"],
+  "aging-infrastructure": ["delayed-feedback", "threshold-crossing", "irreversible-loss", "multi-timescale"],
+  "public-transit": ["capacity-saturation", "delayed-feedback", "threshold-crossing", "multi-timescale"],
+  "healthcare-workforce": ["capacity-saturation", "delayed-feedback", "hysteresis", "multi-timescale"],
+  "antimicrobial-resistance": ["network-propagation", "delayed-feedback", "threshold-crossing", "hysteresis", "irreversible-loss"],
+  "public-health-preparedness": ["network-propagation", "capacity-saturation", "delayed-feedback", "phase-coupling"],
+  "information-integrity": ["network-propagation", "delayed-feedback", "hysteresis", "phase-coupling"],
+  "institutional-trust": ["delayed-feedback", "hysteresis", "phase-coupling", "multi-timescale"],
+  "data-governance": ["delayed-feedback", "hysteresis", "irreversible-loss", "multi-timescale"],
+  "engagement-recommender": ["network-propagation", "delayed-feedback", "hysteresis", "phase-coupling"],
+  "sovereign-debt": ["capacity-saturation", "threshold-crossing", "hysteresis", "multi-timescale"],
+  "disaster-insurance": ["capacity-saturation", "threshold-crossing", "network-propagation", "multi-timescale"],
+  "housing-affordability": ["capacity-saturation", "delayed-feedback", "hysteresis", "multi-timescale"],
+};
+
+const isPublishedSystemId = (id: string): id is (typeof publishedSystemIds)[number] =>
+  (publishedSystemIds as readonly string[]).includes(id);
+
+const familyAixLabels: Record<ModelFamily, ScenarioDefinition["aixLabels"]> = {
+  "regeneration-depletion": { physical: "Resource stock and physical feasibility", biological: "Ecological and human-health viability", constructed: "Production or service delivery", feedback: "Monitoring and replenishment integrity" },
+  "flow-backlog": { physical: "Material throughput and capacity", biological: "Safety, learning, health, and access", constructed: "Queue and service coherence", feedback: "Demand, delay, and outcome visibility" },
+  "detection-correction": { physical: "Factual and technical validity", biological: "Safety and human impact", constructed: "Task or knowledge-system performance", feedback: "Verifier, replication, grounding, and audit integrity" },
+  "maintenance-renewal": { physical: "Asset or workforce condition", biological: "Public and worker safety", constructed: "Service continuity and renewal", feedback: "Inspection, incident, and condition reporting" },
+  "propagation-containment": { physical: "Transmission and state evidence", biological: "Health, cognition, and social viability", constructed: "Containment and response performance", feedback: "Surveillance, grounding, and audit integrity" },
+  "trust-redress": { physical: "Service feasibility and objective evidence", biological: "Dignity, wellbeing, and social viability", constructed: "Procedural and institutional coherence", feedback: "Transparency, appeals, and public feedback" },
+  "reserves-solvency": { physical: "Real resource and cash-flow feasibility", biological: "Household and social impact", constructed: "Market and contract functioning", feedback: "Balance-sheet and risk transparency" },
+};
+
+const phaseSourceFor = (seed: ScenarioSeed, family: ModelFamily): PhaseSource => seed.majorSource ?? (
+  family === "reserves-solvency" ? "market-cycle" :
   seed.category === "Organizations" || seed.category === "Society" ? "policy-cycle" :
   seed.category === "Ecology" || seed.category === "Healthcare" ? "seasonal" : "estimated"
 );
 
 const makeScenario = (seed: ScenarioSeed): ScenarioDefinition => {
-  const template = systemTemplateById[seed.family];
+  if (!isPublishedSystemId(seed.id)) throw new Error(`Uncurated system cannot be published: ${seed.id}`);
+  const family = maintenancePatternForSystem[seed.id];
+  const template = systemTemplateById[family];
   const defaults: SimulationParameters = {
     ...defaultParameters,
     ...template.baseDynamics,
@@ -102,16 +166,19 @@ const makeScenario = (seed: ScenarioSeed): ScenarioDefinition => {
   if (!profile) throw new Error(`Missing bounded-system definition for ${seed.id}`);
   const cycles = {
     minor: { label: seed.minor.join(" → "), stages: seed.minor, description: "Local operational correction cycle", defaultFrequency: defaults.omegaTheta, phaseSource: "operational-stage" as const },
-    major: { label: seed.major.join(" → "), stages: seed.major, description: "External adaptation cycle", defaultFrequency: defaults.omegaPhi, phaseSource: phaseSourceFor(seed) },
+    major: { label: seed.major.join(" → "), stages: seed.major, description: "External adaptation cycle", defaultFrequency: defaults.omegaPhi, phaseSource: phaseSourceFor(seed, family) },
   };
   const viableRegion = `Operation remains viable while ${seed.meanings.r.toLowerCase()} stays inside a recoverable range and the stated population floors are maintained.`;
   const system: BoundedSystemDefinition = {
     id: seed.id,
-    version: seed.version ?? "1.0.0",
+    version: publishedSystemVersion,
     templateId: template.id,
+    maintenancePatternId: template.id,
     title: profile.title,
     shortTitle: profile.shortTitle,
     category: seed.category,
+    domain: seed.category,
+    dynamicTraits: dynamicTraitsForSystem[seed.id],
     operator: profile.operator,
     boundary: profile.boundary,
     objective: profile.objective,
@@ -121,9 +188,9 @@ const makeScenario = (seed: ScenarioSeed): ScenarioDefinition => {
     viableRegion,
     stateVariables: [seed.meanings.r, seed.meanings.d, seed.meanings.g, seed.meanings.c],
     constraints: {
-      physical: [familyAixLabels[seed.family].physical],
-      biological: [familyAixLabels[seed.family].biological],
-      constructed: [familyAixLabels[seed.family].constructed],
+      physical: [familyAixLabels[family].physical],
+      biological: [familyAixLabels[family].biological],
+      constructed: [familyAixLabels[family].constructed],
     },
     cycles,
     phaseEvidence: {
@@ -144,21 +211,22 @@ const makeScenario = (seed: ScenarioSeed): ScenarioDefinition => {
     domainConditions: [system.boundary, system.horizon],
     domainStressors: seed.events ?? ["Pressure shock", "Feedback degradation"],
     interventionMeanings: seed.interventions ?? ["Reduce pressure", "Improve feedback fidelity", "Expand correction capacity", "Repay accumulated debt"],
-    version: seed.version ?? "1.0.0",
+    version: publishedSystemVersion,
     }));
   const watchlistTier = derivedDefaultWatchlist[seed.id];
   if (!watchlistTier) throw new Error(`Missing derived watchlist assessment for ${seed.id}`);
   const currentStateEstimate = currentStateEstimateFor(seed.id, labels, cycles);
   return {
     id: seed.id,
-    version: seed.version ?? "1.0.0",
+    version: publishedSystemVersion,
     title: profile.title,
     shortTitle: profile.shortTitle,
     summary: profile.defaultProtocolSummary,
     category: seed.category,
     watchlistTier,
     featured: Boolean(profile.featured),
-    modelFamily: seed.family,
+    modelFamily: family,
+    maintenancePatternId: family,
     calibration: "illustrative",
     difficulty: seed.difficulty ?? (watchlistTier === "red" ? "Advanced" : watchlistTier === "yellow" ? "Introductory" : "Intermediate"),
     icon: seed.icon,
@@ -199,7 +267,7 @@ const makeScenario = (seed: ScenarioSeed): ScenarioDefinition => {
     protocols,
     cycles,
     labels,
-    aixLabels: familyAixLabels[seed.family],
+    aixLabels: familyAixLabels[family],
     ranges: normalizedRanges,
     thresholds: { warningRho: defaults.rhoCrit * 0.65, criticalRho: defaults.rhoCrit, irreversibleRho: defaults.rhoCrit * 1.35, phaseConfidenceMinimum: 0.2 },
     rupturePolicy: {
@@ -227,7 +295,7 @@ const seeds: ScenarioSeed[] = [
   { id: "sovereign-debt", category: "Economy", family: "financial-leverage", icon: "∿", accent: "#ffb65f", minor: ["Borrow", "Spend or invest", "Collect revenue", "Service", "Refinance"], major: ["Credit expansion", "Tightening", "Restructuring", "Recovery"], majorSource: "market-cycle", meanings: { p: "Leverage, growth & refinancing pressure", e: "Risk-model and revenue-growth error", g: "Fiscal, balance-sheet & market transparency", c: "Buffers, restructuring & fiscal space", f: "Rate, growth, capital-flow & FX change", d: "Debt overhang & unfunded obligations", l: "Default damage, trust & output loss", k: "Deleveraging and revenue recovery", x: "Debt-overhang sensitivity", r: "Liquidity and solvency excursion" } },
   { id: "semiconductor-supply-chain", category: "Infrastructure", family: "network-cascade", icon: "▦", accent: "#56c9ff", minor: ["Order", "Fabricate", "Ship", "Assemble", "Replenish"], major: ["Demand cycle", "Capacity investment", "Technology transition"], majorSource: "market-cycle", meanings: { p: "Efficiency, concentration & just-in-time pressure", e: "Demand and geopolitical-risk forecast error", g: "Supplier, inventory & logistics visibility", c: "Redundancy, reserves & diversified production", f: "Technology demand & geopolitical change", d: "Capacity backlog & concentration debt", l: "Lost fabrication capacity or knowledge", k: "Rebuilding and substitution speed", x: "Concentration-disruption coupling", r: "Shortage and production-cascade risk" } },
   { id: "fishery-management", category: "Ecology", family: "regenerative-stock", icon: "≈", accent: "#3ee0c1", version: "1.1.0", minor: ["Harvest", "Assess", "Set quota", "Enforce", "Replenish"], major: ["Season", "Migration", "Climate shift", "Ecosystem adaptation"], majorSource: "seasonal", meanings: { p: "Fishing and extraction pressure", e: "Stock-assessment and bycatch error", g: "Monitoring and enforcement fidelity", c: "Quotas, reserves & habitat restoration", f: "Warming, acidification & migration", d: "Biomass and habitat debt", l: "Breeding-stock collapse & regime change", k: "Reproduction and ecosystem recovery", x: "Depleted-stock sensitivity", r: "Biomass and ecosystem risk" }, defaults: { pressure: 1.6, error: 0.34, feedback: 0.65, correction: 0.5, drift: 0.08, omegaPhi: 0.035 } },
-  { id: "housing-affordability", category: "Economy", family: "financial-leverage", icon: "⌂", accent: "#e8a86a", minor: ["Demand", "Price", "Plan", "Build", "Occupy", "Adjust"], major: ["Demographic growth", "Neighborhood transition", "Policy adaptation"], majorSource: "market-cycle", meanings: { p: "Demand, speculation & yield pressure", e: "Misreading output as affordability", g: "Rent, vacancy & displacement data quality", c: "Building, reform, subsidy & protection", f: "Population, rates, wages & migration", d: "Underbuilding and displacement debt", l: "Community loss & chronic homelessness", k: "Supply and community recovery", x: "Scarcity path dependence", r: "Affordability and displacement risk" } },
+  { id: "housing-affordability", category: "Economy", family: "financial-leverage", icon: "⌂", accent: "#e8a86a", minor: ["Originate", "Underwrite", "Fund", "Service", "Mitigate loss", "Replenish reserve"], major: ["Credit expansion", "Rate tightening", "Construction adjustment", "Portfolio recovery"], majorSource: "market-cycle", meanings: { p: "Origination, delivery & yield pressure", e: "Credit, project-completion & affordability error", g: "Portfolio, borrower & construction visibility", c: "Liquidity, reserves, guarantees & loss mitigation", f: "Rates, costs, incomes & credit-cycle change", d: "Unfunded commitments & impaired-loan overhang", l: "Foreclosure, failed projects & permanent capital loss", k: "Reserve and portfolio recovery", x: "Commitment-solvency coupling", r: "Liquidity, delivery and solvency excursion" } },
   { id: "youth-mental-health", category: "Healthcare", family: "human-capacity", icon: "◒", accent: "#fa8fc6", minor: ["Stress", "Signal", "Cope", "Support", "Recover"], major: ["Developmental stage", "School and social context", "Identity adaptation"], meanings: { p: "Digital, academic & social pressure", e: "Symptom, need & coping misclassification", g: "Family, school & clinical feedback", c: "Therapy, support, sleep & safeguards", f: "Developmental and social-context change", d: "Sleep, stress & isolation debt", l: "Chronic impairment, crisis & lost trust", k: "Psychological and social recovery", x: "Stress-debt vulnerability", r: "Distress and loss-of-function risk" } },
 
   { id: "pollinator-collapse", category: "Ecology", family: "regenerative-stock", icon: "✿", accent: "#f2d35e", minor: ["Pollinate", "Reproduce", "Monitor", "Restore habitat"], major: ["Flowering season", "Land-use change", "Ecological adaptation"], majorSource: "seasonal", meanings: { p: "Pesticide and intensive-land-use pressure", e: "Decline and redundancy measurement error", g: "Biodiversity monitoring fidelity", c: "Corridors, pesticide reform & crop diversity", f: "Climate and land-use change", d: "Population and habitat debt", l: "Local extinction & lost ecological function", k: "Reproduction, migration & recolonization", x: "Surviving-diversity dependence", r: "Pollination-service network risk" } },
@@ -251,7 +319,7 @@ const seeds: ScenarioSeed[] = [
   { id: "research-integrity", category: "Organizations", family: "trust-legitimacy", icon: "⚗", accent: "#78c6ff", minor: ["Hypothesize", "Test", "Review", "Replicate", "Revise"], major: ["Funding cycle", "Research trend", "Method adaptation"], majorSource: "policy-cycle", meanings: { p: "Publication, prestige & funding pressure", e: "Model, measurement & interpretation error", g: "Replication, peer review & data transparency", c: "Correction, retraction & methodological reform", f: "Funding and research-trend change", d: "Unreplicated findings & method debt", l: "Trust loss & entrenched false knowledge", k: "Replication and institutional recovery", x: "Literature-debt amplification", r: "Research-integrity risk" } },
 ];
 
-const publishedCandidates: ScenarioDefinition[] = seeds.map(makeScenario);
+const publishedCandidates: ScenarioDefinition[] = seeds.filter((seed) => isPublishedSystemId(seed.id)).map(makeScenario);
 assertPublishedTorusEligibility(publishedCandidates);
 
 export const scenarios: ScenarioDefinition[] = publishedCandidates;

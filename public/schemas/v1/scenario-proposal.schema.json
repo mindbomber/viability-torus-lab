@@ -98,17 +98,28 @@
           "type": "boolean"
         },
         "modelFamily": {
-          "default": "capability-correction",
+          "default": "detection-correction",
           "type": "string",
           "enum": [
-            "regenerative-stock",
-            "threshold-regime-shift",
-            "resistance-contagion",
-            "trust-legitimacy",
-            "capability-correction",
-            "network-cascade",
-            "financial-leverage",
-            "human-capacity"
+            "regeneration-depletion",
+            "flow-backlog",
+            "detection-correction",
+            "maintenance-renewal",
+            "propagation-containment",
+            "trust-redress",
+            "reserves-solvency"
+          ]
+        },
+        "maintenancePatternId": {
+          "type": "string",
+          "enum": [
+            "regeneration-depletion",
+            "flow-backlog",
+            "detection-correction",
+            "maintenance-renewal",
+            "propagation-containment",
+            "trust-redress",
+            "reserves-solvency"
           ]
         },
         "calibration": {
@@ -982,17 +993,28 @@
               "pattern": "^\\d+\\.\\d+\\.\\d+$"
             },
             "templateId": {
-              "default": "capability-correction",
+              "default": "detection-correction",
               "type": "string",
               "enum": [
-                "regenerative-stock",
-                "threshold-regime-shift",
-                "resistance-contagion",
-                "trust-legitimacy",
-                "capability-correction",
-                "network-cascade",
-                "financial-leverage",
-                "human-capacity"
+                "regeneration-depletion",
+                "flow-backlog",
+                "detection-correction",
+                "maintenance-renewal",
+                "propagation-containment",
+                "trust-redress",
+                "reserves-solvency"
+              ]
+            },
+            "maintenancePatternId": {
+              "type": "string",
+              "enum": [
+                "regeneration-depletion",
+                "flow-backlog",
+                "detection-correction",
+                "maintenance-renewal",
+                "propagation-containment",
+                "trust-redress",
+                "reserves-solvency"
               ]
             },
             "title": {
@@ -1016,6 +1038,36 @@
                 "Economy",
                 "Society"
               ]
+            },
+            "domain": {
+              "type": "string",
+              "enum": [
+                "AI",
+                "Ecology",
+                "Healthcare",
+                "Organizations",
+                "Infrastructure",
+                "Economy",
+                "Society"
+              ]
+            },
+            "dynamicTraits": {
+              "minItems": 1,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "delayed-feedback",
+                  "capacity-saturation",
+                  "threshold-crossing",
+                  "hysteresis",
+                  "network-propagation",
+                  "irreversible-loss",
+                  "phase-coupling",
+                  "multi-timescale"
+                ]
+              }
             },
             "operator": {
               "type": "string",
@@ -1246,9 +1298,12 @@
             "id",
             "version",
             "templateId",
+            "maintenancePatternId",
             "title",
             "shortTitle",
             "category",
+            "domain",
+            "dynamicTraits",
             "operator",
             "boundary",
             "objective",
@@ -1283,17 +1338,16 @@
                 "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
               },
               "templateId": {
-                "default": "capability-correction",
+                "default": "detection-correction",
                 "type": "string",
                 "enum": [
-                  "regenerative-stock",
-                  "threshold-regime-shift",
-                  "resistance-contagion",
-                  "trust-legitimacy",
-                  "capability-correction",
-                  "network-cascade",
-                  "financial-leverage",
-                  "human-capacity"
+                  "regeneration-depletion",
+                  "flow-backlog",
+                  "detection-correction",
+                  "maintenance-renewal",
+                  "propagation-containment",
+                  "trust-redress",
+                  "reserves-solvency"
                 ]
               },
               "moduleId": {
@@ -2350,6 +2404,7 @@
         "watchlistTier",
         "featured",
         "modelFamily",
+        "maintenancePatternId",
         "calibration",
         "difficulty",
         "icon",

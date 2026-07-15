@@ -8,14 +8,8 @@ export function GET() {
   return apiJson({
     schemaVersion: CONTRACT_VERSION,
     modelVersion: MODEL_VERSION,
-    preferredEndpoint: "/api/v1/maintenance-patterns",
-    compatibilityAlias: true,
     count: maintenancePatterns.length,
     maintenancePatterns: maintenancePatterns.map((pattern) => ({
-      ...pattern,
-      systemCount: scenarios.filter((scenario) => scenario.system.maintenancePatternId === pattern.id).length,
-    })),
-    templates: maintenancePatterns.map((pattern) => ({
       ...pattern,
       systemCount: scenarios.filter((scenario) => scenario.system.maintenancePatternId === pattern.id).length,
     })),
@@ -23,4 +17,3 @@ export function GET() {
 }
 
 export const OPTIONS = apiOptions;
-

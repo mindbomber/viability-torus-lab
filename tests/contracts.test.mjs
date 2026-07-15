@@ -55,14 +55,13 @@ test("every published scenario discloses its evidence and calibration status", (
 
 test(`all bounded-system compound-stress references remain stable for ${MODEL_VERSION}`, () => {
   const references = {
-    "climate-biosphere": "5ed531f6b7cf8586", "groundwater-depletion": "91018d6e8e05de3e", "soil-fertility": "a0da1df04b21dd4d", "antimicrobial-resistance": "894dc8f4970ce3ff",
-    "information-integrity": "b3a4207bb951513d", "institutional-trust": "888df0ca95cfc5cf", "ai-agent-ecosystems": "50e7568c45cc4f8d", "public-health-preparedness": "746d7c0bd63d7e9a",
-    "energy-grid": "1f987bed4292fa9c", "sovereign-debt": "b22a02d46cd53a0b", "semiconductor-supply-chain": "a574d354111b8cfc", "fishery-management": "bfc1826296c80b62",
-    "housing-affordability": "04d4036103abeaf5", "youth-mental-health": "35b45e5868821319", "pollinator-collapse": "4eb71eb35aaaf1c7", "education-quality": "b2742617b824449a",
-    "healthcare-workforce": "0e7aa04378128fb4", "aging-infrastructure": "08a01c350d691fee", "water-quality": "4e1c4bb42a8e6303", "geopolitical-escalation": "d9bda224ddf45ae0",
-    "disaster-insurance": "ee9c165d860a5c63", "data-governance": "802e2549959d7c8a", "llm-deployment": "257ad467e2b354ce", "coding-agent": "2721cf7e14b8170c",
-    "startup-growth": "e880f422e92c4067", "hospital-throughput": "c8fd6227ef339e8f", "burnout-recovery": "f43b3672fcbec23d", "public-transit": "859989b48ac1fe01",
-    "engagement-recommender": "6a37b29ae0640981", "urban-reservoir": "ba239fcf08bdd507", "emergency-response": "283e5a2502d47ca3", "research-integrity": "89d7dcd9ea579c65",
+    "groundwater-depletion": "91018d6e8e05de3e", "soil-fertility": "a0da1df04b21dd4d", "fishery-management": "bfc1826296c80b62",
+    "semiconductor-supply-chain": "f554332d1456abfa", "hospital-throughput": "93e64a0143443695", "education-quality": "b2742617b824449a",
+    "llm-deployment": "257ad467e2b354ce", "coding-agent": "2721cf7e14b8170c", "research-integrity": "0d9bf1b7180a2922",
+    "aging-infrastructure": "cc5167cdf405e560", "public-transit": "590aa2bb2d7a9345", "healthcare-workforce": "0f6c8234c360b748",
+    "antimicrobial-resistance": "894dc8f4970ce3ff", "public-health-preparedness": "102d76531cf20335", "information-integrity": "b3a4207bb951513d",
+    "institutional-trust": "888df0ca95cfc5cf", "data-governance": "802e2549959d7c8a", "engagement-recommender": "44afe1f3fb40c4db",
+    "sovereign-debt": "b22a02d46cd53a0b", "disaster-insurance": "ee9c165d860a5c63", "housing-affordability": "04d4036103abeaf5",
   };
   for (const scenario of scenarios) {
     const protocol = scenario.protocols.find((candidate) => candidate.id.endsWith("compound-stress"));
@@ -73,15 +72,19 @@ test(`all bounded-system compound-stress references remain stable for ${MODEL_VE
   }
 });
 
-test("the catalog publishes 32 bounded systems with separate derived watchlist and featured metadata", () => {
-  assert.equal(scenarios.length, 32);
-  assert.equal(new Set(scenarios.map((scenario) => scenario.id)).size, 32);
+test("the catalog publishes 21 bounded systems across seven maintenance patterns", () => {
+  assert.equal(scenarios.length, 21);
+  assert.equal(new Set(scenarios.map((scenario) => scenario.id)).size, 21);
   const counts = Object.fromEntries(["red", "orange", "yellow"].map((tier) => [tier, scenarios.filter((scenario) => scenario.watchlistTier === tier).length]));
-  assert.deepEqual(counts, { red: 4, orange: 22, yellow: 6 });
-  assert.equal(scenarios.filter((scenario) => scenario.featured).length, 10);
+  assert.deepEqual(counts, { red: 3, orange: 14, yellow: 4 });
+  assert.equal(scenarios.filter((scenario) => scenario.featured).length, 6);
+  assert.deepEqual(Object.fromEntries(systemTemplates.map((pattern) => [pattern.id, scenarios.filter((scenario) => scenario.maintenancePatternId === pattern.id).length])), Object.fromEntries(systemTemplates.map((pattern) => [pattern.id, 3])));
   for (const scenario of scenarios) {
     assert.equal(scenario.system.id, scenario.id, scenario.id);
     assert.equal(scenario.system.title, scenario.title, scenario.id);
+    assert.equal(scenario.system.domain, scenario.category, scenario.id);
+    assert.equal(scenario.system.maintenancePatternId, scenario.maintenancePatternId, scenario.id);
+    assert.ok(scenario.system.dynamicTraits.length >= 3, scenario.id);
     assert.ok(scenario.system.operator && scenario.system.boundary && scenario.system.population && scenario.system.horizon && scenario.system.aggregation, scenario.id);
     assert.ok(scenario.protocols.length >= 5, scenario.id);
     assert.equal(scenario.protocols.find((protocol) => protocol.id === scenario.defaultProtocolId)?.parameters, scenario.defaults, scenario.id);
@@ -97,8 +100,8 @@ test("the catalog publishes 32 bounded systems with separate derived watchlist a
   }
 });
 
-test("templates, scenarios, interventions, and plans are reusable first-class contracts", () => {
-  assert.equal(systemTemplates.length, 8);
+test("maintenance patterns, scenarios, interventions, and plans are reusable first-class contracts", () => {
+  assert.equal(systemTemplates.length, 7);
   assert.equal(scenarioModules.length, 5);
   assert.equal(interventionDefinitions.length, 6);
   assert.equal(interventionPlans.length, 8);
@@ -109,7 +112,8 @@ test("templates, scenarios, interventions, and plans are reusable first-class co
 
   const untreated = composeLaboratoryRun({ systemId: "llm-deployment", protocolId: "compound-stress", interventionPlanId: "no-action" });
   const corrected = composeLaboratoryRun({ systemId: "llm-deployment", protocolId: "compound-stress", interventionPlanId: "layered-correction" });
-  assert.equal(untreated.template.id, "capability-correction");
+  assert.equal(untreated.maintenancePattern.id, "detection-correction");
+  assert.equal(untreated.template.id, "detection-correction");
   assert.equal(untreated.protocol.moduleId, "compound-stress");
   assert.equal(untreated.interventions.length, 0);
   assert.equal(corrected.interventionPlan.id, "layered-correction");
@@ -145,7 +149,8 @@ test("experiment runner is deterministic and aggregates an ensemble", () => {
   assert.equal(first.runs[0].frames, undefined);
   assert.match(first.experimentId, /^vtl-[0-9a-f]{8}$/);
   assert.equal(first.system.id, "llm-deployment");
-  assert.equal(first.template.id, "capability-correction");
+  assert.equal(first.maintenancePattern.id, "detection-correction");
+  assert.equal(first.template.id, "detection-correction");
   assert.equal(first.protocol.id, "llm-deployment-default");
   assert.equal(first.interventionPlan.id, "no-action");
   assert.equal(first.configuration.protocolId, first.protocol.id);
@@ -238,7 +243,7 @@ test("builder requires two independently recurrent observable phases", () => {
   const answers = emptyBuilderAnswers();
   Object.assign(answers, {
     systemName: "Emergency Department",
-    template: "human-capacity",
+    template: "flow-backlog",
     operator: "Hospital flow, staffing, bed-management, and quality teams",
     boundary: "Emergency arrivals, triage, treatment spaces, staffing, discharge paths, and safety feedback",
     population: "Patients by acuity, families, clinical staff, and the region served",
@@ -273,7 +278,7 @@ test("builder emits a schema-valid executable draft proposal with objective and 
   const answers = emptyBuilderAnswers();
   Object.assign(answers, {
     systemName: "Emergency Department",
-    template: "human-capacity",
+    template: "flow-backlog",
     operator: "Hospital flow, staffing, bed-management, and quality teams",
     boundary: "Emergency arrivals, triage, treatment spaces, staffing, discharge paths, and safety feedback",
     population: "Patients by acuity, families, clinical staff, and the region served",
@@ -305,8 +310,10 @@ test("builder emits a schema-valid executable draft proposal with objective and 
   assert.notEqual(proposal.scenario.optimizedOutcome, proposal.scenario.labels.pressure);
   assert.equal(proposal.scenario.system.operator, answers.operator);
   assert.equal(proposal.scenario.system.boundary, answers.boundary);
-  assert.equal(proposal.scenario.system.templateId, "human-capacity");
-  assert.equal(proposal.scenario.modelFamily, "human-capacity");
+  assert.equal(proposal.scenario.system.maintenancePatternId, "flow-backlog");
+  assert.equal(proposal.scenario.system.templateId, "flow-backlog");
+  assert.equal(proposal.scenario.maintenancePatternId, "flow-backlog");
+  assert.equal(proposal.scenario.modelFamily, "flow-backlog");
   assert.equal(proposal.scenario.protocols[0].systemId, proposal.scenario.system.id);
   const validation = validateScenarioProposal(proposal);
   assert.equal(validation.valid, true);
@@ -317,7 +324,8 @@ test("builder emits a schema-valid executable draft proposal with objective and 
 test("generated JSON Schema catalog is valid JSON with stable ids", async () => {
   const index = JSON.parse(await readFile(resolve("public/schemas/v1/index.json"), "utf8"));
   assert.equal(index.schemaVersion, "1.0.0");
-  assert.equal(index.schemas.length, 17);
+  assert.equal(index.schemas.length, 18);
+  assert.ok(index.schemas.some((item) => item.name === "maintenance-pattern"));
   assert.ok(index.schemas.some((item) => item.name === "system-template"));
   assert.ok(index.schemas.some((item) => item.name === "scenario-module"));
   assert.ok(index.schemas.some((item) => item.name === "intervention-definition"));

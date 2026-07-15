@@ -32,6 +32,7 @@ test("MCP server advertises and executes the agent experiment tools", async () =
       "get_scenario",
       "get_system",
       "list_interventions",
+      "list_maintenance_patterns",
       "list_scenario_modules",
       "list_scenarios",
       "list_system_templates",
@@ -44,11 +45,13 @@ test("MCP server advertises and executes the agent experiment tools", async () =
 
     const systems = await client.callTool({ name: "list_systems", arguments: { featured: true } });
     assert.equal(systems.isError, undefined);
-    assert.equal(systems.structuredContent.result.systems.length, 10);
+    assert.equal(systems.structuredContent.result.systems.length, 6);
     assert.ok(systems.structuredContent.result.systems.every((item) => item.system && item.protocols.length >= 3));
 
+    const patterns = await client.callTool({ name: "list_maintenance_patterns", arguments: {} });
+    assert.equal(patterns.structuredContent.result.maintenancePatterns.length, 7);
     const templates = await client.callTool({ name: "list_system_templates", arguments: {} });
-    assert.equal(templates.structuredContent.result.systemTemplates.length, 8);
+    assert.equal(templates.structuredContent.result.systemTemplates.length, 7);
     const modules = await client.callTool({ name: "list_scenario_modules", arguments: {} });
     assert.equal(modules.structuredContent.result.scenarioModules.length, 5);
     const interventions = await client.callTool({ name: "list_interventions", arguments: {} });
@@ -57,7 +60,8 @@ test("MCP server advertises and executes the agent experiment tools", async () =
 
     const composition = await client.callTool({ name: "compose_laboratory_run", arguments: { systemId: "llm-deployment", protocolId: "compound-stress", interventionPlanId: "layered-correction", parameters: { steps: 80 } } });
     assert.equal(composition.isError, undefined);
-    assert.equal(composition.structuredContent.result.template.id, "capability-correction");
+    assert.equal(composition.structuredContent.result.maintenancePattern.id, "detection-correction");
+    assert.equal(composition.structuredContent.result.template.id, "detection-correction");
     assert.equal(composition.structuredContent.result.protocol.moduleId, "compound-stress");
     assert.equal(composition.structuredContent.result.interventions.length, 5);
 

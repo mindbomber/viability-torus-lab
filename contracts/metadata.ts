@@ -2,7 +2,7 @@ import { MAX_INTERNAL_DT, MODEL_VERSION } from "../engine/simulator.ts";
 import { featuredSystemCount, scenarios } from "../scenarios/catalog.ts";
 import { interventionDefinitions, interventionPlans } from "../scenarios/interventions.ts";
 import { scenarioModules } from "../scenarios/protocols.ts";
-import { systemTemplates } from "../scenarios/templates.ts";
+import { maintenancePatterns } from "../scenarios/templates.ts";
 import {
   API_VERSION,
   CONTRACT_VERSION,
@@ -19,7 +19,7 @@ export function getModelManifest(origin = "") {
     contractVersion: CONTRACT_VERSION,
     apiVersion: API_VERSION,
     scientificScope: "Synthetic model behavior; bounded-system mappings and protocol parameters are hypotheses, not empirical or operational recommendations.",
-    catalogModel: "system-template → bounded-system → scenario-module → intervention-plan → run-assessment",
+    catalogModel: "maintenance-pattern → bounded-system → scenario-module → intervention-plan → run-assessment",
     evidencePolicy: {
       kind: "synthetic-model",
       empiricalValidation: false,
@@ -59,7 +59,7 @@ export function getModelManifest(origin = "") {
       calibration: "Transparent synthetic heuristics; not an empirically calibrated domain score.",
     },
     capabilities: [
-      "list-reusable-system-templates",
+      "list-maintenance-patterns",
       "list-bounded-systems-and-protocols",
       "list-and-compose-scenario-modules",
       "list-and-schedule-intervention-modules-and-plans",
@@ -80,6 +80,7 @@ export function getModelManifest(origin = "") {
       systems: url("/api/v1/systems"),
       scenarios: url("/api/v1/scenarios"),
       laboratory: url("/api/v1/laboratory"),
+      maintenancePatterns: url("/api/v1/maintenance-patterns"),
       systemTemplates: url("/api/v1/system-templates"),
       scenarioModules: url("/api/v1/scenario-modules"),
       interventions: url("/api/v1/interventions"),
@@ -97,7 +98,8 @@ export function getModelManifest(origin = "") {
       source: "https://github.com/mindbomber/viability-torus-lab",
     },
     systemCount: scenarios.length,
-    systemTemplateCount: systemTemplates.length,
+    maintenancePatternCount: maintenancePatterns.length,
+    systemTemplateCount: maintenancePatterns.length,
     scenarioModuleCount: scenarioModules.length,
     interventionDefinitionCount: interventionDefinitions.length,
     interventionPlanCount: interventionPlans.length,
